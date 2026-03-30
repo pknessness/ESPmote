@@ -1,0 +1,38 @@
+Command: cmake -G Ninja -B /home/anshalaj/esp-workspace/ESPmote/build -DPYTHON_DEPS_CHECKED=1 -DPYTHON=/home/anshalaj/.espressif/tools/python/v6.0/venv/bin/python -DESP_PLATFORM=1 -DCCACHE_ENABLE=False /home/anshalaj/esp-workspace/ESPmote
+-- Component directory /home/anshalaj/.espressif/v6.0/esp-idf/components/mqtt does not contain a CMakeLists.txt file. No component will be added
+-- Minimal build - ON
+-- git rev-parse returned 'fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).'
+-- Could not use 'git describe' to determine PROJECT_VER.
+-- Building ESP-IDF components for target esp32
+-- ESP-TEE is currently supported only on the esp32c6;esp32h2;esp32c5;esp32c61 SoCs
+-- KCONFIG_REPORT_VERBOSITY not set, using default
+-- Project sdkconfig file /home/anshalaj/esp-workspace/ESPmote/sdkconfig
+Loading defaults file /home/anshalaj/esp-workspace/ESPmote/sdkconfig.defaults...
+-- Compiler supported targets: xtensa-esp-elf
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- App "esp_hid_device" version: 1
+-- Setting up mbedtls configuration
+-- Linkage type is PUBLIC
+-- Adding linker script /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_system/ld/esp32/memory.ld.in
+--   -> Preprocessing .in script: /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_system/ld/esp32/memory.ld.in
+-- Adding linker script /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_system/ld/esp32/sections.ld.in
+--   -> Preprocessing .in script: /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_system/ld/esp32/sections.ld.in
+--   -> Applying ldgen processing: /home/anshalaj/esp-workspace/ESPmote/build/esp-idf/esp_system/ld/sections.ld.in
+-- Adding linker script /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_rom/esp32/ld/esp32.rom.ld
+-- Adding linker script /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_rom/esp32/ld/esp32.rom.api.ld
+-- Adding linker script /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_rom/esp32/ld/esp32.rom.libgcc.ld
+-- Adding linker script /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_rom/esp32/ld/esp32.rom.libc-funcs.ld
+-- Adding linker script /home/anshalaj/.espressif/v6.0/esp-idf/components/soc/esp32/ld/esp32.peripherals.ld
+-- Components: app_update bootloader bootloader_support bt cxx efuse esp_app_format esp_blockdev esp_bootloader_format esp_coex esp_common esp_driver_dma esp_driver_gpio esp_driver_spi esp_driver_uart esp_driver_usb_serial_jtag esp_event esp_gdbstub esp_hal_ana_conv esp_hal_clock esp_hal_dma esp_hal_gpio esp_hal_gpspi esp_hal_i2s esp_hal_mspi esp_hal_pmu esp_hal_rtc_timer esp_hal_security esp_hal_timg esp_hal_touch_sens esp_hal_uart esp_hal_usb esp_hal_wdt esp_hid esp_hw_support esp_libc esp_mm esp_netif esp_netif_stack esp_partition esp_phy esp_pm esp_psram esp_ringbuf esp_rom esp_security esp_stdio esp_system esp_timer esp_usb_cdc_rom_console esp_wifi esptool_py freertos hal heap log lwip main mbedtls nvs_flash nvs_sec_provider partition_table pthread soc spi_flash vfs wpa_supplicant xtensa
+-- Component paths: /home/anshalaj/.espressif/v6.0/esp-idf/components/app_update /home/anshalaj/.espressif/v6.0/esp-idf/components/bootloader /home/anshalaj/.espressif/v6.0/esp-idf/components/bootloader_support /home/anshalaj/.espressif/v6.0/esp-idf/components/bt /home/anshalaj/.espressif/v6.0/esp-idf/components/cxx /home/anshalaj/.espressif/v6.0/esp-idf/components/efuse /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_app_format /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_blockdev /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_bootloader_format /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_coex /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_common /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_driver_dma /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_driver_gpio /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_driver_spi /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_driver_uart /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_driver_usb_serial_jtag /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_event /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_gdbstub /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_hal_ana_conv /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_hal_clock /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_hal_dma /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_hal_gpio /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_hal_gpspi /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_hal_i2s /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_hal_mspi /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_hal_pmu /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_hal_rtc_timer /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_hal_security /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_hal_timg /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_hal_touch_sens /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_hal_uart /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_hal_usb /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_hal_wdt /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_hid /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_hw_support /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_libc /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_mm /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_netif /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_netif_stack /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_partition /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_phy /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_pm /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_psram /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_ringbuf /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_rom /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_security /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_stdio /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_system /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_timer /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_usb_cdc_rom_console /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_wifi /home/anshalaj/.espressif/v6.0/esp-idf/components/esptool_py /home/anshalaj/.espressif/v6.0/esp-idf/components/freertos /home/anshalaj/.espressif/v6.0/esp-idf/components/hal /home/anshalaj/.espressif/v6.0/esp-idf/components/heap /home/anshalaj/.espressif/v6.0/esp-idf/components/log /home/anshalaj/.espressif/v6.0/esp-idf/components/lwip /home/anshalaj/esp-workspace/ESPmote/main /home/anshalaj/.espressif/v6.0/esp-idf/components/mbedtls /home/anshalaj/.espressif/v6.0/esp-idf/components/nvs_flash /home/anshalaj/.espressif/v6.0/esp-idf/components/nvs_sec_provider /home/anshalaj/.espressif/v6.0/esp-idf/components/partition_table /home/anshalaj/.espressif/v6.0/esp-idf/components/pthread /home/anshalaj/.espressif/v6.0/esp-idf/components/soc /home/anshalaj/.espressif/v6.0/esp-idf/components/spi_flash /home/anshalaj/.espressif/v6.0/esp-idf/components/vfs /home/anshalaj/.espressif/v6.0/esp-idf/components/wpa_supplicant /home/anshalaj/.espressif/v6.0/esp-idf/components/xtensa
+-- Configuring done (10.2s)
+-- Generating done (0.7s)
+-- Build files have been written to: /home/anshalaj/esp-workspace/ESPmote/build

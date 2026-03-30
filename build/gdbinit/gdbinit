@@ -1,0 +1,2 @@
+source /home/anshalaj/esp-workspace/ESPmote/build/gdbinit/symbols
+source /home/anshalaj/esp-workspace/ESPmote/build/gdbinit/connect

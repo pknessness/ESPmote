@@ -1,0 +1,9 @@
+Command: cmake -G Ninja -B /home/anshalaj/esp-workspace/ESPmote/build -DPYTHON_DEPS_CHECKED=1 -DPYTHON=/home/anshalaj/.espressif/tools/python/v6.0/venv/bin/python -DESP_PLATFORM=1 -DCCACHE_ENABLE=False /home/anshalaj/esp-workspace/ESPmote
+Configuration Report               
+ ───────────────────────────────── 
+   Parser Version: 1               
+   Verbosity: default              
+   Defaults policy: sdkconfig      
+   Status: Finished successfully   
+                                   
+ ───────────────────────────────── 
