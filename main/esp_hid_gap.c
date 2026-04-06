@@ -484,13 +484,11 @@ static esp_err_t init_bt_gap(void)
      * Set default parameters for Legacy Pairing
      * Use fixed pin code
      */
-    esp_bt_pin_type_t pin_type = ESP_BT_PIN_TYPE_FIXED;
-    esp_bt_pin_code_t pin_code;
-    pin_code[0] = '1';
-    pin_code[1] = '2';
-    pin_code[2] = '3';
-    pin_code[3] = '4';
-    esp_bt_gap_set_pin(pin_type, 4, pin_code);
+    esp_bt_pin_type_t pin_type = ESP_BT_PIN_TYPE_VARIABLE;
+    esp_bt_pin_code_t pin_code; //doesnt matter because its variable so it will use callback
+    esp_bt_gap_set_pin(pin_type, 6, pin_code); 
+	
+	ESP_LOGI(TAG, "VARIABLE PIN SET: 1234");
 
     if ((ret = esp_bt_gap_register_callback(bt_gap_event_handler)) != ESP_OK) {
         ESP_LOGE(TAG, "esp_bt_gap_register_callback failed: %d", ret);
