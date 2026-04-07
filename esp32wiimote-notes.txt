@@ -1,0 +1,262 @@
+ESP32Wiimote-program flow, for reverse engineering
+
+typedef struct tinywii_device_callback {
+    void (*hci_send_packet)(uint8_t *data, size_t len);
+} TwHciInterface;
+
+const TwHciInterface ESP32Wiimote::tinywii_hci_interface = {
+  ESP32Wiimote::hciHostSendPacket(uint8_t* data, size_t len)
+};
+
+Init:
+-ESP32Wiimote::init
+--TinyWiiMoteInit(tinywii_hci_interface)
+---*Sets hci interface and sets recievedData cnt, wp, rp to 0
+--ESP32Wiimote::createQueue
+---*Creates tx and rx queue RTOS-style
+--*set vhci host recv and send callback
+--*btstart, as well as setting vhci host register callback
+-*filter? idk
+
+Loop:
+-ESP32Wiimote::task
+--ESP32Wiimote::handleTxQueue
+--*check if tx queue has messages to send and if vhci can send, then send through esp_vhci_host_send_packet
+---first data is event type, either handleHciEvent
+--ESP32Wiimote::handleRxQueue
+--*check if rx queue has messages to recv, then recv through handleHciData
+--TinyWiiMote::handleHciData
+
+https://wiki.osdev.org/USB_Human_Interface_Devices
+https://www.amd.e-technik.uni-rostock.de/ma/gol/lectures/wirlec/bluetooth_info/l2cap.html
+https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Core-54/out/en/host-controller-interface/host-controller-interface-functional-specification.html
+https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Core-54/out/en/host/logical-link-control-and-adaptation-protocol-specification.html
+
+My Mote:
+{'host': 'E8:6B:EA:DF:C2:2A', 'name': b'Nintendo RVL-CNT-01\x00', 'description': 'Nintendo RVL-CNT-01', 'port': 17, 'protocol': 'L2CAP', 'rawrecord': b'6\x01U\t\x00\x00\n\x00\x01\x00\x00\t\x00\x015\x03\x19\x11$\t\x00\x045\r5\x06\x19\x01\x00\t\x00\x115\x03\x19\x00\x11\t\x00\x055\x03\x19\x10\x02\t\x00\x065\t\ten\t\x00j\t\x01\x00\t\x00\t5\x085\x06\x19\x11$\t\x01\x00\t\x00\r5\x0f5\r5\x06\x19\x01\x00\t\x00\x135\x03\x19\x00\x11\t\x01\x00%\x14Nintendo RVL-CNT-01\x00\t\x01\x01%\x14Nintendo RVL-CNT-01\x00\t\x01\x02%\tNintendo\x00\t\x02\x00\t\x01\x00\t\x02\x01\t\x01\x11\t\x02\x02\x08\x08\t\x02\x03\x08!\t\x02\x04(\x01\t\x02\x05(\x01\t\x02\x065p5n\x08"%j\x05\x01\t\x05\xa1\x01\x85\x10\x15\x00&\xff\x00u\x08\x95\x01\x06\x00\xff\t\x01\x91\x00\x85\x11\x95\x01\t\x01\x91\x00\x85\x12\x95\x02\t\x01\x91\x00\x85\x15\x95\x01\t\x01\x91\x00\x85\x1a\x95\x01\t\x01\x91\x00\x85 \x95\x06\t\x01\x81\x00\x85!\x95\x15\t\x01\x81\x00\x85"\x95\x04\t\x01\x81\x00\x850\x95\x02\t\x01\x81\x00\x851\x95\x05\t\x01\x81\x00\x85?\x95\x15\t\x01\x81\x00\xc0\x00\t\x02\x075\x085\x06\t\x04\t\t\x01\x00\t\x02\t(\x01\t\x02\n(\x00\t\x02\x0b\t\x01\x00\t\x02\r(\x01\t\x02\x0e(\x01', 'service-classes': [b'1124'], 'profiles': [(b'1124', 256)], 'provider': b'Nintendo\x00', 'service-id': None, 'handle': 65536}
+
+Real Mote:
+{'host': '00:1F:C5:5D:8A:82', 'name': None, 'description': '', 'port': 1, 'protocol': 'L2CAP', 'rawrecord': b'6\x00M\t\x00\x00\n\x00\x00\x00\x00\t\x00\x015\x03\x19\x10\x00\t\x00\x045\r5\x06\x19\x01\x00\t\x00\x015\x03\x19\x00\x01\t\x00\x055\x03\x19\x10\x02\t\x00\x065\t\ten\t\x00j\t\x01\x00\t\x00\t5\x085\x06\x19\x01\x00\t\x01\x00\t\x02\x005\x03\t\x01\x00', 'service-classes': [b'1000'], 'profiles': [(b'0100', 256)], 'provider': None, 'service-id': None, 'handle': 0}
+{'host': '00:1F:C5:5D:8A:82', 'name': b'Nintendo RVL-CNT-01', 'description': 'Nintendo RVL-CNT-01', 'port': 17, 'protocol': 'L2CAP', 'rawrecord': b'6\x01\xcc\t\x00\x00\n\x00\x01\x00\x00\t\x00\x015\x03\x19\x11$\t\x00\x045\r5\x06\x19\x01\x00\t\x00\x115\x03\x19\x00\x11\t\x00\x055\x03\x19\x10\x02\t\x00\x065\t\ten\t\x00j\t\x01\x00\t\x00\t5\x085\x06\x19\x11$\t\x01\x00\t\x00\r5\x0f5\r5\x06\x19\x01\x00\t\x00\x135\x03\x19\x00\x11\t\x01\x00%\x13Nintendo RVL-CNT-01\t\x01\x01%\x13Nintendo RVL-CNT-01\t\x01\x02%\x08Nintendo\t\x02\x00\t\x01\x00\t\x02\x01\t\x01\x11\t\x02\x02\x08\x04\t\x02\x03\x083\t\x02\x04(\x00\t\x02\x05(\x01\t\x02\x065\xdf5\xdd\x08"%\xd9\x05\x01\t\x05\xa1\x01\x85\x10\x15\x00&\xff\x00u\x08\x95\x01\x06\x00\xff\t\x01\x91\x00\x85\x11\x95\x01\t\x01\x91\x00\x85\x12\x95\x02\t\x01\x91\x00\x85\x13\x95\x01\t\x01\x91\x00\x85\x14\x95\x01\t\x01\x91\x00\x85\x15\x95\x01\t\x01\x91\x00\x85\x16\x95\x15\t\x01\x91\x00\x85\x17\x95\x06\t\x01\x91\x00\x85\x18\x95\x15\t\x01\x91\x00\x85\x19\x95\x01\t\x01\x91\x00\x85\x1a\x95\x01\t\x01\x91\x00\x85 \x95\x06\t\x01\x81\x00\x85!\x95\x15\t\x01\x81\x00\x85"\x95\x04\t\x01\x81\x00\x850\x95\x02\t\x01\x81\x00\x851\x95\x05\t\x01\x81\x00\x852\x95\n\t\x01\x81\x00\x853\x95\x11\t\x01\x81\x00\x854\x95\x15\t\x01\x81\x00\x855\x95\x15\t\x01\x81\x00\x856\x95\x15\t\x01\x81\x00\x857\x95\x15\t\x01\x81\x00\x85=\x95\x15\t\x01\x81\x00\x85>\x95\x15\t\x01\x81\x00\x85?\x95\x15\t\x01\x81\x00\xc0\t\x02\x075\x085\x06\t\x04\t\t\x01\x00\t\x02\x08(\x00\t\x02\t(\x01\t\x02\n(\x01\t\x02\x0b\t\x01\x00\t\x02\x0c\t\x0c\x80\t\x02\r(\x00\t\x02\x0e(\x00', 'service-classes': [b'1124'], 'profiles': [(b'1124', 256)], 'provider': b'Nintendo', 'service-id': None, 'handle': 65536}
+{'host': '00:1F:C5:5D:8A:82', 'name': None, 'description': '', 'port': 1, 'protocol': 'L2CAP', 'rawrecord': b'6\x00Z\t\x00\x00\n\x00\x01\x00\x01\t\x00\x015\x03\x19\x12\x00\t\x00\x045\r5\x06\x19\x01\x00\t\x00\x015\x03\x19\x00\x01\t\x00\x055\x03\x19\x10\x02\t\x00\t5\x085\x06\x19\x12\x00\t\x01\x00\t\x02\x00\t\x01\x00\t\x02\x01\t\x05~\t\x02\x02\t\x03\x06\t\x02\x03\t\x06\x00\t\x02\x04(\x01\t\x02\x05\t\x00\x02', 'service-classes': [b'1200'], 'profiles': [(b'1200', 256)], 'provider': None, 'service-id': None, 'handle': 65537}
+
+00:1F:C5:5D:8A:82 None: 36 00 4d 09 00 00 0a 00 00 00 00 09 00 01 35 03 19 10 00 09 00 04 35 0d 35 06 19 01 00 09 00 01 35 03 19 00 01 09 00 05 35 03 19 10 02 09 00 06 35 09 09 65 6e 09 
+00 6a 09 01 00 09 00 09 35 08 35 06 19 01 00 09 01 00 09 02 00 35 03 09 01 00
+
+00:1F:C5:5D:8A:82 b'Nintendo RVL-CNT-01': 36 01 cc 09 00 00 0a 00 01 00 00 09 00 01 35 03 19 11 24 09 00 04 35 0d 35 06 19 01 00 09 00 11 35 03 19 00 11 09 00 05 35 03 19 10 02 09 00 06 
+35 09 09 65 6e 09 00 6a 09 01 00 09 00 09 35 08 35 06 19 11 24 09 01 00 09 00 0d 35 0f 35 0d 35 06 19 01 00 09 00 13 35 03 19 00 11 09 01 00 25 13 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 
+43 4e 54 2d 30 31 09 01 01 25 13 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 09 01 02 25 08 4e 69 6e 74 65 6e 64 6f 09 02 00 09 01 00 09 02 01 09 01 11 09 02 02 08 04 09 02 
+03 08 33 09 02 04 28 00 09 02 05 28 01 09 02 06 35 df 35 dd 08 22 25 d9 05 01 09 05 a1 01 85 10 15 00 26 ff 00 75 08 95 01 06 00 ff 09 01 91 00 85 11 95 01 09 01 91 00 85 12 95 02 09 01 
+91 00 85 13 95 01 09 01 91 00 85 14 95 01 09 01 91 00 85 15 95 01 09 01 91 00 85 16 95 15 09 01 91 00 85 17 95 06 09 01 91 00 85 18 95 15 09 01 91 00 85 19 95 01 09 01 91 00 85 1a 95 01 
+09 01 91 00 85 20 95 06 09 01 81 00 85 21 95 15 09 01 81 00 85 22 95 04 09 01 81 00 85 30 95 02 09 01 81 00 85 31 95 05 09 01 81 00 85 32 95 0a 09 01 81 00 85 33 95 11 09 01 81 00 85 34 
+95 15 09 01 81 00 85 35 95 15 09 01 81 00 85 36 95 15 09 01 81 00 85 37 95 15 09 01 81 00 85 3d 95 15 09 01 81 00 85 3e 95 15 09 01 81 00 85 3f 95 15 09 01 81 00 c0 09 02 07 35 08 35 06 
+09 04 09 09 01 00 09 02 08 28 00 09 02 09 28 01 09 02 0a 28 01 09 02 0b 09 01 00 09 02 0c 09 0c 80 09 02 0d 28 00 09 02 0e 28 00
+
+00:1F:C5:5D:8A:82 None: 36 00 5a 09 00 00 0a 00 01 00 01 09 00 01 35 03 19 12 00 09 00 04 35 0d 35 06 19 01 00 09 00 01 35 03 19 00 01 09 00 05 35 03 19 10 02 09 00 09 35 08 35 06 19 12 
+00 09 01 00 09 02 00 09 01 00 09 02 01 09 05 7e 09 02 02 09 03 06 09 02 03 09 06 00 09 02 04 28 01 09 02 05 09 00 02
+
+My Mote old:
+{'host': 'E8:6B:EA:DF:C2:2A', 'name': b'Wiimote\x00', 'description': 'WiiSPmote', 'port': 17, 'protocol': 'L2CAP', 'rawrecord': b'6\x01=\t\x00\x00\n\x00\x01\x00\x00\t\x00\x015\x03\x19\x11$\t\x00\x045\r5\x06\x19\x01\x00\t\x00\x115\x03\x19\x00\x11\t\x00\x055\x03\x19\x10\x02\t\x00\x065\t\ten\t\x00j\t\x01\x00\t\x00\t5\x085\x06\x19\x11$\t\x01\x00\t\x00\r5\x0f5\r5\x06\x19\x01\x00\t\x00\x135\x03\x19\x00\x11\t\x01\x00%\x08Wiimote\x00\t\x01\x01%\nWiiSPmote\x00\t\x01\x02%\x07PkNess\x00\t\x02\x00\t\x01\x00\t\x02\x01\t\x01\x11\t\x02\x02\x08\x08\t\x02\x03\x08!\t\x02\x04(\x01\t\x02\x05(\x01\t\x02\x065p5n\x08"%j\x05\x01\t\x05\xa1\x01\x85\x10\x15\x00&\xff\x00u\x08\x95\x01\x06\x00\xff\t\x01\x91\x00\x85\x11\x95\x01\t\x01\x91\x00\x85\x12\x95\x02\t\x01\x91\x00\x85\x15\x95\x01\t\x01\x91\x00\x85\x1a\x95\x01\t\x01\x91\x00\x85 \x95\x06\t\x01\x81\x00\x85!\x95\x15\t\x01\x81\x00\x85"\x95\x04\t\x01\x81\x00\x850\x95\x02\t\x01\x81\x00\x851\x95\x05\t\x01\x81\x00\x85?\x95\x15\t\x01\x81\x00\xc0\x00\t\x02\x075\x085\x06\t\x04\t\t\x01\x00\t\x02\t(\x01\t\x02\n(\x00\t\x02\x0b\t\x01\x00\t\x02\r(\x01\t\x02\x0e(\x01', 'service-classes': [b'1124'], 'profiles': [(b'1124', 256)], 'provider': b'PkNess\x00', 'service-id': None, 'handle': 65536}
+
+id of test ESP:
+E8 6B EA DF C2 2A
+
+id of test Orca wiimote:
+00 1F C5 5D 8A 82
+device class:
+0x002504 PERIPHERAL 0x1(minor) 0x1(service)
+
+static uint8_t mote_service_buffer_1[] = {0x36, 0x00, 0x4d, 0x09, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x09, 0x00, 0x01, 0x35, 0x03, 0x19, 0x10, 0x00, 0x09, 0x00, 0x04, 0x35, 0x0d, 0x35, 0x06, 0x19, 0x01, 0x00, 0x09, 0x00, 0x01, 0x35, 0x03, 0x19, 0x00, 0x01, 0x09, 0x00, 0x05, 0x35, 0x03, 0x19, 0x10, 0x02, 0x09, 0x00, 0x06, 0x35, 0x09, 0x09, 0x65, 0x6e, 0x09, 0x00, 0x6a, 0x09, 0x01, 0x00, 0x09, 0x00, 0x09, 0x35, 0x08, 0x35, 0x06, 0x19, 0x01, 0x00, 0x09, 0x01, 0x00, 0x09, 0x02, 0x00, 0x35, 0x03, 0x09, 0x01, 0x00};
+static uint8_t mote_service_buffer_2[] = {0x36, 0x01, 0xcc, 0x09, 0x00, 0x00, 0x0a, 0x00, 0x01, 0x00, 0x00, 0x09, 0x00, 0x01, 0x35, 0x03, 0x19, 0x11, 0x24, 0x09, 0x00, 0x04, 0x35, 0x0d, 0x35, 0x06, 0x19, 0x01, 0x00, 0x09, 0x00, 0x11, 0x35, 0x03, 0x19, 0x00, 0x11, 0x09, 0x00, 0x05, 0x35, 0x03, 0x19, 0x10, 0x02, 0x09, 0x00, 0x06, 0x35, 0x09, 0x09, 0x65, 0x6e, 0x09, 0x00, 0x6a, 0x09, 0x01, 0x00, 0x09, 0x00, 0x09, 0x35, 0x08, 0x35, 0x06, 0x19, 0x11, 0x24, 0x09, 0x01, 0x00, 0x09, 0x00, 0x0d, 0x35, 0x0f, 0x35, 0x0d, 0x35, 0x06, 0x19, 0x01, 0x00, 0x09, 0x00, 0x13, 0x35, 0x03, 0x19, 0x00, 0x11, 0x09, 0x01, 0x00, 0x25, 0x13, 0x4e, 0x69, 0x6e, 0x74, 0x65, 0x6e, 0x64, 0x6f, 0x20, 0x52, 0x56, 0x4c, 0x2d, 0x43, 0x4e, 0x54, 0x2d, 0x30, 0x31, 0x09, 0x01, 0x01, 0x25, 0x13, 0x4e, 0x69, 0x6e, 0x74, 0x65, 0x6e, 0x64, 0x6f, 0x20, 0x52, 0x56, 0x4c, 0x2d, 0x43, 0x4e, 0x54, 0x2d, 0x30, 0x31, 0x09, 0x01, 0x02, 0x25, 0x08, 0x4e, 0x69, 0x6e, 0x74, 0x65, 0x6e, 0x64, 0x6f, 0x09, 0x02, 0x00, 0x09, 0x01, 0x00, 0x09, 0x02, 0x01, 0x09, 0x01, 0x11, 0x09, 0x02, 0x02, 0x08, 0x04, 0x09, 0x02, 0x03, 0x08, 0x33, 0x09, 0x02, 0x04, 0x28, 0x00, 0x09, 0x02, 0x05, 0x28, 0x01, 0x09, 0x02, 0x06, 0x35, 0xdf, 0x35, 0xdd, 0x08, 0x22, 0x25, 0xd9, 0x05, 0x01, 0x09, 0x05, 0xa1, 0x01, 0x85, 0x10, 0x15, 0x00, 0x26, 0xff, 0x00, 0x75, 0x08, 0x95, 0x01, 0x06, 0x00, 0xff, 0x09, 0x01, 0x91, 0x00, 0x85, 0x11, 0x95, 0x01, 0x09, 0x01, 0x91, 0x00, 0x85, 0x12, 0x95, 0x02, 0x09, 0x01, 0x91, 0x00, 0x85, 0x13, 0x95, 0x01, 0x09, 0x01, 0x91, 0x00, 0x85, 0x14, 0x95, 0x01, 0x09, 0x01, 0x91, 0x00, 0x85, 0x15, 0x95, 0x01, 0x09, 0x01, 0x91, 0x00, 0x85, 0x16, 0x95, 0x15, 0x09, 0x01, 0x91, 0x00, 0x85, 0x17, 0x95, 0x06, 0x09, 0x01, 0x91, 0x00, 0x85, 0x18, 0x95, 0x15, 0x09, 0x01, 0x91, 0x00, 0x85, 0x19, 0x95, 0x01, 0x09, 0x01, 0x91, 0x00, 0x85, 0x1a, 0x95, 0x01, 0x09, 0x01, 0x91, 0x00, 0x85, 0x20, 0x95, 0x06, 0x09, 0x01, 0x81, 0x00, 0x85, 0x21, 0x95, 0x15, 0x09, 0x01, 0x81, 0x00, 0x85, 0x22, 0x95, 0x04, 0x09, 0x01, 0x81, 0x00, 0x85, 0x30, 0x95, 0x02, 0x09, 0x01, 0x81, 0x00, 0x85, 0x31, 0x95, 0x05, 0x09, 0x01, 0x81, 0x00, 0x85, 0x32, 0x95, 0x0a, 0x09, 0x01, 0x81, 0x00, 0x85, 0x33, 0x95, 0x11, 0x09, 0x01, 0x81, 0x00, 0x85, 0x34, 0x95, 0x15, 0x09, 0x01, 0x81, 0x00, 0x85, 0x35, 0x95, 0x15, 0x09, 0x01, 0x81, 0x00, 0x85, 0x36, 0x95, 0x15, 0x09, 0x01, 0x81, 0x00, 0x85, 0x37, 0x95, 0x15, 0x09, 0x01, 0x81, 0x00, 0x85, 0x3d, 0x95, 0x15, 0x09, 0x01, 0x81, 0x00, 0x85, 0x3e, 0x95, 0x15, 0x09, 0x01, 0x81, 0x00, 0x85, 0x3f, 0x95, 0x15, 0x09, 0x01, 0x81, 0x00, 0xc0, 0x09, 0x02, 0x07, 0x35, 0x08, 0x35, 0x06, 0x09, 0x04, 0x09, 0x09, 0x01, 0x00, 0x09, 0x02, 0x08, 0x28, 0x00, 0x09, 0x02, 0x09, 0x28, 0x01, 0x09, 0x02, 0x0a, 0x28, 0x01, 0x09, 0x02, 0x0b, 0x09, 0x01, 0x00, 0x09, 0x02, 0x0c, 0x09, 0x0c, 0x80, 0x09, 0x02, 0x0d, 0x28, 0x00, 0x09, 0x02, 0x0e, 0x28, 0x00};
+static uint8_t mote_service_buffer_3[] = {0x36, 0x00, 0x5a, 0x09, 0x00, 0x00, 0x0a, 0x00, 0x01, 0x00, 0x01, 0x09, 0x00, 0x01, 0x35, 0x03, 0x19, 0x12, 0x00, 0x09, 0x00, 0x04, 0x35, 0x0d, 0x35, 0x06, 0x19, 0x01, 0x00, 0x09, 0x00, 0x01, 0x35, 0x03, 0x19, 0x00, 0x01, 0x09, 0x00, 0x05, 0x35, 0x03, 0x19, 0x10, 0x02, 0x09, 0x00, 0x09, 0x35, 0x08, 0x35, 0x06, 0x19, 0x12, 0x00, 0x09, 0x01, 0x00, 0x09, 0x02, 0x00, 0x09, 0x01, 0x00, 0x09, 0x02, 0x01, 0x09, 0x05, 0x7e, 0x09, 0x02, 0x02, 0x09, 0x03, 0x06, 0x09, 0x02, 0x03, 0x09, 0x06, 0x00, 0x09, 0x02, 0x04, 0x28, 0x01, 0x09, 0x02, 0x05, 0x09, 0x00, 0x02};
+
+uint8_t WiiMoteHIDDescriptor[] = {
+    /*
+    |-----------------------------|
+    |           Wiimote           |
+    |-----------------------------|
+    */  
+    0x05, 0x01,        // Usage Page (Generic Desktop Ctrls)
+    0x09, 0x05,        // Usage (Game Pad)
+    0xA1, 0x01,        // Collection (Application)
+    0x85, 0x10,        //   Report ID (16) //Rumble
+    0x15, 0x00,        //   Logical Minimum (0)
+    0x26, 0xFF, 0x00,  //   Logical Maximum (255)
+    0x75, 0x08,        //   Report Size (8)
+    0x95, 0x01,        //   Report Count (1)
+    0x06, 0x00, 0xFF,  //   Usage Page (Vendor Defined 0xFF00)
+    0x09, 0x01,        //   Usage (0x01)
+    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+    0x85, 0x11,        //   Report ID (17) //Player LEDs
+    0x95, 0x01,        //   Report Count (1)
+    0x09, 0x01,        //   Usage (0x01)
+    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+    0x85, 0x12,        //   Report ID (18) //Data Reporting Mode
+    0x95, 0x02,        //   Report Count (2)
+    0x09, 0x01,        //   Usage (0x01)
+    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+    0x85, 0x13,        //   Report ID (19) //IR Camera Enable
+    0x95, 0x01,        //   Report Count (1)
+    0x09, 0x01,        //   Usage (0x01)
+    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+    0x85, 0x14,        //   Report ID (20) //Speaker Enable
+    0x95, 0x01,        //   Report Count (1)
+    0x09, 0x01,        //   Usage (0x01)
+    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+    0x85, 0x15,        //   Report ID (21) //Status Information Request
+    0x95, 0x01,        //   Report Count (1)
+    0x09, 0x01,        //   Usage (0x01)
+    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+    0x85, 0x16,        //   Report ID (22) //Write Memory and Registers
+    0x95, 0x15,        //   Report Count (21)
+    0x09, 0x01,        //   Usage (0x01)
+    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+    0x85, 0x17,        //   Report ID (23) //Read Memory and Registers
+    0x95, 0x06,        //   Report Count (6)
+    0x09, 0x01,        //   Usage (0x01)
+    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+    0x85, 0x18,        //   Report ID (24) //Speaker Data
+    0x95, 0x15,        //   Report Count (21)
+    0x09, 0x01,        //   Usage (0x01)
+    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+    0x85, 0x19,        //   Report ID (25) //Speaker Mute
+    0x95, 0x01,        //   Report Count (1)
+    0x09, 0x01,        //   Usage (0x01)
+    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+    0x85, 0x1A,        //   Report ID (26) IR Camera Enable 2
+    0x95, 0x01,        //   Report Count (1)
+    0x09, 0x01,        //   Usage (0x01)
+    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+    0x85, 0x20,        //   Report ID (32) //Status Information
+    0x95, 0x06,        //   Report Count (6)
+    0x09, 0x01,        //   Usage (0x01)
+    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    0x85, 0x21,        //   Report ID (33) //Read Memory and Registers Data
+    0x95, 0x15,        //   Report Count (21)
+    0x09, 0x01,        //   Usage (0x01)
+    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    0x85, 0x22,        //   Report ID (34) //Acknowledge output report, return function result
+    0x95, 0x04,        //   Report Count (4)
+    0x09, 0x01,        //   Usage (0x01)
+    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    0x85, 0x30,        //   Report ID (48) //Data Report: Core Buttons
+    0x95, 0x02,        //   Report Count (2)
+    0x09, 0x01,        //   Usage (0x01)
+    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    0x85, 0x31,        //   Report ID (49) //Data Report: Core Buttons and Accelerometer
+    0x95, 0x05,        //   Report Count (5)
+    0x09, 0x01,        //   Usage (0x01)
+    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    0x85, 0x32,        //   Report ID (50) //Data Report: Core Buttons with 8 Extension Bytes
+    0x95, 0x0A,        //   Report Count (10)
+    0x09, 0x01,        //   Usage (0x01)
+    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    0x85, 0x33,        //   Report ID (51) //Data Report: Core Buttons with 12 IR Bytes
+    0x95, 0x11,        //   Report Count (17)
+    0x09, 0x01,        //   Usage (0x01)
+    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    0x85, 0x34,        //   Report ID (52) //Data Report: Core Buttons with 19 Extension Bytes
+    0x95, 0x15,        //   Report Count (21)
+    0x09, 0x01,        //   Usage (0x01)
+    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    0x85, 0x35,        //   Report ID (53) //Data Report: Core Buttons and Accelerometer with 16 Extension Bytes
+    0x95, 0x15,        //   Report Count (21)
+    0x09, 0x01,        //   Usage (0x01)
+    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    0x85, 0x36,        //   Report ID (54) //Data Report: Core Buttons with 10 IR bytes and 9 Extension Bytes
+    0x95, 0x15,        //   Report Count (21)
+    0x09, 0x01,        //   Usage (0x01)
+    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    0x85, 0x37,        //   Report ID (55) //Data Report: Core Buttons and Accelerometer with 10 IR bytes and 6 Extension Bytes
+    0x95, 0x15,        //   Report Count (21)
+    0x09, 0x01,        //   Usage (0x01)
+    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    0x85, 0x3D,        //   Report ID (61) //Data Report: 21 Extension Bytes
+    0x95, 0x15,        //   Report Count (21)
+    0x09, 0x01,        //   Usage (0x01)
+    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    0x85, 0x3E,        //   Report ID (62) //Data Report: Interleaved Core Buttons and Accelerometer with 36 IR bytes
+    0x95, 0x15,        //   Report Count (21)
+    0x09, 0x01,        //   Usage (0x01)
+    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    0x85, 0x3F,        //   Report ID (63) //Data Report: Interleaved Core Buttons and Accelerometer with 36 IR bytes
+    0x95, 0x15,        //   Report Count (21)
+    0x09, 0x01,        //   Usage (0x01)
+    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+    0xC0,              // End Collection
+};
+
+static const uint32_t nintendo_ouis[66] =
+{
+  0xECC40D, 0xE84ECE, 0xE0F6B5, 0xE0E751, 0xE00C7F, 0xDC68EB, 0xD86BF7, 0xD4F057,
+  0xCCFB65, 0xCC9E00, 0xB8AE6E, 0xB88AEC, 0xB87826, 0xA4C0E1, 0xA45C27, 0xA438CC,
+  0x9CE635, 0x98E8FA, 0x98B6E9, 0x98415C, 0x9458CB, 0x8CCDE8, 0x8C56C5, 0x7CBB8A,
+  0x78A2A0, 0x7048F7, 0x64B5C6, 0x606BFF, 0x5C521E, 0x58BDA3, 0x582F40, 0x48A5E7,
+  0x40F407, 0x40D28A, 0x34AF2C, 0x342FBD, 0x2C10C1, 0x182A7B, 0x0403D6, 0x002709,
+  0x002659, 0x0025A0, 0x0024F3, 0x002444, 0x00241E, 0x0023CC, 0x002331, 0x0022D7,
+  0x0022AA, 0x00224C, 0x0021BD, 0x002147, 0x001FC5, 0x001F32, 0x001EA9, 0x001E35,
+  0x001DBC, 0x001CBE, 0x001BEA, 0x001B7A, 0x001AE9, 0x0019FD, 0x00191D, 0x0017AB,
+  0x001656, 0x0009BF
+};
+
+
+WiiMoteEmulator flow path:
+Init:
+-signal(SIGINT, sig_handler);
+-signal(SIGTERM, sig_handler);
+-signal(SIGHUP, sig_handler);
+-set_up_device(NULL)
+--hci_open_dev(device_id); //opens bt adapter
+--set_up_device_addr(dd, device_id) //changes addr to nintendo OUI
+--set_up_device_name(dd)
+--set_up_device_class(dd)
+--set_up_device_inquiry(dd)
+--set_up_simple_pairing_mode(dd)
+--hci_close_dev(dd)
+-register_wiimote_sdp_record()
+--sdp_connect(BDADDR_ANY, BDADDR_LOCAL, SDP_RETRY_IF_BUSY)
+--sdp_device_record_register_binary(session, BDADDR_ANY, (uint8_t *)attributes, sizeof(attributes), SDP_RECORD_PERSIST, &sdp_record_handle)
+--sdp_close(session)
+-wiimote_init(&state)
+-listen_for_connections()
+--
+
+Pinkmote:
+Name: CC-9E-00-DE-8C-EC / Nintendo RVL-CNT-01 (both)
+CC:9E:00:DE:8C:EC
+bluetoothctl:
+Device CC:9E:00:DE:8C:EC (public)
+        Name: Nintendo RVL-CNT-01
+        Alias: Nintendo RVL-CNT-01
+        Class: 0x00002504 (9476)
+        Icon: input-gaming
+        Paired: no
+        Bonded: no
+        Trusted: no
+        Blocked: no
+        Connected: no
+        LegacyPairing: yes
+        CablePairing: no
+        RSSI: 0xffffffc7 (-57)
+
+SDP_TOOL
+OrcaMote: 
+
+
+JTAG: WROOM to F232H
+ESP32 Pin           JTAG Signal
+MTDO / GPIO15       TDO / AD2
+MTDI / GPIO12       TDI / AD1
+MTCK / GPIO13       TCK / AD0
+MTMS / GPIO14       TMS / AD3
+
+
+Traceback of SDP Record Creation:
+sdp_create_record {esp_sdp_api.c}
+btc_transfer_context {btc_task.c}
+btc_task_post -> into thread {btc_task.c}
+out of thread -> btc_thread_handler {btc_task.c}
+profile_tab[pid].btc_call (btc_stp_call_handler) {btc_sdp.c}
+btc_sdp_create_record {btc_sdp.c}
+-alloc_sdp_slot
+BTA_SdpCreateRecordByUser {btc_sdp_api.c}
