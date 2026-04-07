@@ -301,15 +301,20 @@ static void bt_gap_event_handler(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_para
             esp_bt_pin_code_t pin_code = {0};
             esp_bt_gap_pin_reply(param->pin_req.bda, true, 16, pin_code);
         } else {
-            ESP_LOGI(TAG, "Input pin code: 1234");
+            //ESP_LOGI(TAG, "Input pin code: 1234");
             esp_bt_pin_code_t pin_code;
-            pin_code[0] = '0';
-            pin_code[1] = '0';
-            pin_code[2] = '0';
-            pin_code[3] = '0';
-			//linux is stupid and sends 0000 first as a pin, then the one I actually want. I assume this is because it first guesses what the pin is based on its internal drivers, then tries the one I supply as manual
-			//For this reason, for testing, 0000 is a better pin when i have vendor/product id of a standard mouse 
-            esp_bt_gap_pin_reply(param->pin_req.bda, true, 4, pin_code);
+//            pin_code[0] = '0';
+//            pin_code[1] = '0';
+//            pin_code[2] = '0';
+//            pin_code[3] = '0';
+//linux is stupid and sends 0000 first as a pin, then the one I actually want. I assume this is because it first guesses what the pin is based on its internal drivers, then tries the one I supply as manual
+//For this reason, for testing, 0000 is a better pin when i have vendor/product id of a standard mouse 
+
+			for(int i = 0; i < 6; i ++){
+				pin_code[i] = param->pin_req.bda[5-i]; //param->pin_req.bda[5-i];
+			}
+			ESP_LOGI(TAG, "Pin: %x %x %x %x %x %x\n",pin_code[0],pin_code[1],pin_code[2],pin_code[3],pin_code[4],pin_code[5]);
+            esp_bt_gap_pin_reply(param->pin_req.bda, true, 6, pin_code);
         }
         break;
     }
