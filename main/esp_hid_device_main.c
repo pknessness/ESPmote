@@ -30,7 +30,30 @@
 #include "esp_hidd.h"
 #include "esp_hid_gap.h"
 
+//Added by pknessness
+#include "esp_random.h"
+
 static const char *TAG = "HID_DEV_DEMO";
+
+static inline uint32_t swapEndian32(uint32_t val) {
+
+    return ((0xFF000000 & val) >> 24) |
+
+        ((0x00FF0000 & val) >> 8) |
+
+        ((0x0000FF00 & val) << 8) |
+
+        ((0x000000FF & val) << 24);
+
+}
+
+static inline uint16_t swapEndian16(uint16_t val) {
+
+    return ((0xFF00 & val) >> 8) |
+
+        ((0x00FF & val) << 8);
+
+}
 
 typedef struct
 {
@@ -40,6 +63,38 @@ typedef struct
     uint8_t *buffer;
 } local_param_t;
 
+typedef enum {
+    // Output Reports (O_) - Wii to Wii Remote
+    O_RUMBLE                         = 0x10,  // 1 byte
+    O_PLAYER_LEDS                    = 0x11,  // 1 byte
+    O_DATA_REPORTING_MODE            = 0x12,  // 2 bytes
+    O_IR_CAMERA_ENABLE               = 0x13,  // 1 byte
+    O_SPEAKER_ENABLE                 = 0x14,  // 1 byte
+    O_STATUS_INFO_REQUEST            = 0x15,  // 1 byte
+    O_WRITE_MEMORY_REGISTERS         = 0x16,  // 21 bytes
+    O_READ_MEMORY_REGISTERS          = 0x17,  // 6 bytes
+    O_SPEAKER_DATA                   = 0x18,  // 21 bytes
+    O_SPEAKER_MUTE                   = 0x19,  // 1 byte
+    O_IR_CAMERA_ENABLE_2             = 0x1a,  // 1 byte
+    
+    // Input Reports (I_) - Wii Remote to Wii
+    I_STATUS_INFO                    = 0x20,  // BB BB LF 00 00 VV
+    I_READ_MEMORY_REGISTERS_DATA     = 0x21,  // BB BB SE AA AA DD...
+    I_ACK_OUTPUT_REPORT              = 0x22,  // BB BB RR EE
+    
+    // Data Reports (I_)
+    I_CORE_BUTTONS                   = 0x30,  // BB BB
+    I_CORE_BUTTONS_ACCEL             = 0x31,  // BB BB AA AA AA
+    I_CORE_BUTTONS_8_EXT             = 0x32,  // BB BB + 8 EE
+    I_CORE_BUTTONS_ACCEL_12_IR       = 0x33,  // BB BB AA AA AA + 12 II
+    I_CORE_BUTTONS_19_EXT            = 0x34,  // BB BB + 19 EE
+    I_CORE_BUTTONS_ACCEL_16_EXT      = 0x35,  // BB BB AA AA AA + 16 EE
+    I_CORE_BUTTONS_10_IR_9_EXT       = 0x36,  // BB BB + 10 II + 9 EE
+    I_CORE_BUTTONS_ACCEL_10_IR_6_EXT = 0x37,  // BB BB AA AA AA + 10 II + 6 EE
+    I_EXT_21_BYTES                   = 0x3d,  // 21 EE (no core buttons)
+    I_INTERLEAVED_36_IR              = 0x3e,  // Interleaved Core Buttons + Accelerometer + 36 IR bytes
+    I_INTERLEAVED_36_IR_ALT          = 0x3f   // Interleaved Core Buttons + Accelerometer + 36 IR bytes (alternate)
+} wii_report_id_t;
 
 #if CONFIG_BT_HID_DEVICE_ENABLED
 static local_param_t s_bt_hid_param = {0};
@@ -177,6 +232,11 @@ static esp_hid_device_config_t bt_hid_config = {
     .report_maps_len    = 1
 };
 
+// Operational Variables
+bool continuousReporting = false;
+uint8_t reportingMode = 0x30;
+bool rumbling = false;
+
 // send the buttons, change in x, and change in y
 void send_mouse(uint8_t buttons, char dx, char dy, char wheel)
 {
@@ -234,10 +294,59 @@ void bt_hid_demo_task(void *pvParameters)
     }
 }
 
+////first byte
+//static const uint8_t BUTTONS_SHIFT_DPAD_LEFT = 0;
+//static const uint8_t BUTTONS_SHIFT_DPAD_RIGHT = 1;
+//static const uint8_t BUTTONS_SHIFT_DPAD_DOWN = 2;
+//static const uint8_t BUTTONS_SHIFT_DPAD_UP = 3;
+//static const uint8_t BUTTONS_SHIFT_DPAD_PLUS = 4;
+//
+////second byte
+//static const uint8_t BUTTONS_SHIFT_TWO = 0;
+//static const uint8_t BUTTONS_SHIFT_ONE = 1;
+//static const uint8_t BUTTONS_SHIFT_B = 2;
+//static const uint8_t BUTTONS_SHIFT_A = 3;
+//static const uint8_t BUTTONS_SHIFT_MINUS = 4;
+//
+//static const uint8_t BUTTONS_SHIFT_HOME = 7;
+
+// send the buttons, change in x, and change in y
+void mote_output_data_core()
+{
+    static uint8_t buffer[3] = {0};
+    buffer[0] = 0x30;
+	int rand = esp_random();
+    buffer[1] = rand & 0xFF;
+    buffer[2] = (rand >> 8) & 0xFF;
+    esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0, buffer, 3);
+}
+
+void mote_hid_main_task(void *pvParameters)
+{
+    static const char* help_string = "########################################################################\n"\
+    "BT hid mouse demo usage:\n"\
+    "You can input these value to simulate mouse: 'q', 'w', 'e', 'a', 's', 'd', 'h'\n"\
+    "q -- click the left key\n"\
+    "w -- move up\n"\
+    "e -- click the right key\n"\
+    "a -- move left\n"\
+    "s -- move down\n"\
+    "d -- move right\n"\
+    "h -- show the help\n"\
+    "########################################################################\n";
+    printf("%s\n", help_string);
+    char c;
+    while (1) {
+		mote_output_data_core();
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+}
+
 void bt_hid_task_start_up(void)
 {
     xTaskCreate(bt_hid_demo_task, "bt_hid_demo_task", 2 * 1024, NULL, configMAX_PRIORITIES - 3, &s_bt_hid_param.task_hdl);
-    return;
+//	xTaskCreate(mote_hid_main_task, "mote_hid_main_task", 2 * 1024, NULL, configMAX_PRIORITIES - 3, &s_bt_hid_param.task_hdl);
+	return;
 }
 
 void bt_hid_task_shut_down(void)
@@ -281,8 +390,107 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
         break;
     }
     case ESP_HIDD_OUTPUT_EVENT: {
-        ESP_LOGI(TAG, "OUTPUT[%u]: %8s ID: %2u, Len: %d, Data:", param->output.map_index, esp_hid_usage_str(param->output.usage), param->output.report_id, param->output.length);
-        ESP_LOG_BUFFER_HEX(TAG, param->output.data, param->output.length);
+        //ESP_LOGI(TAG, "DATA FROM WII[%u]: %8s ID: 0x%2x, Len: %d, Data:", param->output.map_index, esp_hid_usage_str(param->output.usage), param->output.report_id, param->output.length);
+        //ESP_LOG_BUFFER_HEX(TAG, param->output.data, param->output.length);
+		if(param->output.data[0] & 0x01){
+			rumbling = true;
+			ESP_LOGI(TAG, "RUMBLING ON");
+		}else{
+			rumbling = false;
+			ESP_LOGI(TAG, "RUMBLING OFF");
+		}
+		
+		uint32_t offset;
+		uint16_t size;
+		
+		switch (param->feature.report_id) {
+		    case O_RUMBLE:
+		        // 1 byte - bit 0 controls rumble
+				//ESP_LOGI(TAG, "RUMBLING");
+		        //ignore this because actually bit 0 of any report is for rumble, this bit is just for only rumble
+				break;
+		        
+		    case O_PLAYER_LEDS:
+		        // 1 byte - bits 4-7 control LEDs 1-4
+				ESP_LOGI(TAG, "LEDS %c %c %c %c", 
+					(param->output.data[0] & 0x10) ? '+' : '_', 
+					(param->output.data[0] & 0x20) ? '+' : '_', 
+					(param->output.data[0] & 0x40) ? '+' : '_', 
+					(param->output.data[0] & 0x80) ? '+' : '_');
+		        break;
+		        
+		    case O_DATA_REPORTING_MODE:
+		        // 2 bytes - TT MM (TT bit2 = continuous, MM = mode 0x30-0x3f)
+				continuousReporting = (param->output.data[0] & 0x04);
+				reportingMode = param->output.data[1];
+				ESP_LOGI( TAG, "Data Reporting: TT[%d] MM[%d]", continuousReporting, reportingMode);
+		        break;
+		        
+		    case O_IR_CAMERA_ENABLE:
+		        // 1 byte - bit 2 = ON/OFF
+				ESP_LOGI( TAG, "Written %2x to IR Camera 1", param->output.data[0]);
+		        break;
+		        
+		    case O_SPEAKER_ENABLE:
+		        // 1 byte - bit 2 = ON/OFF
+				ESP_LOGI( TAG, "Written %2x to Speaker Enable", param->output.data[0]);
+		        break;
+		        
+		    case O_STATUS_INFO_REQUEST:
+		        // 1 byte - request status report
+				ESP_LOGI( TAG, "Written %2x to Speaker Enable", param->output.data[0]);
+
+		        break;
+		        
+		    case O_WRITE_MEMORY_REGISTERS:
+		        // 21 bytes - write to memory/registers
+				//memcpy(&offset, param->output.data + 2, 3);
+				offset = (param->output.data[1] << 16) | (param->output.data[2] << 8) | (param->output.data[3]);
+//				memset(&size, 0, 2);
+				//memcpy(&size, param->output.data + 5, 1);
+				size = param->output.data[4];
+				if((param->output.data[0] & 0x04)){
+					ESP_LOGI( TAG, "Attempting to write %d bytes to control registers at %6x", size, offset);
+				}else{
+					ESP_LOGI( TAG, "Attempting to write %d bytes to EEPROM Memory at %6x", size, offset);
+				}
+				ESP_LOG_BUFFER_HEX(TAG, param->output.data + 5, size); //TODO: make sure doesnt buffer overflow
+				break;
+		        
+		    case O_READ_MEMORY_REGISTERS:
+		        // 6 bytes - read from memory/registers
+				offset = (param->output.data[1] << 16) | (param->output.data[2] << 8) | (param->output.data[3]);
+//				memset(&size, 0, 2);
+				size = (param->output.data[4] << 8) | (param->output.data[5]);
+				if((param->output.data[0] & 0x04)){
+					ESP_LOGI( TAG, "Attempting to read %d bytes from control registers at %6x", size, offset);
+				}else{
+					ESP_LOGI( TAG, "Attempting to read %d bytes from EEPROM Memory at %6x", size, offset);
+				}
+		        break;
+		        
+		    case O_SPEAKER_DATA:
+		        // 21 bytes - audio data for speaker
+				ESP_LOGI( TAG, "%d bytes of Speaker Data", param->output.data[0]);
+				ESP_LOG_BUFFER_HEX(TAG, param->output.data + 1, param->output.data[0]); //TODO: make sure doesnt buffer overflow
+		        break;
+		        
+		    case O_SPEAKER_MUTE:
+		        // 1 byte - bit 2 = mute when set
+				ESP_LOGI( TAG, "Written %2x to Speaker Mute", param->output.data[0]);
+		        break;
+		        
+		    case O_IR_CAMERA_ENABLE_2:
+		        // 1 byte - bit 2 = ON/OFF (alternate)
+				ESP_LOGI( TAG, "Written %2x to IR Camera 2", param->output.data[0]);
+		        break;
+		        
+		    default:
+		        // Unknown output report ID
+				ESP_LOGW(TAG, "UNKNOWN REPORT ID[%u]: %8s ID: 0x%2x, Len: %d, Data:", param->output.map_index, esp_hid_usage_str(param->output.usage), param->output.report_id, param->output.length);
+				ESP_LOG_BUFFER_HEX(TAG, param->output.data, param->output.length);
+		        break;
+		}
         break;
     }
     case ESP_HIDD_FEATURE_EVENT: {
