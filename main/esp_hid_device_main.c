@@ -313,16 +313,17 @@ void bt_hid_demo_task(void *pvParameters)
 // send the buttons, change in x, and change in y
 void mote_output_data_core()
 {
-    static uint8_t buffer[3] = {0};
-    buffer[0] = 0x30;
+    static uint8_t buffer[2] = {0};
 	int rand = esp_random();
-    buffer[1] = rand & 0xFF;
-    buffer[2] = (rand >> 8) & 0xFF;
-    esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0, buffer, 3);
+    buffer[0] = rand & 0xFF;
+    buffer[1] = (rand >> 8) & 0xFF;
+    esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buffer, 2);
 }
 
 void mote_hid_main_task(void *pvParameters)
 {
+	static const char *TAGW = "WIIMOTE_SEND";
+
     static const char* help_string = "########################################################################\n"\
     "BT hid mouse demo usage:\n"\
     "You can input these value to simulate mouse: 'q', 'w', 'e', 'a', 's', 'd', 'h'\n"\
@@ -335,17 +336,21 @@ void mote_hid_main_task(void *pvParameters)
     "h -- show the help\n"\
     "########################################################################\n";
     printf("%s\n", help_string);
-    char c;
+    char c = 0;
     while (1) {
-		mote_output_data_core();
+		c = fgetc(stdin);
+		if(c != 0){
+			mote_output_data_core();
+			ESP_LOGI()
+		}
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
 
 void bt_hid_task_start_up(void)
 {
-    xTaskCreate(bt_hid_demo_task, "bt_hid_demo_task", 2 * 1024, NULL, configMAX_PRIORITIES - 3, &s_bt_hid_param.task_hdl);
-//	xTaskCreate(mote_hid_main_task, "mote_hid_main_task", 2 * 1024, NULL, configMAX_PRIORITIES - 3, &s_bt_hid_param.task_hdl);
+//    xTaskCreate(bt_hid_demo_task, "bt_hid_demo_task", 2 * 1024, NULL, configMAX_PRIORITIES - 3, &s_bt_hid_param.task_hdl);
+	xTaskCreate(mote_hid_main_task, "mote_hid_main_task", 2 * 1024, NULL, configMAX_PRIORITIES - 3, &s_bt_hid_param.task_hdl);
 	return;
 }
 
@@ -362,6 +367,7 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
     esp_hidd_event_t event = (esp_hidd_event_t)id;
     esp_hidd_event_data_t *param = (esp_hidd_event_data_t *)event_data;
     static const char *TAG = "HID_DEV_BT";
+	static const char *TAGW = "WII_OUTPUT";
 
     switch (event) {
     case ESP_HIDD_START_EVENT: {
@@ -390,16 +396,22 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
         break;
     }
     case ESP_HIDD_OUTPUT_EVENT: {
-        //ESP_LOGI(TAG, "DATA FROM WII[%u]: %8s ID: 0x%2x, Len: %d, Data:", param->output.map_index, esp_hid_usage_str(param->output.usage), param->output.report_id, param->output.length);
-        //ESP_LOG_BUFFER_HEX(TAG, param->output.data, param->output.length);
-		if(param->output.data[0] & 0x01){
+        //ESP_LOGI(TAGW, "DATA FROM WII[%u]: %8s ID: 0x%2x, Len: %d, Data:", param->output.map_index, esp_hid_usage_str(param->output.usage), param->output.report_id, param->output.length);
+        //ESP_LOG_BUFFER_HEX(TAGW, param->output.data, param->output.length);
+		
+		//bit 0 of any output report is for rumble
+		if(param->output.data[0] & 0x01 && rumbling == false){
 			rumbling = true;
-			ESP_LOGI(TAG, "RUMBLING ON");
-		}else{
+			ESP_LOGI(TAGW, "RUMBLING ON");
+		}else if(!(param->output.data[0] & 0x01) && rumbling == true){
 			rumbling = false;
-			ESP_LOGI(TAG, "RUMBLING OFF");
+			ESP_LOGI(TAGW, "RUMBLING OFF");
 		}
 		
+		//bit 1 of any output report is requesting an acknowledgement input report
+		if(param->output.data[0] & 0x02){
+			ESP_LOGI(TAGW, "REQEUSTING RESPONSE");
+		}
 		uint32_t offset;
 		uint16_t size;
 		
@@ -412,7 +424,7 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 		        
 		    case O_PLAYER_LEDS:
 		        // 1 byte - bits 4-7 control LEDs 1-4
-				ESP_LOGI(TAG, "LEDS %c %c %c %c", 
+				ESP_LOGI(TAGW, "LEDS %c %c %c %c", 
 					(param->output.data[0] & 0x10) ? '+' : '_', 
 					(param->output.data[0] & 0x20) ? '+' : '_', 
 					(param->output.data[0] & 0x40) ? '+' : '_', 
@@ -423,22 +435,22 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 		        // 2 bytes - TT MM (TT bit2 = continuous, MM = mode 0x30-0x3f)
 				continuousReporting = (param->output.data[0] & 0x04);
 				reportingMode = param->output.data[1];
-				ESP_LOGI( TAG, "Data Reporting: TT[%d] MM[%d]", continuousReporting, reportingMode);
+				ESP_LOGI( TAGW, "Data Reporting: TT[%2x] MM[%x]", continuousReporting, reportingMode);
 		        break;
 		        
 		    case O_IR_CAMERA_ENABLE:
 		        // 1 byte - bit 2 = ON/OFF
-				ESP_LOGI( TAG, "Written %2x to IR Camera 1", param->output.data[0]);
+				ESP_LOGI( TAGW, "Written %2x to IR Camera 1", param->output.data[0]);
 		        break;
 		        
 		    case O_SPEAKER_ENABLE:
 		        // 1 byte - bit 2 = ON/OFF
-				ESP_LOGI( TAG, "Written %2x to Speaker Enable", param->output.data[0]);
+				ESP_LOGI( TAGW, "Written %2x to Speaker Enable", param->output.data[0]);
 		        break;
 		        
 		    case O_STATUS_INFO_REQUEST:
 		        // 1 byte - request status report
-				ESP_LOGI( TAG, "Written %2x to Speaker Enable", param->output.data[0]);
+				ESP_LOGI( TAGW, "Written %2x to Status Info", param->output.data[0]);
 
 		        break;
 		        
@@ -450,11 +462,11 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 				//memcpy(&size, param->output.data + 5, 1);
 				size = param->output.data[4];
 				if((param->output.data[0] & 0x04)){
-					ESP_LOGI( TAG, "Attempting to write %d bytes to control registers at %6x", size, offset);
+					ESP_LOGI( TAGW, "Attempting to write %d bytes to control registers at %6x", size, offset);
 				}else{
-					ESP_LOGI( TAG, "Attempting to write %d bytes to EEPROM Memory at %6x", size, offset);
+					ESP_LOGI( TAGW, "Attempting to write %d bytes to EEPROM Memory at %6x", size, offset);
 				}
-				ESP_LOG_BUFFER_HEX(TAG, param->output.data + 5, size); //TODO: make sure doesnt buffer overflow
+				ESP_LOG_BUFFER_HEX(TAGW, param->output.data + 5, size); //TODO: make sure doesnt buffer overflow
 				break;
 		        
 		    case O_READ_MEMORY_REGISTERS:
@@ -463,32 +475,32 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 //				memset(&size, 0, 2);
 				size = (param->output.data[4] << 8) | (param->output.data[5]);
 				if((param->output.data[0] & 0x04)){
-					ESP_LOGI( TAG, "Attempting to read %d bytes from control registers at %6x", size, offset);
+					ESP_LOGI( TAGW, "Attempting to read %d bytes from control registers at %6x", size, offset);
 				}else{
-					ESP_LOGI( TAG, "Attempting to read %d bytes from EEPROM Memory at %6x", size, offset);
+					ESP_LOGI( TAGW, "Attempting to read %d bytes from EEPROM Memory at %6x", size, offset);
 				}
 		        break;
 		        
 		    case O_SPEAKER_DATA:
 		        // 21 bytes - audio data for speaker
-				ESP_LOGI( TAG, "%d bytes of Speaker Data", param->output.data[0]);
-				ESP_LOG_BUFFER_HEX(TAG, param->output.data + 1, param->output.data[0]); //TODO: make sure doesnt buffer overflow
+				ESP_LOGI( TAGW, "%d bytes of Speaker Data", param->output.data[0]);
+				ESP_LOG_BUFFER_HEX(TAGW, param->output.data + 1, param->output.data[0]); //TODO: make sure doesnt buffer overflow
 		        break;
 		        
 		    case O_SPEAKER_MUTE:
 		        // 1 byte - bit 2 = mute when set
-				ESP_LOGI( TAG, "Written %2x to Speaker Mute", param->output.data[0]);
+				ESP_LOGI( TAGW, "Written %2x to Speaker Mute", param->output.data[0]);
 		        break;
 		        
 		    case O_IR_CAMERA_ENABLE_2:
 		        // 1 byte - bit 2 = ON/OFF (alternate)
-				ESP_LOGI( TAG, "Written %2x to IR Camera 2", param->output.data[0]);
+				ESP_LOGI( TAGW, "Written %2x to IR Camera 2", param->output.data[0]);
 		        break;
 		        
 		    default:
 		        // Unknown output report ID
-				ESP_LOGW(TAG, "UNKNOWN REPORT ID[%u]: %8s ID: 0x%2x, Len: %d, Data:", param->output.map_index, esp_hid_usage_str(param->output.usage), param->output.report_id, param->output.length);
-				ESP_LOG_BUFFER_HEX(TAG, param->output.data, param->output.length);
+				ESP_LOGW(TAGW, "UNKNOWN REPORT ID[%u]: %8s ID: 0x%2x, Len: %d, Data:", param->output.map_index, esp_hid_usage_str(param->output.usage), param->output.report_id, param->output.length);
+				ESP_LOG_BUFFER_HEX(TAGW, param->output.data, param->output.length);
 		        break;
 		}
         break;
