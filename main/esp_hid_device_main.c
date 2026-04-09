@@ -33,6 +33,7 @@
 //Added by pknessness
 #include "esp_random.h"
 #include "driver/gpio.h"
+#include "esp_mac.h"
 
 static const char *TAG = "HID_DEV_DEMO";
 
@@ -96,6 +97,15 @@ typedef enum {
     I_INTERLEAVED_36_IR              = 0x3e,  // Interleaved Core Buttons + Accelerometer + 36 IR bytes
     I_INTERLEAVED_36_IR_ALT          = 0x3f   // Interleaved Core Buttons + Accelerometer + 36 IR bytes (alternate)
 } wii_report_id_t;
+
+typedef enum {
+    // Output Reports (O_) - Wii to Wii Remote
+    ACK_SUCCESS                         = 0x00,
+    ACK_ERROR                           = 0x03,
+    ACK_UNKNOWN1                        = 0x04,
+    ACK_UNKNOWN2                        = 0x05,
+    ACK_UNKNOWN3                        = 0x08,
+} ack_error_codes;
 
 // Button GPIO definitions
 #define BUTTON_PIN_A        GPIO_NUM_25
@@ -250,6 +260,15 @@ static esp_hid_device_config_t bt_hid_config = {
 bool continuousReporting = false;
 uint8_t reportingMode = 0x30;
 bool rumbling = false;
+bool speaker_enable = false;
+uint8_t status_byte = 0;
+
+// Register chunks
+uint8_t speaker_settings[10]; //A20000 - A20009
+uint8_t extension_controller_settings_data[255]; //A40000 - A400FF
+uint8_t wii_motion_plus_settings_data[255]; //A60000 - A600FF
+uint8_t IR_camera_settings[34]; //B00000 - B00033
+
 
 // send the buttons, change in x, and change in y
 void send_mouse(uint8_t buttons, char dx, char dy, char wheel)
@@ -393,12 +412,46 @@ void load_buttons_buffer(uint8_t* destination)
 
 uint8_t input_report[21] = {0};
 
-void mote_output_data_core()
+//20 BB BB LF 00 00 VV
+void mote_input_data_status()
+{
+//	memcpy(input_report,buttons,2);
+	load_buttons_buffer(input_report);
+	input_report[2] = status_byte;
+	input_report[3] = 0;
+	input_report[4] = 0;
+	input_report[5] = 0xEF; //TODO: Battery value, replace with actual battery value
+	esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x20, input_report, 6);
+}
+
+//21 BB BB SE AA AA DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD
+void mote_input_data_read(uint8_t size, uint8_t error, uint16_t address_low_16, uint8_t* buffer)
+{
+	load_buttons_buffer(input_report);
+	input_report[2] = ((size-1) & 0xF << 4) | (error & 0xF);
+	//E (low nybble of SE) is the error flag. Known error values are 0 for no error, 7 when attempting to read from a write-only register or an expansion that is not connected, and 8 when attempting to read from nonexistant memory addresses. 
+	input_report[3] = address_low_16 & 0x00FF;
+	input_report[4] = (address_low_16 & 0xFF00) >> 8;
+	memset(input_report + 5, 0, 16);
+	memcpy(input_report + 5, buffer, size);
+	esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x21, input_report, 21);
+}
+
+//22 BB BB RR EE
+void mote_input_data_acknowledge(uint8_t report_number, uint8_t error)
+{
+	load_buttons_buffer(input_report);
+	input_report[2] = report_number;
+	input_report[2] = error;
+	esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x22, input_report, 4);
+}
+
+void mote_input_data_core()
 {
     static uint8_t old_buttons[2] = {0};
 	uint8_t buttons[2] = {0};
 	load_buttons_buffer(buttons);
-	if(old_buttons[0] != buttons[0] || old_buttons[1] != buttons[1]){
+	if(continuousReporting || old_buttons[0] != buttons[0] || old_buttons[1] != buttons[1]){
 		ESP_LOGI(TAG, "SENT BUTTONS");
 		switch(reportingMode){
 			case 0x30:
@@ -475,7 +528,7 @@ void mote_hid_main_task(void *pvParameters)
     while (1) {
 		c = fgetc(stdin);
 		
-		mote_output_data_core();
+		mote_input_data_core();
 		
 		switch (c) {
 		case 'q':
@@ -552,10 +605,6 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 			ESP_LOGI(TAGW, "RUMBLING OFF");
 		}
 		
-		//bit 1 of any output report is requesting an acknowledgement input report
-		if(param->output.data[0] & 0x02){
-			ESP_LOGI(TAGW, "REQEUSTING RESPONSE");
-		}
 		uint32_t offset;
 		uint16_t size;
 		
@@ -573,6 +622,14 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 					(param->output.data[0] & 0x20) ? '+' : '_', 
 					(param->output.data[0] & 0x40) ? '+' : '_', 
 					(param->output.data[0] & 0x80) ? '+' : '_');
+					status_byte &= 0x0F;
+					status_byte |= (param->output.data[0] & 0xF0);
+					
+				//bit 1 of any output report is requesting an acknowledgement input report
+				if(param->output.data[0] & 0x02){
+					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				}
+				
 		        break;
 		        
 		    case O_DATA_REPORTING_MODE:
@@ -583,71 +640,170 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 					reportingMode = 0x3e; //for simplicity, lock both 3f and 3e behinnd 3e as they are the same.
 				}
 				ESP_LOGI( TAGW, "Data Reporting: TT[%2x] MM[%x]", continuousReporting, reportingMode);
+					
+				//bit 1 of any output report is requesting an acknowledgement input report
+				if(param->output.data[0] & 0x02){
+					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				}
+				
 		        break;
 		        
-		    case O_IR_CAMERA_ENABLE:
-		        // 1 byte - bit 2 = ON/OFF
+		    case O_IR_CAMERA_ENABLE: //Based on my knowledge this enables the IR Pixel Clock. 
+				// 1 byte - bit 2 = ON/OFF
+				//TODO: I am currently treating this as the main IR Camera Toggle (for status byte reasons), but this is not to be the case in final
+						        
+				if(param->output.data[0] & 0x04){
+					status_byte |= 0x04;
+				}
+				
 				ESP_LOGI( TAGW, "Written %2x to IR Camera 1", param->output.data[0]);
+					
+				//bit 1 of any output report is requesting an acknowledgement input report
+				if(param->output.data[0] & 0x02){
+					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				}
+				
 		        break;
 		        
 		    case O_SPEAKER_ENABLE:
 		        // 1 byte - bit 2 = ON/OFF
+				if(param->output.data[0] & 0x04){
+					status_byte |= 0x04;
+				}
 				ESP_LOGI( TAGW, "Written %2x to Speaker Enable", param->output.data[0]);
+					
+				//bit 1 of any output report is requesting an acknowledgement input report
+				if(param->output.data[0] & 0x02){
+					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				}
+
 		        break;
 		        
 		    case O_STATUS_INFO_REQUEST:
 		        // 1 byte - request status report
 				ESP_LOGI( TAGW, "Written %2x to Status Info", param->output.data[0]);
+				
+				mote_input_data_status();
+				
+				//bit 1 of any output report is requesting an acknowledgement input report
+				if(param->output.data[0] & 0x02){
+					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				}
 
 		        break;
 		        
 		    case O_WRITE_MEMORY_REGISTERS:
 		        // 21 bytes - write to memory/registers
-				//memcpy(&offset, param->output.data + 2, 3);
 				offset = (param->output.data[1] << 16) | (param->output.data[2] << 8) | (param->output.data[3]);
-//				memset(&size, 0, 2);
-				//memcpy(&size, param->output.data + 5, 1);
 				size = param->output.data[4];
 				if((param->output.data[0] & 0x04)){
-					ESP_LOGI( TAGW, "Attempting to write %d bytes to control registers at %6x", size, offset);
+					if((offset & 0xFF0000 >> 16) == 0xA2){
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to speaker settings at %6x", size, offset & 0xFFFF);
+						memcpy(speaker_settings, param->output.data + 5, size);
+					}else if((offset & 0xFF0000 >> 16) == 0xA4){
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to extension controller settings and data at %4x", size, offset & 0xFFFF);
+						memcpy(extension_controller_settings_data, param->output.data + 5, size);
+					}else if((offset & 0xFF0000 >> 16) == 0xA6){
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to wii motion plus settings and data at %4x", size, offset & 0xFFFF);
+						memcpy(wii_motion_plus_settings_data, param->output.data + 5, size);
+					}else if((offset & 0xFF0000 >> 16) == 0xB0){
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to IR camera settings at %4x", size, offset & 0xFFFF);
+						memcpy(IR_camera_settings, param->output.data + 5, size);
+					}else {
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to control registers at %6x", size, offset);
+					}
 				}else{
 					ESP_LOGI( TAGW, "Attempting to write %d bytes to EEPROM Memory at %6x", size, offset);
 				}
 				ESP_LOG_BUFFER_HEX(TAGW, param->output.data + 5, size); //TODO: make sure doesnt buffer overflow
+					
+				//bit 1 of any output report is requesting an acknowledgement input report
+				if(param->output.data[0] & 0x02){
+					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				}
+
 				break;
 		        
-		    case O_READ_MEMORY_REGISTERS:
+		    case O_READ_MEMORY_REGISTERS: //TODO: SET UP READS FOR GREATER THAN 16 BYTES TOTAL 
+				//TODO: MAKE SURE NO MEM OVERFLOW
 		        // 6 bytes - read from memory/registers
 				offset = (param->output.data[1] << 16) | (param->output.data[2] << 8) | (param->output.data[3]);
 //				memset(&size, 0, 2);
 				size = (param->output.data[4] << 8) | (param->output.data[5]);
 				if((param->output.data[0] & 0x04)){
-					ESP_LOGI( TAGW, "Attempting to read %d bytes from control registers at %6x", size, offset);
+					if((offset & 0xFF0000 >> 16) == 0xA2){
+						ESP_LOGI( TAGW, "Attempting to read %d bytes from speaker settings at %6x", size, offset & 0xFFFF);
+						mote_input_data_read(size, 0, offset & 0xFFFF, speaker_settings);
+					}else if((offset & 0xFF0000 >> 16) == 0xA4){
+						ESP_LOGI( TAGW, "Attempting to read %d bytes from extension controller settings and data at %4x", size, offset & 0xFFFF);
+						mote_input_data_read(size, 0, offset & 0xFFFF, extension_controller_settings_data);
+
+					}else if((offset & 0xFF0000 >> 16) == 0xA6){
+						ESP_LOGI( TAGW, "Attempting to read %d bytes from wii motion plus settings and data at %4x", size, offset & 0xFFFF);
+						mote_input_data_read(size, 0, offset & 0xFFFF, wii_motion_plus_settings_data);
+
+					}else if((offset & 0xFF0000 >> 16) == 0xB0){
+						ESP_LOGI( TAGW, "Attempting to read %d bytes from IR camera settings at %4x", size, offset & 0xFFFF);
+						mote_input_data_read(size, 0, offset & 0xFFFF, IR_camera_settings);
+
+					}else {
+						ESP_LOGI( TAGW, "Attempting to read %d bytes from control registers at %6x", size, offset);
+					}
 				}else{
 					ESP_LOGI( TAGW, "Attempting to read %d bytes from EEPROM Memory at %6x", size, offset);
 				}
+					
+				//bit 1 of any output report is requesting an acknowledgement input report
+				if(param->output.data[0] & 0x02){
+					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				}
+
 		        break;
 		        
 		    case O_SPEAKER_DATA:
 		        // 21 bytes - audio data for speaker
 				ESP_LOGI( TAGW, "%d bytes of Speaker Data", param->output.data[0]);
 				ESP_LOG_BUFFER_HEX(TAGW, param->output.data + 1, param->output.data[0]); //TODO: make sure doesnt buffer overflow
+					
+				//bit 1 of any output report is requesting an acknowledgement input report
+				if(param->output.data[0] & 0x02){
+					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				}
+
 		        break;
 		        
 		    case O_SPEAKER_MUTE:
 		        // 1 byte - bit 2 = mute when set
 				ESP_LOGI( TAGW, "Written %2x to Speaker Mute", param->output.data[0]);
+					
+				//bit 1 of any output report is requesting an acknowledgement input report
+				if(param->output.data[0] & 0x02){
+					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				}
+
 		        break;
 		        
-		    case O_IR_CAMERA_ENABLE_2:
+		    case O_IR_CAMERA_ENABLE_2: //Based on my knowledge this enables the IR logic
 		        // 1 byte - bit 2 = ON/OFF (alternate)
 				ESP_LOGI( TAGW, "Written %2x to IR Camera 2", param->output.data[0]);
+					
+				//bit 1 of any output report is requesting an acknowledgement input report
+				if(param->output.data[0] & 0x02){
+					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				}
+
 		        break;
 		        
 		    default:
 		        // Unknown output report ID
 				ESP_LOGW(TAGW, "UNKNOWN REPORT ID[%u]: %8s ID: 0x%2x, Len: %d, Data:", param->output.map_index, esp_hid_usage_str(param->output.usage), param->output.report_id, param->output.length);
 				ESP_LOG_BUFFER_HEX(TAGW, param->output.data, param->output.length);
+					
+				//bit 1 of any output report is requesting an acknowledgement input report
+				if(param->output.data[0] & 0x02){
+					mote_input_data_acknowledge(param->feature.report_id, ACK_ERROR);
+				}
+
 		        break;
 		}
         break;
@@ -722,6 +878,13 @@ static void esp_sdp_cb(esp_sdp_cb_event_t event, esp_sdp_cb_param_t *param)
 
 void app_main(void)
 {
+	uint8_t baseMac[6];
+	esp_base_mac_addr_get(baseMac);
+	baseMac[0] = 0xCC; //pinkmote's first 3
+	baseMac[1] = 0x9E;
+	baseMac[2] = 0x00;
+	esp_base_mac_addr_set(baseMac);
+	
 	init_GPIO();
 	
     esp_err_t ret;

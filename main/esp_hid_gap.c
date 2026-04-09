@@ -320,7 +320,7 @@ static void bt_gap_event_handler(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_para
     }
 
     case ESP_BT_GAP_MODE_CHG_EVT:
-        ESP_LOGI(TAG, "BT GAP MODE_CHG_EVT mode:%d", param->mode_chg.mode);
+        //ESP_LOGI(TAG, "BT GAP MODE_CHG_EVT mode:%d", param->mode_chg.mode);
         break;
     default:
         ESP_LOGV(TAG, "BT GAP EVENT %s", bt_gap_evt_str(event));
