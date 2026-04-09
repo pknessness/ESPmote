@@ -458,59 +458,69 @@ void mote_input_data_core()
 	uint8_t buttons[2] = {0};
 	load_buttons_buffer(buttons);
 	if(continuousReporting || old_buttons[0] != buttons[0] || old_buttons[1] != buttons[1]){
-		ESP_LOGI(TAGSEND, "SENT BUTTONS");
 		switch(reportingMode){
 			case 0x30:
 				memcpy(input_report,buttons,2);
 				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 2);
+				ESP_LOG_BUFFER_HEX("SEND 0x30", input_report, 2);
 			    break;
 			case 0x31:
 				memcpy(input_report,buttons,2);
 				memset(input_report+2,0,3); //replace with accelerometer
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 5);
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x31, buttons, 5);
+				ESP_LOG_BUFFER_HEX("SEND 0x31", input_report, 5);
 			    break;
 			case 0x32:
 				memcpy(input_report,buttons,2);
 				memset(input_report+2,0,8); //replace with 8 extension bytes
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 10);
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x32, buttons, 10);
+				ESP_LOG_BUFFER_HEX("SEND 0x32", input_report, 10);
+				
 			    break;
 			case 0x33:
 				memcpy(input_report,buttons,2);
 				memset(input_report+2,0,3); //replace with accelerometer
 				memset(input_report+5,0,12); //replace with IR bytes
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 17);
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x33, buttons, 17);
+				ESP_LOG_BUFFER_HEX("SEND 0x33", input_report, 17);
 			    break;
 			case 0x34:
 				memcpy(input_report,buttons,2);
 				memset(input_report+2,0,19); //replace with 19 extension bytes
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 21);
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x34, buttons, 21);
+				ESP_LOG_BUFFER_HEX("SEND 0x34", input_report, 21);
 			    break;
 			case 0x35:
 				memcpy(input_report,buttons,2);
 				memset(input_report+2,0,3); //replace with accelerometer
 				memset(input_report+5,0,16); //replace with 16 extension bytes
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 21);
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x35, buttons, 21);
+				ESP_LOG_BUFFER_HEX("SEND 0x35", input_report, 21);
 			    break;
 			case 0x36:
 				memcpy(input_report,buttons,2);
 				memset(input_report+2,0,10); //replace with 10 IR bytes
 				memset(input_report+12,0,9); //replace with 9 extension bytes
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 21);
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x36, buttons, 21);
+				ESP_LOG_BUFFER_HEX("SEND 0x36", input_report, 21);
 			    break;
 			case 0x37:
 				memcpy(input_report,buttons,2);
 				memset(input_report+2,0,3); //replace with accelerometer
 				memset(input_report+5,0,10); //replace with 10 IR bytes
 				memset(input_report+15,0,6); //replace with 6 extension bytes
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 21);
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x37, buttons, 21);
+				ESP_LOG_BUFFER_HEX("SEND 0x37", input_report, 21);
 			    break;
 			case 0x3d:
 				memset(input_report,0,21); //replace with 21 extension bytes
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 21);
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x3d, buttons, 21);
+				ESP_LOG_BUFFER_HEX("SEND 0x3d", input_report, 21);
 			    break;
 			case 0x3e: //same as 3f, forced to 3e during output report handling
 				//TODO: SET UP LATER ITS A WHOLE THING
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 2);
+				//esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x3e, buttons, 21);
+				ESP_LOG_BUFFER_HEX("0x3e NOT SUPPORTED", input_report, 21);
 			    break;
 			default:
 			    break;
