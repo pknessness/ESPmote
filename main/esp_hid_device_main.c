@@ -356,48 +356,109 @@ static const uint8_t BUTTONS_SHIFT_HOME = 7;
 
 void load_buttons_buffer(uint8_t* destination)
 {
-    static uint8_t buffer[2];
-	memset(buffer, 0, 2);
+	static uint8_t buttons_buffer[2];
+	memset(buttons_buffer, 0, 2);
 	
-	buffer[0] |= (!gpio_get_level(BUTTON_PIN_UP) << BUTTONS_SHIFT_DPAD_UP);
-	buffer[0] |= (!gpio_get_level(BUTTON_PIN_DOWN) << BUTTONS_SHIFT_DPAD_DOWN);
-	buffer[0] |= (gpio_get_level(BUTTON_PIN_LEFT) << BUTTONS_SHIFT_DPAD_LEFT);
-	buffer[0] |= (!gpio_get_level(BUTTON_PIN_RIGHT) << BUTTONS_SHIFT_DPAD_RIGHT);
-	buffer[0] |= (!gpio_get_level(BUTTON_PIN_PLUS) << BUTTONS_SHIFT_PLUS);
+	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_UP) << BUTTONS_SHIFT_DPAD_UP);
+	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_DOWN) << BUTTONS_SHIFT_DPAD_DOWN);
+	buttons_buffer[0] |= (gpio_get_level(BUTTON_PIN_LEFT) << BUTTONS_SHIFT_DPAD_LEFT);
+	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_RIGHT) << BUTTONS_SHIFT_DPAD_RIGHT);
+	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_PLUS) << BUTTONS_SHIFT_PLUS);
 
 	
-	buffer[1] |= (!gpio_get_level(BUTTON_PIN_A) << BUTTONS_SHIFT_A);
-	buffer[1] |= (!gpio_get_level(BUTTON_PIN_B) << BUTTONS_SHIFT_B);
-	buffer[1] |= (!gpio_get_level(BUTTON_PIN_ONE) << BUTTONS_SHIFT_ONE);
-	buffer[1] |= (!gpio_get_level(BUTTON_PIN_TWO) << BUTTONS_SHIFT_TWO);
-	buffer[1] |= (gpio_get_level(BUTTON_PIN_MINUS) << BUTTONS_SHIFT_MINUS);
-	buffer[1] |= (!gpio_get_level(BUTTON_PIN_HOME) << BUTTONS_SHIFT_HOME);
-	//ESP_LOGI(TAG, "A:%d B:%d 1:%d 2:%d PLUS:%d MINUS:%d HOME:%d UP:%d DOWN:%d LEFT:%d RIGHT:%d", gpio_get_level(BUTTON_PIN_A), gpio_get_level(BUTTON_PIN_B), gpio_get_level(BUTTON_PIN_ONE), gpio_get_level(BUTTON_PIN_TWO), gpio_get_level(BUTTON_PIN_PLUS), gpio_get_level(BUTTON_PIN_MINUS), gpio_get_level(BUTTON_PIN_HOME), gpio_get_level(BUTTON_PIN_UP), gpio_get_level(BUTTON_PIN_DOWN), gpio_get_level(BUTTON_PIN_LEFT), gpio_get_level(BUTTON_PIN_RIGHT));
-	ESP_LOGI(TAG, "[%c%c%c%c%c%c%c%c%c%c%c]",
-	         (gpio_get_level(BUTTON_PIN_A) ? ' ' : 'A'),
-	         (gpio_get_level(BUTTON_PIN_B) ? ' ' : 'B'),
-	         (gpio_get_level(BUTTON_PIN_ONE) ? ' ' : '1'),
-	         (gpio_get_level(BUTTON_PIN_TWO) ? ' ' : '2'),
-	         (gpio_get_level(BUTTON_PIN_PLUS) ? ' ' : '+'),
-	         (gpio_get_level(BUTTON_PIN_MINUS) ? '-' : ' '),
-	         (gpio_get_level(BUTTON_PIN_HOME) ? ' ' : 'H'),
-	         (gpio_get_level(BUTTON_PIN_UP) ? ' ' : '^'),
-	         (gpio_get_level(BUTTON_PIN_DOWN) ? ' ' : 'v'),
-	         (gpio_get_level(BUTTON_PIN_LEFT) ? '<' : ' '),
-	         (gpio_get_level(BUTTON_PIN_RIGHT) ? ' ' : '>'));
-//	ESP_LOG_BUFFER_HEX(TAG, buffer, 2);
-	memcpy(destination, buffer, 2);
+	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_A) << BUTTONS_SHIFT_A);
+	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_B) << BUTTONS_SHIFT_B);
+	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_ONE) << BUTTONS_SHIFT_ONE);
+	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_TWO) << BUTTONS_SHIFT_TWO);
+	buttons_buffer[1] |= (gpio_get_level(BUTTON_PIN_MINUS) << BUTTONS_SHIFT_MINUS);
+	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_HOME) << BUTTONS_SHIFT_HOME);
+	
+//	ESP_LOGI(TAG, "[%c%c%c%c%c%c%c%c%c%c%c]",
+//	         (gpio_get_level(BUTTON_PIN_A) ? ' ' : 'A'),
+//	         (gpio_get_level(BUTTON_PIN_B) ? ' ' : 'B'),
+//	         (gpio_get_level(BUTTON_PIN_ONE) ? ' ' : '1'),
+//	         (gpio_get_level(BUTTON_PIN_TWO) ? ' ' : '2'),
+//	         (gpio_get_level(BUTTON_PIN_PLUS) ? ' ' : '+'),
+//	         (gpio_get_level(BUTTON_PIN_MINUS) ? '-' : ' '),
+//	         (gpio_get_level(BUTTON_PIN_HOME) ? ' ' : 'H'),
+//	         (gpio_get_level(BUTTON_PIN_UP) ? ' ' : '^'),
+//	         (gpio_get_level(BUTTON_PIN_DOWN) ? ' ' : 'v'),
+//	         (gpio_get_level(BUTTON_PIN_LEFT) ? '<' : ' '),
+//	         (gpio_get_level(BUTTON_PIN_RIGHT) ? ' ' : '>'));
+
+	if(destination != nullptr){
+		memcpy( destination, buttons_buffer, 2);
+	}
 }
+
+uint8_t input_report[21] = {0};
 
 void mote_output_data_core()
 {
-    static uint8_t buffer[2] = {0};
-//	int rand = esp_random();
-//    buffer[0] = rand & 0xFF;
-//    buffer[1] = (rand >> 8) & 0xFF;
-	load_buttons_buffer(buffer);
-	ESP_LOG_BUFFER_HEX(TAG, buffer, 2);
-    esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buffer, 2);
+    static uint8_t old_buttons[2] = {0};
+	uint8_t buttons[2] = {0};
+	load_buttons_buffer(buttons);
+	if(old_buttons[0] != buttons[0] || old_buttons[1] != buttons[1]){
+		ESP_LOGI(TAG, "SENT BUTTONS");
+		switch(reportingMode){
+			case 0x30:
+				memcpy(input_report,buttons,2);
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 2);
+			    break;
+			case 0x31:
+				memcpy(input_report,buttons,2);
+				memset(input_report+2,0,3); //replace with accelerometer
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 5);
+			    break;
+			case 0x32:
+				memcpy(input_report,buttons,2);
+				memset(input_report+2,0,8); //replace with 8 extension bytes
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 10);
+			    break;
+			case 0x33:
+				memcpy(input_report,buttons,2);
+				memset(input_report+2,0,3); //replace with accelerometer
+				memset(input_report+5,0,12); //replace with IR bytes
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 17);
+			    break;
+			case 0x34:
+				memcpy(input_report,buttons,2);
+				memset(input_report+2,0,19); //replace with 19 extension bytes
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 21);
+			    break;
+			case 0x35:
+				memcpy(input_report,buttons,2);
+				memset(input_report+2,0,3); //replace with accelerometer
+				memset(input_report+5,0,16); //replace with 16 extension bytes
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 21);
+			    break;
+			case 0x36:
+				memcpy(input_report,buttons,2);
+				memset(input_report+2,0,10); //replace with 10 IR bytes
+				memset(input_report+12,0,9); //replace with 9 extension bytes
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 21);
+			    break;
+			case 0x37:
+				memcpy(input_report,buttons,2);
+				memset(input_report+2,0,3); //replace with accelerometer
+				memset(input_report+5,0,10); //replace with 10 IR bytes
+				memset(input_report+15,0,6); //replace with 6 extension bytes
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 21);
+			    break;
+			case 0x3d:
+				memset(input_report,0,21); //replace with 21 extension bytes
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 21);
+			    break;
+			case 0x3e: //same as 3f, forced to 3e during output report handling
+				//TODO: SET UP LATER ITS A WHOLE THING
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 2);
+			    break;
+			default:
+			    break;
+		}
+		
+	}
+	memcpy(old_buttons, buttons, 2);
 }
 
 void mote_hid_main_task(void *pvParameters)
@@ -413,9 +474,12 @@ void mote_hid_main_task(void *pvParameters)
     char c = 0;
     while (1) {
 		c = fgetc(stdin);
+		
+		mote_output_data_core();
+		
 		switch (c) {
 		case 'q':
-		    mote_output_data_core();
+		 	
 		    break;
 		case 'h':
 		    printf("%s\n", help_string);
@@ -515,6 +579,9 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 		        // 2 bytes - TT MM (TT bit2 = continuous, MM = mode 0x30-0x3f)
 				continuousReporting = (param->output.data[0] & 0x04);
 				reportingMode = param->output.data[1];
+				if(reportingMode == 0x3f){
+					reportingMode = 0x3e; //for simplicity, lock both 3f and 3e behinnd 3e as they are the same.
+				}
 				ESP_LOGI( TAGW, "Data Reporting: TT[%2x] MM[%x]", continuousReporting, reportingMode);
 		        break;
 		        
