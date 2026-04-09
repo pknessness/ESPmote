@@ -36,6 +36,9 @@
 #include "esp_mac.h"
 
 static const char *TAG = "HID_DEV_DEMO";
+static const char *TAGSEND = "WIIMOTE_OUTPUT";
+static const char *TAGW = "WII_OUTPUT";
+
 
 static inline uint32_t swapEndian32(uint32_t val) {
 
@@ -435,6 +438,9 @@ void mote_input_data_read(uint8_t size, uint8_t error, uint16_t address_low_16, 
 	memset(input_report + 5, 0, 16);
 	memcpy(input_report + 5, buffer, size);
 	esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x21, input_report, 21);
+	
+	ESP_LOGI( TAGSEND, "Responding to read");
+	ESP_LOG_BUFFER_HEX(TAGSEND, buffer, size);
 }
 
 //22 BB BB RR EE
@@ -452,7 +458,7 @@ void mote_input_data_core()
 	uint8_t buttons[2] = {0};
 	load_buttons_buffer(buttons);
 	if(continuousReporting || old_buttons[0] != buttons[0] || old_buttons[1] != buttons[1]){
-		ESP_LOGI(TAG, "SENT BUTTONS");
+		ESP_LOGI(TAGSEND, "SENT BUTTONS");
 		switch(reportingMode){
 			case 0x30:
 				memcpy(input_report,buttons,2);
@@ -516,8 +522,6 @@ void mote_input_data_core()
 
 void mote_hid_main_task(void *pvParameters)
 {
-	static const char *TAGW = "WIIMOTE_SEND";
-
     static const char* help_string = "########################################################################\n"\
     "ESPmote:\n"\
     "q -- send pressed buttons\n"\
@@ -564,7 +568,6 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
     esp_hidd_event_t event = (esp_hidd_event_t)id;
     esp_hidd_event_data_t *param = (esp_hidd_event_data_t *)event_data;
     static const char *TAG = "HID_DEV_BT";
-	static const char *TAGW = "WII_OUTPUT";
 
     switch (event) {
     case ESP_HIDD_START_EVENT: {
@@ -697,17 +700,17 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 				offset = (param->output.data[1] << 16) | (param->output.data[2] << 8) | (param->output.data[3]);
 				size = param->output.data[4];
 				if((param->output.data[0] & 0x04)){
-					if((offset & 0xFF0000 >> 16) == 0xA2){
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to speaker settings at %6x", size, offset & 0xFFFF);
+					if(param->output.data[1] == 0xA2){
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to speaker settings at %6x", size, offset);
 						memcpy(speaker_settings, param->output.data + 5, size);
-					}else if((offset & 0xFF0000 >> 16) == 0xA4){
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to extension controller settings and data at %4x", size, offset & 0xFFFF);
+					}else if(param->output.data[1] == 0xA4){
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to extension controller settings and data at %6x", size, offset);
 						memcpy(extension_controller_settings_data, param->output.data + 5, size);
-					}else if((offset & 0xFF0000 >> 16) == 0xA6){
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to wii motion plus settings and data at %4x", size, offset & 0xFFFF);
+					}else if(param->output.data[1] == 0xA6){
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to wii motion plus settings and data at %6x", size, offset);
 						memcpy(wii_motion_plus_settings_data, param->output.data + 5, size);
-					}else if((offset & 0xFF0000 >> 16) == 0xB0){
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to IR camera settings at %4x", size, offset & 0xFFFF);
+					}else if(param->output.data[1] == 0xB0){
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to IR camera settings at %6x", size, offset);
 						memcpy(IR_camera_settings, param->output.data + 5, size);
 					}else {
 						ESP_LOGI( TAGW, "Attempting to write %d bytes to control registers at %6x", size, offset);
@@ -731,18 +734,18 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 //				memset(&size, 0, 2);
 				size = (param->output.data[4] << 8) | (param->output.data[5]);
 				if((param->output.data[0] & 0x04)){
-					if((offset & 0xFF0000 >> 16) == 0xA2){
+					if(param->output.data[1] == 0xA2){
 						ESP_LOGI( TAGW, "Attempting to read %d bytes from speaker settings at %6x", size, offset & 0xFFFF);
 						mote_input_data_read(size, 0, offset & 0xFFFF, speaker_settings);
-					}else if((offset & 0xFF0000 >> 16) == 0xA4){
+					}else if(param->output.data[1] == 0xA4){
 						ESP_LOGI( TAGW, "Attempting to read %d bytes from extension controller settings and data at %4x", size, offset & 0xFFFF);
 						mote_input_data_read(size, 0, offset & 0xFFFF, extension_controller_settings_data);
 
-					}else if((offset & 0xFF0000 >> 16) == 0xA6){
+					}else if(param->output.data[1] == 0xA6){
 						ESP_LOGI( TAGW, "Attempting to read %d bytes from wii motion plus settings and data at %4x", size, offset & 0xFFFF);
 						mote_input_data_read(size, 0, offset & 0xFFFF, wii_motion_plus_settings_data);
 
-					}else if((offset & 0xFF0000 >> 16) == 0xB0){
+					}else if(param->output.data[1] == 0xB0){
 						ESP_LOGI( TAGW, "Attempting to read %d bytes from IR camera settings at %4x", size, offset & 0xFFFF);
 						mote_input_data_read(size, 0, offset & 0xFFFF, IR_camera_settings);
 
