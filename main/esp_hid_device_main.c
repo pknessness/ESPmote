@@ -32,6 +32,7 @@
 
 //Added by pknessness
 #include "esp_random.h"
+#include "driver/gpio.h"
 
 static const char *TAG = "HID_DEV_DEMO";
 
@@ -95,6 +96,19 @@ typedef enum {
     I_INTERLEAVED_36_IR              = 0x3e,  // Interleaved Core Buttons + Accelerometer + 36 IR bytes
     I_INTERLEAVED_36_IR_ALT          = 0x3f   // Interleaved Core Buttons + Accelerometer + 36 IR bytes (alternate)
 } wii_report_id_t;
+
+// Button GPIO definitions
+#define BUTTON_PIN_A        GPIO_NUM_25
+#define BUTTON_PIN_B        GPIO_NUM_18  // NOT CONNECTED YET
+#define BUTTON_PIN_ONE      GPIO_NUM_19  // NOT CONNECTED YET
+#define BUTTON_PIN_TWO      GPIO_NUM_21  // NOT CONNECTED YET
+#define BUTTON_PIN_PLUS     GPIO_NUM_22  // NOT CONNECTED YET
+#define BUTTON_PIN_MINUS    GPIO_NUM_35  //GPIO 34-39 CANNOT SOFTWARE PULLUP
+#define BUTTON_PIN_HOME     GPIO_NUM_33
+#define BUTTON_PIN_UP       GPIO_NUM_26
+#define BUTTON_PIN_DOWN     GPIO_NUM_27
+#define BUTTON_PIN_LEFT     GPIO_NUM_34  //GPIO 34-39 CANNOT SOFTWARE PULLUP
+#define BUTTON_PIN_RIGHT    GPIO_NUM_32
 
 #if CONFIG_BT_HID_DEVICE_ENABLED
 static local_param_t s_bt_hid_param = {0};
@@ -294,29 +308,95 @@ void bt_hid_demo_task(void *pvParameters)
     }
 }
 
-////first byte
-//static const uint8_t BUTTONS_SHIFT_DPAD_LEFT = 0;
-//static const uint8_t BUTTONS_SHIFT_DPAD_RIGHT = 1;
-//static const uint8_t BUTTONS_SHIFT_DPAD_DOWN = 2;
-//static const uint8_t BUTTONS_SHIFT_DPAD_UP = 3;
-//static const uint8_t BUTTONS_SHIFT_DPAD_PLUS = 4;
-//
-////second byte
-//static const uint8_t BUTTONS_SHIFT_TWO = 0;
-//static const uint8_t BUTTONS_SHIFT_ONE = 1;
-//static const uint8_t BUTTONS_SHIFT_B = 2;
-//static const uint8_t BUTTONS_SHIFT_A = 3;
-//static const uint8_t BUTTONS_SHIFT_MINUS = 4;
-//
-//static const uint8_t BUTTONS_SHIFT_HOME = 7;
+void init_GPIO(){
+	// Set button GPIO directions to input
+	gpio_set_direction(BUTTON_PIN_A, GPIO_MODE_INPUT);
+	gpio_set_direction(BUTTON_PIN_B, GPIO_MODE_INPUT);      // NOT CONNECTED YET
+	gpio_set_direction(BUTTON_PIN_ONE, GPIO_MODE_INPUT);      // NOT CONNECTED YET
+	gpio_set_direction(BUTTON_PIN_TWO, GPIO_MODE_INPUT);      // NOT CONNECTED YET
+	gpio_set_direction(BUTTON_PIN_PLUS, GPIO_MODE_INPUT);   // NOT CONNECTED YET
+	gpio_set_direction(BUTTON_PIN_MINUS, GPIO_MODE_INPUT);
+	gpio_set_direction(BUTTON_PIN_HOME, GPIO_MODE_INPUT);
+	gpio_set_direction(BUTTON_PIN_UP, GPIO_MODE_INPUT);
+	gpio_set_direction(BUTTON_PIN_DOWN, GPIO_MODE_INPUT);
+	gpio_set_direction(BUTTON_PIN_LEFT, GPIO_MODE_INPUT);
+	gpio_set_direction(BUTTON_PIN_RIGHT, GPIO_MODE_INPUT);
+	
+	// Set button GPIO pull-up enable
+	gpio_pullup_en(BUTTON_PIN_A);
+	gpio_pullup_en(BUTTON_PIN_B);      // NOT CONNECTED YET
+	gpio_pullup_en(BUTTON_PIN_ONE);    // NOT CONNECTED YET
+	gpio_pullup_en(BUTTON_PIN_TWO);    // NOT CONNECTED YET
+	gpio_pullup_en(BUTTON_PIN_PLUS);   // NOT CONNECTED YET
+	//gpio_pullup_en(BUTTON_PIN_MINUS);
+	gpio_pullup_en(BUTTON_PIN_HOME);
+	gpio_pullup_en(BUTTON_PIN_UP);
+	gpio_pullup_en(BUTTON_PIN_DOWN);
+	//gpio_pullup_en(BUTTON_PIN_LEFT);
+	gpio_pullup_en(BUTTON_PIN_RIGHT);
+}
+
+//first byte
+static const uint8_t BUTTONS_SHIFT_DPAD_LEFT = 0;
+static const uint8_t BUTTONS_SHIFT_DPAD_RIGHT = 1;
+static const uint8_t BUTTONS_SHIFT_DPAD_DOWN = 2;
+static const uint8_t BUTTONS_SHIFT_DPAD_UP = 3;
+static const uint8_t BUTTONS_SHIFT_PLUS = 4;
+
+//second byte
+static const uint8_t BUTTONS_SHIFT_TWO = 0;
+static const uint8_t BUTTONS_SHIFT_ONE = 1;
+static const uint8_t BUTTONS_SHIFT_B = 2;
+static const uint8_t BUTTONS_SHIFT_A = 3;
+static const uint8_t BUTTONS_SHIFT_MINUS = 4;
+
+static const uint8_t BUTTONS_SHIFT_HOME = 7;
 
 // send the buttons, change in x, and change in y
+
+void load_buttons_buffer(uint8_t* destination)
+{
+    static uint8_t buffer[2];
+	memset(buffer, 0, 2);
+	
+	buffer[0] |= (!gpio_get_level(BUTTON_PIN_UP) << BUTTONS_SHIFT_DPAD_UP);
+	buffer[0] |= (!gpio_get_level(BUTTON_PIN_DOWN) << BUTTONS_SHIFT_DPAD_DOWN);
+	buffer[0] |= (gpio_get_level(BUTTON_PIN_LEFT) << BUTTONS_SHIFT_DPAD_LEFT);
+	buffer[0] |= (!gpio_get_level(BUTTON_PIN_RIGHT) << BUTTONS_SHIFT_DPAD_RIGHT);
+	buffer[0] |= (!gpio_get_level(BUTTON_PIN_PLUS) << BUTTONS_SHIFT_PLUS);
+
+	
+	buffer[1] |= (!gpio_get_level(BUTTON_PIN_A) << BUTTONS_SHIFT_A);
+	buffer[1] |= (!gpio_get_level(BUTTON_PIN_B) << BUTTONS_SHIFT_B);
+	buffer[1] |= (!gpio_get_level(BUTTON_PIN_ONE) << BUTTONS_SHIFT_ONE);
+	buffer[1] |= (!gpio_get_level(BUTTON_PIN_TWO) << BUTTONS_SHIFT_TWO);
+	buffer[1] |= (gpio_get_level(BUTTON_PIN_MINUS) << BUTTONS_SHIFT_MINUS);
+	buffer[1] |= (!gpio_get_level(BUTTON_PIN_HOME) << BUTTONS_SHIFT_HOME);
+	//ESP_LOGI(TAG, "A:%d B:%d 1:%d 2:%d PLUS:%d MINUS:%d HOME:%d UP:%d DOWN:%d LEFT:%d RIGHT:%d", gpio_get_level(BUTTON_PIN_A), gpio_get_level(BUTTON_PIN_B), gpio_get_level(BUTTON_PIN_ONE), gpio_get_level(BUTTON_PIN_TWO), gpio_get_level(BUTTON_PIN_PLUS), gpio_get_level(BUTTON_PIN_MINUS), gpio_get_level(BUTTON_PIN_HOME), gpio_get_level(BUTTON_PIN_UP), gpio_get_level(BUTTON_PIN_DOWN), gpio_get_level(BUTTON_PIN_LEFT), gpio_get_level(BUTTON_PIN_RIGHT));
+	ESP_LOGI(TAG, "[%c%c%c%c%c%c%c%c%c%c%c]",
+	         (gpio_get_level(BUTTON_PIN_A) ? ' ' : 'A'),
+	         (gpio_get_level(BUTTON_PIN_B) ? ' ' : 'B'),
+	         (gpio_get_level(BUTTON_PIN_ONE) ? ' ' : '1'),
+	         (gpio_get_level(BUTTON_PIN_TWO) ? ' ' : '2'),
+	         (gpio_get_level(BUTTON_PIN_PLUS) ? ' ' : '+'),
+	         (gpio_get_level(BUTTON_PIN_MINUS) ? '-' : ' '),
+	         (gpio_get_level(BUTTON_PIN_HOME) ? ' ' : 'H'),
+	         (gpio_get_level(BUTTON_PIN_UP) ? ' ' : '^'),
+	         (gpio_get_level(BUTTON_PIN_DOWN) ? ' ' : 'v'),
+	         (gpio_get_level(BUTTON_PIN_LEFT) ? '<' : ' '),
+	         (gpio_get_level(BUTTON_PIN_RIGHT) ? ' ' : '>'));
+//	ESP_LOG_BUFFER_HEX(TAG, buffer, 2);
+	memcpy(destination, buffer, 2);
+}
+
 void mote_output_data_core()
 {
     static uint8_t buffer[2] = {0};
-	int rand = esp_random();
-    buffer[0] = rand & 0xFF;
-    buffer[1] = (rand >> 8) & 0xFF;
+//	int rand = esp_random();
+//    buffer[0] = rand & 0xFF;
+//    buffer[1] = (rand >> 8) & 0xFF;
+	load_buttons_buffer(buffer);
+	ESP_LOG_BUFFER_HEX(TAG, buffer, 2);
     esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buffer, 2);
 }
 
@@ -325,23 +405,23 @@ void mote_hid_main_task(void *pvParameters)
 	static const char *TAGW = "WIIMOTE_SEND";
 
     static const char* help_string = "########################################################################\n"\
-    "BT hid mouse demo usage:\n"\
-    "You can input these value to simulate mouse: 'q', 'w', 'e', 'a', 's', 'd', 'h'\n"\
-    "q -- click the left key\n"\
-    "w -- move up\n"\
-    "e -- click the right key\n"\
-    "a -- move left\n"\
-    "s -- move down\n"\
-    "d -- move right\n"\
+    "ESPmote:\n"\
+    "q -- send pressed buttons\n"\
     "h -- show the help\n"\
     "########################################################################\n";
     printf("%s\n", help_string);
     char c = 0;
     while (1) {
 		c = fgetc(stdin);
-		if(c != 0){
-			mote_output_data_core();
-			ESP_LOGI()
+		switch (c) {
+		case 'q':
+		    mote_output_data_core();
+		    break;
+		case 'h':
+		    printf("%s\n", help_string);
+		    break;
+		default:
+		    break;
 		}
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
@@ -575,6 +655,8 @@ static void esp_sdp_cb(esp_sdp_cb_event_t event, esp_sdp_cb_param_t *param)
 
 void app_main(void)
 {
+	init_GPIO();
+	
     esp_err_t ret;
 
     ret = nvs_flash_init();
