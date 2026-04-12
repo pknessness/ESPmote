@@ -239,6 +239,26 @@ Device CC:9E:00:DE:8C:EC (public)
         CablePairing: no
         RSSI: 0xffffffc7 (-57)
 
+Device CC:9E:00:DE:8C:EC (public)
+        Name: Nintendo RVL-CNT-01
+        Alias: Nintendo RVL-CNT-01
+        Class: 0x00002504 (9476)
+        Icon: input-gaming
+        Paired: yes
+        Bonded: yes
+        Trusted: yes
+        Blocked: no
+        Connected: no
+        WakeAllowed: yes
+        LegacyPairing: yes
+        CablePairing: no
+        UUID: Service Discovery Serve.. (00001000-0000-1000-8000-00805f9b34fb)
+        UUID: Human Interface Device... (00001124-0000-1000-8000-00805f9b34fb)
+        UUID: PnP Information           (00001200-0000-1000-8000-00805f9b34fb)
+        Modalias: usb:v057Ep0306d8600
+        RSSI: 0xffffffc0 (-64)
+
+
 SDP_TOOL
 OrcaMote: 
 
@@ -260,3 +280,40 @@ profile_tab[pid].btc_call (btc_stp_call_handler) {btc_sdp.c}
 btc_sdp_create_record {btc_sdp.c}
 -alloc_sdp_slot
 BTA_SdpCreateRecordByUser {btc_sdp_api.c}
+
+| GPIO   | Analog Function | RTC GPIO    | Comments               | Extra Functions                       | Extra Col 2     |
+|--------|-----------------|-------------|------------------------|---------------------------------------|-----------------|
+| GPIO0  | ADC2_CH1        | RTC_GPIO11  | Strapping pin          |                                       |                 |
+| GPIO1  |                 |             | TXD                    |                                       |                 |
+| GPIO2  | ADC2_CH2        | RTC_GPIO12  | Strapping pin          |                                       |                 |
+| GPIO3  |                 |             | RXD                    |                                       |                 |
+| GPIO4  | ADC2_CH0        | RTC_GPIO10  |                        |                                       |                 |
+| GPIO5  |                 |             | Strapping pin          | VSPI_CS0                              |                 |
+| GPIO6  |                 |             | SPI0/1                 |                                       |                 |
+| GPIO7  |                 |             | SPI0/1                 |                                       |                 |
+| GPIO8  |                 |             | SPI0/1                 |                                       |                 |
+| GPIO9  |                 |             | SPI0/1                 |                                       |                 |
+| GPIO10 |                 |             | SPI0/1                 |                                       |                 |
+| GPIO11 |                 |             | SPI0/1                 |                                       |                 |
+| GPIO12 | ADC2_CH5        | RTC_GPIO15  | Strapping pin; JTAG    |                                       |                 |
+| GPIO13 | ADC2_CH4        | RTC_GPIO14  | JTAG                   |                                       |                 |
+| GPIO14 | ADC2_CH6        | RTC_GPIO16  | JTAG                   |                                       |                 |
+| GPIO15 | ADC2_CH3        | RTC_GPIO13  | Strapping pin; JTAG    |                                       |                 |
+| GPIO16 |                 |             | SPI0/1                 |                                       |                 |
+| GPIO17 |                 |             | SPI0/1                 |                                       |                 |
+| GPIO18 |                 |             |                        | VSPI_CLK                              |                 |
+| GPIO19 |                 |             |                        | VSPI_MISO                             |                 |
+| GPIO21 |                 |             |                        | I2C_SDA                               |                 |
+| GPIO22 |                 |             |                        | I2C_SCL                               |                 |
+| GPIO23 |                 |             |                        | VSPI_MOSI                             |                 |
+| GPIO25 | ADC2_CH8        | RTC_GPIO6   |                        |                                       |                 |
+| GPIO26 | ADC2_CH9        | RTC_GPIO7   |                        |                                       |                 |
+| GPIO27 | ADC2_CH7        | RTC_GPIO17  |                        |                                       |                 |
+| GPIO32 | ADC1_CH4        | RTC_GPIO9   |                        |                                       |                 |
+| GPIO33 | ADC1_CH5        | RTC_GPIO8   |                        |                                       |                 |
+| GPIO34 | ADC1_CH6        | RTC_GPIO4   | GPI                    |                                       |                 |
+| GPIO35 | ADC1_CH7        | RTC_GPIO5   | GPI                    |                                       |                 |
+| GPIO36 | ADC1_CH0        | RTC_GPIO0   | GPI                    |                                       |                 |
+| GPIO37 | ADC1_CH1        | RTC_GPIO1   | GPI                    |                                       |                 |
+| GPIO38 | ADC1_CH2        | RTC_GPIO2   | GPI                    |                                       |                 |
+| GPIO39 | ADC1_CH3        | RTC_GPIO3   | GPI                    |                                       |                 |

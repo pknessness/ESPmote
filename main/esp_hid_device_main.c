@@ -107,21 +107,23 @@ typedef enum {
     ACK_ERROR                           = 0x03,
     ACK_UNKNOWN1                        = 0x04,
     ACK_UNKNOWN2                        = 0x05,
+	ACK_INCORRECT_WRITE_LOCATION        = 0x07, //for when writing to an unconnected extension like deactive motion plus
     ACK_UNKNOWN3                        = 0x08,
-} ack_error_codes;
+} ack_error_code_t;
 
 // Button GPIO definitions
-#define BUTTON_PIN_A        GPIO_NUM_25
-#define BUTTON_PIN_B        GPIO_NUM_18  // NOT CONNECTED YET
-#define BUTTON_PIN_ONE      GPIO_NUM_19  // NOT CONNECTED YET
-#define BUTTON_PIN_TWO      GPIO_NUM_21  // NOT CONNECTED YET
-#define BUTTON_PIN_PLUS     GPIO_NUM_22  // NOT CONNECTED YET
-#define BUTTON_PIN_MINUS    GPIO_NUM_35  //GPIO 34-39 CANNOT SOFTWARE PULLUP
-#define BUTTON_PIN_HOME     GPIO_NUM_33
-#define BUTTON_PIN_UP       GPIO_NUM_26
-#define BUTTON_PIN_DOWN     GPIO_NUM_27
-#define BUTTON_PIN_LEFT     GPIO_NUM_34  //GPIO 34-39 CANNOT SOFTWARE PULLUP
-#define BUTTON_PIN_RIGHT    GPIO_NUM_32
+//GPIO 34-39 CANNOT SOFTWARE PULLUP
+#define BUTTON_PIN_A        GPIO_NUM_32 //
+#define BUTTON_PIN_B        GPIO_NUM_27 //
+#define BUTTON_PIN_ONE      GPIO_NUM_18 //
+#define BUTTON_PIN_TWO      GPIO_NUM_19 //
+#define BUTTON_PIN_PLUS     GPIO_NUM_4 //
+#define BUTTON_PIN_MINUS    GPIO_NUM_23 //
+#define BUTTON_PIN_HOME     GPIO_NUM_34 //
+#define BUTTON_PIN_UP       GPIO_NUM_26 //
+#define BUTTON_PIN_DOWN     GPIO_NUM_33 //
+#define BUTTON_PIN_LEFT     GPIO_NUM_35 //  
+#define BUTTON_PIN_RIGHT    GPIO_NUM_25 //
 
 #if CONFIG_BT_HID_DEVICE_ENABLED
 static local_param_t s_bt_hid_param = {0};
@@ -266,77 +268,26 @@ bool rumbling = false;
 bool speaker_enable = false;
 uint8_t status_byte = 0;
 
+bool has_extension = false; //change to a "which extension uint48_t"
+
 // Register chunks
 uint8_t speaker_settings[10]; //A20000 - A20009
-uint8_t extension_controller_settings_data[255]; //A40000 - A400FF
-uint8_t wii_motion_plus_settings_data[255]; //A60000 - A600FF
+uint8_t extension_controller_settings_data[256]; //A40000 - A400FF
+uint8_t wii_motion_plus_settings_data[256]; //A60000 - A600FF
 uint8_t IR_camera_settings[34]; //B00000 - B00033
 
-
-// send the buttons, change in x, and change in y
-void send_mouse(uint8_t buttons, char dx, char dy, char wheel)
-{
-    static uint8_t buffer[4] = {0};
-    buffer[0] = buttons;
-    buffer[1] = dx;
-    buffer[2] = dy;
-    buffer[3] = wheel;
-    esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0, buffer, 4);
-}
-
-void bt_hid_demo_task(void *pvParameters)
-{
-    static const char* help_string = "########################################################################\n"\
-    "BT hid mouse demo usage:\n"\
-    "You can input these value to simulate mouse: 'q', 'w', 'e', 'a', 's', 'd', 'h'\n"\
-    "q -- click the left key\n"\
-    "w -- move up\n"\
-    "e -- click the right key\n"\
-    "a -- move left\n"\
-    "s -- move down\n"\
-    "d -- move right\n"\
-    "h -- show the help\n"\
-    "########################################################################\n";
-    printf("%s\n", help_string);
-    char c;
-    while (1) {
-        c = fgetc(stdin);
-        switch (c) {
-        case 'q':
-            send_mouse(1, 0, 0, 0);
-            break;
-        case 'w':
-            send_mouse(0, 0, -10, 0);
-            break;
-        case 'e':
-            send_mouse(2, 0, 0, 0);
-            break;
-        case 'a':
-            send_mouse(0, -10, 0, 0);
-            break;
-        case 's':
-            send_mouse(0, 0, 10, 0);
-            break;
-        case 'd':
-            send_mouse(0, 10, 0, 0);
-            break;
-        case 'h':
-            printf("%s\n", help_string);
-            break;
-        default:
-            break;
-        }
-        vTaskDelay(10 / portTICK_PERIOD_MS);
-    }
+void init_register_chunks(){
+	uint8_t wii_motion_plus_identifier[6] = {0x00,0x00,0xa6,0x20,0x00,0x05};
+	memcpy(wii_motion_plus_settings_data + 0xFA,wii_motion_plus_identifier, 6);
 }
 
 void init_GPIO(){
 	// Set button GPIO directions to input
 	gpio_set_direction(BUTTON_PIN_A, GPIO_MODE_INPUT);
-	gpio_set_direction(BUTTON_PIN_B, GPIO_MODE_INPUT);      // NOT CONNECTED YET
-	gpio_set_direction(BUTTON_PIN_ONE, GPIO_MODE_INPUT);      // NOT CONNECTED YET
-	gpio_set_direction(BUTTON_PIN_TWO, GPIO_MODE_INPUT);      // NOT CONNECTED YET
-	gpio_set_direction(BUTTON_PIN_PLUS, GPIO_MODE_INPUT);   // NOT CONNECTED YET
+	gpio_set_direction(BUTTON_PIN_B, GPIO_MODE_INPUT);
+	gpio_set_direction(BUTTON_PIN_ONE, GPIO_MODE_INPUT);
+	gpio_set_direction(BUTTON_PIN_TWO, GPIO_MODE_INPUT);
+	gpio_set_direction(BUTTON_PIN_PLUS, GPIO_MODE_INPUT);
 	gpio_set_direction(BUTTON_PIN_MINUS, GPIO_MODE_INPUT);
 	gpio_set_direction(BUTTON_PIN_HOME, GPIO_MODE_INPUT);
 	gpio_set_direction(BUTTON_PIN_UP, GPIO_MODE_INPUT);
@@ -346,15 +297,15 @@ void init_GPIO(){
 	
 	// Set button GPIO pull-up enable
 	gpio_pullup_en(BUTTON_PIN_A);
-	gpio_pullup_en(BUTTON_PIN_B);      // NOT CONNECTED YET
-	gpio_pullup_en(BUTTON_PIN_ONE);    // NOT CONNECTED YET
-	gpio_pullup_en(BUTTON_PIN_TWO);    // NOT CONNECTED YET
-	gpio_pullup_en(BUTTON_PIN_PLUS);   // NOT CONNECTED YET
-	//gpio_pullup_en(BUTTON_PIN_MINUS);
+	gpio_pullup_en(BUTTON_PIN_B);
+	gpio_pullup_en(BUTTON_PIN_ONE);
+	gpio_pullup_en(BUTTON_PIN_TWO);
+	gpio_pullup_en(BUTTON_PIN_PLUS);
+	gpio_pullup_en(BUTTON_PIN_MINUS);
 	gpio_pullup_en(BUTTON_PIN_HOME);
 	gpio_pullup_en(BUTTON_PIN_UP);
 	gpio_pullup_en(BUTTON_PIN_DOWN);
-	//gpio_pullup_en(BUTTON_PIN_LEFT);
+	gpio_pullup_en(BUTTON_PIN_LEFT);
 	gpio_pullup_en(BUTTON_PIN_RIGHT);
 }
 
@@ -433,14 +384,15 @@ void mote_input_data_read(uint8_t size, uint8_t error, uint16_t address_low_16, 
 	load_buttons_buffer(input_report);
 	input_report[2] = ((size-1) & 0xF << 4) | (error & 0xF);
 	//E (low nybble of SE) is the error flag. Known error values are 0 for no error, 7 when attempting to read from a write-only register or an expansion that is not connected, and 8 when attempting to read from nonexistant memory addresses. 
-	input_report[3] = address_low_16 & 0x00FF;
-	input_report[4] = (address_low_16 & 0xFF00) >> 8;
+//	input_report[3] = address_low_16 & 0x00FF;
+//	input_report[4] = (address_low_16 & 0xFF00) >> 8;
+	memcpy(input_report + 3, &address_low_16, 2);
 	memset(input_report + 5, 0, 16);
-	memcpy(input_report + 5, buffer, size);
+	memcpy(input_report + 5, buffer + address_low_16, size);
 	esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x21, input_report, 21);
 	
 	ESP_LOGI( TAGSEND, "Responding to read");
-	ESP_LOG_BUFFER_HEX(TAGSEND, buffer, size);
+	ESP_LOG_BUFFER_HEX(TAGSEND, buffer + address_low_16, size);
 }
 
 //22 BB BB RR EE
@@ -619,6 +571,7 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 		}
 		
 		uint32_t offset;
+		uint16_t offset_16;
 		uint16_t size;
 		
 		switch (param->feature.report_id) {
@@ -705,35 +658,42 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 
 		        break;
 		        
-		    case O_WRITE_MEMORY_REGISTERS:
+		    case O_WRITE_MEMORY_REGISTERS: //TODO: make sure doesnt buffer overflow
 		        // 21 bytes - write to memory/registers
 				offset = (param->output.data[1] << 16) | (param->output.data[2] << 8) | (param->output.data[3]);
+				offset_16 = (param->output.data[2] << 8) | (param->output.data[3]);
 				size = param->output.data[4];
+				
+				ack_error_code_t return_ack = ACK_SUCCESS;
+				
 				if((param->output.data[0] & 0x04)){
 					if(param->output.data[1] == 0xA2){
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to speaker settings at %6x", size, offset);
-						memcpy(speaker_settings, param->output.data + 5, size);
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to speaker settings at %6x [%04x]", size, offset, offset_16);
+						memcpy(speaker_settings + offset_16, param->output.data + 5, size);
 					}else if(param->output.data[1] == 0xA4){
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to extension controller settings and data at %6x", size, offset);
-						memcpy(extension_controller_settings_data, param->output.data + 5, size);
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to extension controller settings and data at %6x [%04x]", size, offset);
+						if(has_extension){
+							memcpy(extension_controller_settings_data + offset_16, param->output.data + 5, size);
+						}else{
+							return_ack = ACK_INCORRECT_WRITE_LOCATION;
+						}
 					}else if(param->output.data[1] == 0xA6){
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to wii motion plus settings and data at %6x", size, offset);
-						memcpy(wii_motion_plus_settings_data, param->output.data + 5, size);
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to wii motion plus settings and data at %6x [%04x]", size, offset);
+						memcpy(wii_motion_plus_settings_data + offset_16, param->output.data + 5, size);
+						ESP_LOG_BUFFER_HEX("WII_MP DUMP", wii_motion_plus_settings_data, 256);
 					}else if(param->output.data[1] == 0xB0){
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to IR camera settings at %6x", size, offset);
-						memcpy(IR_camera_settings, param->output.data + 5, size);
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to IR camera settings at %6x [%04x]", size, offset);
+						memcpy(IR_camera_settings + offset_16, param->output.data + 5, size);
 					}else {
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to control registers at %6x", size, offset);
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to control registers at %6x [%04x]", size, offset);
 					}
 				}else{
 					ESP_LOGI( TAGW, "Attempting to write %d bytes to EEPROM Memory at %6x", size, offset);
 				}
-				ESP_LOG_BUFFER_HEX(TAGW, param->output.data + 5, size); //TODO: make sure doesnt buffer overflow
+				ESP_LOG_BUFFER_HEX(TAGW, param->output.data + 5, size); 
 					
-				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->output.data[0] & 0x02){
-					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
-				}
+				//apparently all writes request an ack automatically
+				mote_input_data_acknowledge(param->feature.report_id, return_ack);
 
 				break;
 		        
@@ -741,23 +701,24 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 				//TODO: MAKE SURE NO MEM OVERFLOW
 		        // 6 bytes - read from memory/registers
 				offset = (param->output.data[1] << 16) | (param->output.data[2] << 8) | (param->output.data[3]);
+				offset_16 = (param->output.data[2] << 8) | (param->output.data[3]);
 //				memset(&size, 0, 2);
 				size = (param->output.data[4] << 8) | (param->output.data[5]);
 				if((param->output.data[0] & 0x04)){
 					if(param->output.data[1] == 0xA2){
-						ESP_LOGI( TAGW, "Attempting to read %d bytes from speaker settings at %6x", size, offset & 0xFFFF);
-						mote_input_data_read(size, 0, offset & 0xFFFF, speaker_settings);
+						ESP_LOGI( TAGW, "Attempting to read %d bytes from speaker settings at %6x [%04x]", size, offset, offset_16);
+						mote_input_data_read(size, 0, offset_16, speaker_settings);
 					}else if(param->output.data[1] == 0xA4){
-						ESP_LOGI( TAGW, "Attempting to read %d bytes from extension controller settings and data at %4x", size, offset & 0xFFFF);
-						mote_input_data_read(size, 0, offset & 0xFFFF, extension_controller_settings_data);
+						ESP_LOGI( TAGW, "Attempting to read %d bytes from extension controller settings and data at %6x [%04x]", size, offset, offset_16);
+						mote_input_data_read(size, 0, offset_16, extension_controller_settings_data);
 
 					}else if(param->output.data[1] == 0xA6){
-						ESP_LOGI( TAGW, "Attempting to read %d bytes from wii motion plus settings and data at %4x", size, offset & 0xFFFF);
-						mote_input_data_read(size, 0, offset & 0xFFFF, wii_motion_plus_settings_data);
-
+						ESP_LOGI( TAGW, "Attempting to read %d bytes from wii motion plus settings and data at %6x [%04x]", size, offset, offset_16);
+						mote_input_data_read(size, 0, offset_16, wii_motion_plus_settings_data);
+						ESP_LOG_BUFFER_HEX("WII_MP DUMP", wii_motion_plus_settings_data, 256);
 					}else if(param->output.data[1] == 0xB0){
-						ESP_LOGI( TAGW, "Attempting to read %d bytes from IR camera settings at %4x", size, offset & 0xFFFF);
-						mote_input_data_read(size, 0, offset & 0xFFFF, IR_camera_settings);
+						ESP_LOGI( TAGW, "Attempting to read %d bytes from IR camera settings at %6x [%04x]", size, offset, offset_16);
+						mote_input_data_read(size, 0, offset_16, IR_camera_settings);
 
 					}else {
 						ESP_LOGI( TAGW, "Attempting to read %d bytes from control registers at %6x", size, offset);
@@ -899,6 +860,7 @@ void app_main(void)
 	esp_base_mac_addr_set(baseMac);
 	
 	init_GPIO();
+	init_register_chunks();
 	
     esp_err_t ret;
 
