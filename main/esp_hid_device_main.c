@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Unlicense OR CC0-1.0
  */
 
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,31 +35,12 @@
 #include "esp_random.h"
 #include "driver/gpio.h"
 #include "esp_mac.h"
+#include "mpu6050.h"
 
 static const char *TAG = "HID_DEV_DEMO";
 static const char *TAGSEND = "WIIMOTE_OUTPUT";
 static const char *TAGW = "WII_OUTPUT";
 
-
-static inline uint32_t swapEndian32(uint32_t val) {
-
-    return ((0xFF000000 & val) >> 24) |
-
-        ((0x00FF0000 & val) >> 8) |
-
-        ((0x0000FF00 & val) << 8) |
-
-        ((0x000000FF & val) << 24);
-
-}
-
-static inline uint16_t swapEndian16(uint16_t val) {
-
-    return ((0xFF00 & val) >> 8) |
-
-        ((0x00FF & val) << 8);
-
-}
 
 typedef struct
 {
@@ -124,6 +106,14 @@ typedef enum {
 #define BUTTON_PIN_DOWN     GPIO_NUM_33 //
 #define BUTTON_PIN_LEFT     GPIO_NUM_35 //  
 #define BUTTON_PIN_RIGHT    GPIO_NUM_25 //
+
+//IMU (I2C)
+#define I2C_MASTER_SCL_IO    22 // SCL pin
+#define I2C_MASTER_SDA_IO    21 // SDA pin
+#define I2C_MASTER_FREQ_HZ   400000
+#define I2C_MASTER_NUM       I2C_NUM_0
+#define ESP_INTR_FLAG_DEFAULT 0
+mpu6050_handle_t mpu6050_handle;
 
 #if CONFIG_BT_HID_DEVICE_ENABLED
 static local_param_t s_bt_hid_param = {0};
@@ -270,6 +260,16 @@ uint8_t status_byte = 0;
 
 bool has_extension = false; //change to a "which extension uint48_t"
 
+//IMU
+//In the image in README, the raw accel shows the relevant value when it is facing up. For example in the image in README, the face buttons are facing upwards, and we get a +Z value on the accelerometer.
+//standard accelerometer values are ~100 when at normal earth gravity values (aka not moving)
+mpu6050_raw_accel_value_t raw_accel;
+int16_t accel_offset_4g[3] = {-340, 88, 764}; //add these to values, before multing by scale
+float accel_scale_4g = 100 / (8192.0); //multiply values by this to get +-100 at +- 1G to match wiimote range
+const int16_t accel_zero_value = 0x0200;
+
+mpu6050_raw_gyro_value_t raw_gyro;
+
 // Register chunks
 uint8_t speaker_settings[10]; //A20000 - A20009
 uint8_t extension_controller_settings_data[256]; //A40000 - A400FF
@@ -334,7 +334,7 @@ void load_buttons_buffer(uint8_t* destination)
 	
 	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_UP) << BUTTONS_SHIFT_DPAD_UP);
 	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_DOWN) << BUTTONS_SHIFT_DPAD_DOWN);
-	buttons_buffer[0] |= (gpio_get_level(BUTTON_PIN_LEFT) << BUTTONS_SHIFT_DPAD_LEFT);
+	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_LEFT) << BUTTONS_SHIFT_DPAD_LEFT);
 	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_RIGHT) << BUTTONS_SHIFT_DPAD_RIGHT);
 	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_PLUS) << BUTTONS_SHIFT_PLUS);
 
@@ -343,7 +343,7 @@ void load_buttons_buffer(uint8_t* destination)
 	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_B) << BUTTONS_SHIFT_B);
 	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_ONE) << BUTTONS_SHIFT_ONE);
 	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_TWO) << BUTTONS_SHIFT_TWO);
-	buttons_buffer[1] |= (gpio_get_level(BUTTON_PIN_MINUS) << BUTTONS_SHIFT_MINUS);
+	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_MINUS) << BUTTONS_SHIFT_MINUS);
 	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_HOME) << BUTTONS_SHIFT_HOME);
 	
 //	ESP_LOGI(TAG, "[%c%c%c%c%c%c%c%c%c%c%c]",
@@ -361,6 +361,66 @@ void load_buttons_buffer(uint8_t* destination)
 
 	if(destination != nullptr){
 		memcpy( destination, buttons_buffer, 2);
+	}
+}
+
+int16_t accelerometer_raw_to_10bit(int16_t raw_accel, int16_t offset){
+	int16_t aligned = raw_accel + offset;
+	float scaled = aligned * accel_scale_4g;
+	int16_t scaled_int = (int16_t)(scaled);
+	int16_t plus_zero = scaled_int + accel_zero_value;
+//	ESP_LOGI("MPU MATH", "(%d+%d)[%d] %f[%d] 0x%04x + 0x200 = 0x%04x", 
+//		raw_accel, 
+//		offset, 
+//		aligned, 
+//		scaled, 
+//		scaled_int, 
+//		scaled_int,
+//		plus_zero);
+	return plus_zero;
+}
+
+//send the start of the buffer because accelerometer data also places bits into the buttons section
+void read_from_accelerometer(int16_t* processed_10bit_accel_x, int16_t* processed_10bit_accel_y, int16_t* processed_10bit_accel_z){
+    esp_err_t ret = mpu6050_get_raw_accel(mpu6050_handle, &raw_accel);
+	if (ret != ESP_OK) {
+	    ESP_LOGE("MPU6050", "Read failed");
+	    return;
+	}
+	*processed_10bit_accel_x = accelerometer_raw_to_10bit(raw_accel.raw_accel_x,accel_offset_4g[0]);
+	*processed_10bit_accel_y = accelerometer_raw_to_10bit(raw_accel.raw_accel_y,accel_offset_4g[1]);
+	*processed_10bit_accel_z = accelerometer_raw_to_10bit(raw_accel.raw_accel_z,accel_offset_4g[2]);
+
+//	ESP_LOGI("MPU MATH", "(%d+%d)[%d] %f[%d] 0x%04x", 
+//		raw_accel.raw_accel_x, 
+//		accel_offset_4g[0], 
+//		(raw_accel.raw_accel_x + accel_offset_4g[0]), 
+//		((raw_accel.raw_accel_x + accel_offset_4g[0]) * accel_scale_4g), 
+//		(int16_t)((raw_accel.raw_accel_x + accel_offset_4g[0]) * accel_scale_4g), 
+//		(int16_t)((raw_accel.raw_accel_z + accel_offset_4g[0]) * accel_scale_4g));
+
+}
+
+//send the start of the buffer because accelerometer data also places bits into the buttons section
+void load_accelerometer_buffer(uint8_t* destination, uint16_t processed_10bit_accel_x, uint16_t processed_10bit_accel_y, uint16_t processed_10bit_accel_z){
+	
+	uint8_t accel_x_byte = ((processed_10bit_accel_x & 0x03FC) >> 2);
+	uint8_t accel_x_lower_two_bits = (processed_10bit_accel_x & 0x03) << 5; //shift from bits 01 to bits 56 to align with where it goes in the button matrix
+	
+	uint8_t accel_y_byte = ((processed_10bit_accel_y & 0x03FC) >> 2);
+	uint8_t accel_y_lower_two_bits = (processed_10bit_accel_y & 0x02) << 4; //shift from bit 1 to bits 5 to align with where it goes in the button matrix
+	
+	uint8_t accel_z_byte = ((processed_10bit_accel_z & 0x03FC) >> 2);
+	uint8_t accel_z_lower_two_bits = (processed_10bit_accel_z & 0x02) << 5; //shift from bit 1 to bits 6 to align with where it goes in the button matrix
+	
+	ESP_LOGI("MPU6050", "X: %d [0x%04x] Y: %d [0x%04x] Z: %d [0x%04x]", 
+		raw_accel.raw_accel_x, processed_10bit_accel_x, raw_accel.raw_accel_y, processed_10bit_accel_y, raw_accel.raw_accel_z, processed_10bit_accel_z);
+	if(destination != nullptr){
+		memcpy(destination + 2, &accel_x_byte, 1);
+		memcpy(destination + 3, &accel_y_byte, 1);
+		memcpy(destination + 4, &accel_z_byte, 1);
+		destination[0] |= accel_x_lower_two_bits;
+		destination[1] |= (accel_y_lower_two_bits | accel_z_lower_two_bits);
 	}
 }
 
@@ -407,66 +467,77 @@ void mote_input_data_acknowledge(uint8_t report_number, uint8_t error)
 void mote_input_data_core()
 {
     static uint8_t old_buttons[2] = {0};
+	static int16_t old_accel[3] = {0};
 	uint8_t buttons[2] = {0};
 	load_buttons_buffer(buttons);
-	if(continuousReporting || old_buttons[0] != buttons[0] || old_buttons[1] != buttons[1]){
+	
+	int16_t accel_10b_x, accel_10b_y, accel_10b_z;
+	read_from_accelerometer(&accel_10b_x, &accel_10b_y, &accel_10b_z);
+	
+	
+	
+	bool send_packet = 
+		continuousReporting || 
+		(reportingMode != 0x3d && (old_buttons[0] != buttons[0] || old_buttons[1] != buttons[1])) || 
+		((reportingMode == 0x31 || reportingMode == 0x33 || reportingMode == 0x35 || reportingMode == 0x37 || reportingMode == 0x3e) && (old_accel[0] != accel_10b_x || old_accel[1] != accel_10b_y || old_accel[1] != accel_10b_z));
+	if(send_packet){
 		switch(reportingMode){
 			case 0x30:
-				memcpy(input_report,buttons,2);
+				//memcpy(input_report,buttons,2);
 				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 2);
-				ESP_LOG_BUFFER_HEX("SEND 0x30", input_report, 2);
+				ESP_LOG_BUFFER_HEX("SEND 0x30", buttons, 2);
 			    break;
 			case 0x31:
 				memcpy(input_report,buttons,2);
-				memset(input_report+2,0,3); //replace with accelerometer
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x31, buttons, 5);
+				load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x31, input_report, 5);
 				ESP_LOG_BUFFER_HEX("SEND 0x31", input_report, 5);
 			    break;
 			case 0x32:
 				memcpy(input_report,buttons,2);
 				memset(input_report+2,0,8); //replace with 8 extension bytes
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x32, buttons, 10);
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x32, input_report, 10);
 				ESP_LOG_BUFFER_HEX("SEND 0x32", input_report, 10);
 				
 			    break;
 			case 0x33:
 				memcpy(input_report,buttons,2);
-				memset(input_report+2,0,3); //replace with accelerometer
+				load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
 				memset(input_report+5,0,12); //replace with IR bytes
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x33, buttons, 17);
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x33, input_report, 17);
 				ESP_LOG_BUFFER_HEX("SEND 0x33", input_report, 17);
 			    break;
 			case 0x34:
 				memcpy(input_report,buttons,2);
 				memset(input_report+2,0,19); //replace with 19 extension bytes
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x34, buttons, 21);
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x34, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x34", input_report, 21);
 			    break;
 			case 0x35:
 				memcpy(input_report,buttons,2);
-				memset(input_report+2,0,3); //replace with accelerometer
+				load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
 				memset(input_report+5,0,16); //replace with 16 extension bytes
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x35, buttons, 21);
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x35, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x35", input_report, 21);
 			    break;
 			case 0x36:
 				memcpy(input_report,buttons,2);
 				memset(input_report+2,0,10); //replace with 10 IR bytes
 				memset(input_report+12,0,9); //replace with 9 extension bytes
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x36, buttons, 21);
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x36, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x36", input_report, 21);
 			    break;
 			case 0x37:
 				memcpy(input_report,buttons,2);
-				memset(input_report+2,0,3); //replace with accelerometer
+				load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
 				memset(input_report+5,0,10); //replace with 10 IR bytes
 				memset(input_report+15,0,6); //replace with 6 extension bytes
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x37, buttons, 21);
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x37, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x37", input_report, 21);
 			    break;
 			case 0x3d:
 				memset(input_report,0,21); //replace with 21 extension bytes
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x3d, buttons, 21);
+				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x3d, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x3d", input_report, 21);
 			    break;
 			case 0x3e: //same as 3f, forced to 3e during output report handling
@@ -480,6 +551,9 @@ void mote_input_data_core()
 		
 	}
 	memcpy(old_buttons, buttons, 2);
+	old_accel[0] = accel_10b_x;
+	old_accel[1] = accel_10b_y;
+	old_accel[1] = accel_10b_z;
 }
 
 void mote_hid_main_task(void *pvParameters)
@@ -680,7 +754,7 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 					}else if(param->output.data[1] == 0xA6){
 						ESP_LOGI( TAGW, "Attempting to write %d bytes to wii motion plus settings and data at %6x [%04x]", size, offset);
 						memcpy(wii_motion_plus_settings_data + offset_16, param->output.data + 5, size);
-						ESP_LOG_BUFFER_HEX("WII_MP DUMP", wii_motion_plus_settings_data, 256);
+						//ESP_LOG_BUFFER_HEX("WII_MP DUMP", wii_motion_plus_settings_data, 256);
 					}else if(param->output.data[1] == 0xB0){
 						ESP_LOGI( TAGW, "Attempting to write %d bytes to IR camera settings at %6x [%04x]", size, offset);
 						memcpy(IR_camera_settings + offset_16, param->output.data + 5, size);
@@ -715,7 +789,7 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 					}else if(param->output.data[1] == 0xA6){
 						ESP_LOGI( TAGW, "Attempting to read %d bytes from wii motion plus settings and data at %6x [%04x]", size, offset, offset_16);
 						mote_input_data_read(size, 0, offset_16, wii_motion_plus_settings_data);
-						ESP_LOG_BUFFER_HEX("WII_MP DUMP", wii_motion_plus_settings_data, 256);
+						//ESP_LOG_BUFFER_HEX("WII_MP DUMP", wii_motion_plus_settings_data, 256);
 					}else if(param->output.data[1] == 0xB0){
 						ESP_LOGI( TAGW, "Attempting to read %d bytes from IR camera settings at %6x [%04x]", size, offset, offset_16);
 						mote_input_data_read(size, 0, offset_16, IR_camera_settings);
@@ -852,6 +926,9 @@ static void esp_sdp_cb(esp_sdp_cb_event_t event, esp_sdp_cb_param_t *param)
 
 void app_main(void)
 {
+	esp_err_t ret;
+
+	//Setting up Correct MAC Address TODO: REPLACE WITH A CONSISTENT RANDOM LOOKUP OF THE MAC TABLE
 	uint8_t baseMac[6];
 	esp_base_mac_addr_get(baseMac);
 	baseMac[0] = 0xCC; //pinkmote's first 3
@@ -862,8 +939,46 @@ void app_main(void)
 	init_GPIO();
 	init_register_chunks();
 	
-    esp_err_t ret;
+	i2c_master_bus_config_t bus_config = {
+	    .i2c_port = I2C_MODE_MASTER,               // I2C port number
+	    .sda_io_num = I2C_MASTER_SDA_IO,         // GPIO number for I2C sda signal
+	    .scl_io_num = I2C_MASTER_SCL_IO,         // GPIO number for I2C scl signal
+	    .clk_source = I2C_CLK_SRC_DEFAULT,  // I2C clock source, just use the default
+	    .glitch_ignore_cnt = 7,             // glitch filter, again, just use the default
+	    .flags = {
+	        .enable_internal_pullup = true, // enable internal pullup resistors (oled screen does not have one)
+	    },
+	};
+	
+	i2c_master_bus_handle_t i2c_bus_handle = NULL;
+	ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &i2c_bus_handle));
 
+	// Initialize MPU6050
+	mpu6050_info_t info = {
+		.address = 0x68,
+		.clock_speed = I2C_MASTER_FREQ_HZ
+	};
+	ret = mpu6050_create(i2c_bus_handle, info, &mpu6050_handle);
+	if (ret != ESP_OK) {
+	    ESP_LOGE("MPU6050", "Creation failed");
+	    return;
+	}
+	
+	mpu6050_config_t config = {
+		.accel_fs = ACCEL_FS_4G,
+		.gyro_fs = GYRO_FS_2000DPS
+	};
+	ret = mpu6050_config(mpu6050_handle, config);
+	if (ret != ESP_OK) {
+	    ESP_LOGE("MPU6050", "Config failed");
+	    return;
+	}
+	ret = mpu6050_wake_up(mpu6050_handle);
+	if (ret != ESP_OK) {
+	    ESP_LOGE("MPU6050", "Wakeup failed");
+	    return;
+	}
+	
     ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -876,21 +991,27 @@ void app_main(void)
     ESP_ERROR_CHECK( ret );
 
 #if CONFIG_BT_HID_DEVICE_ENABLED
+
     ESP_LOGI(TAG, "setting device name");
     esp_bt_gap_set_device_name(bt_hid_config.device_name);
+	
     ESP_LOGI(TAG, "setting cod major, peripheral");
     esp_bt_cod_t cod = {0};
     cod.major = ESP_BT_COD_MAJOR_DEV_PERIPHERAL;
     cod.minor = ESP_BT_COD_MINOR_PERIPHERAL_JOYSTICK;
 	cod.service = ESP_BT_COD_SRVC_LMTD_DISCOVER;
     esp_bt_gap_set_cod(cod, ESP_BT_SET_COD_MAJOR_MINOR);
+	
     vTaskDelay(1000 / portTICK_PERIOD_MS);
+	
     ESP_LOGI(TAG, "setting bt device");
     ESP_ERROR_CHECK(
         esp_hidd_dev_init(&bt_hid_config, ESP_HID_TRANSPORT_BT, bt_hidd_event_callback, &s_bt_hid_param.hid_dev));
+	
 #if CONFIG_BT_SDP_COMMON_ENABLED
     ESP_ERROR_CHECK(esp_sdp_register_callback(esp_sdp_cb));
     ESP_ERROR_CHECK(esp_sdp_init());
 #endif /* CONFIG_BT_SDP_COMMON_ENABLED */
+
 #endif /* CONFIG_BT_HID_DEVICE_ENABLED */
 }
