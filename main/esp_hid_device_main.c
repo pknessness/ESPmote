@@ -89,9 +89,28 @@ typedef enum {
     ACK_ERROR                           = 0x03,
     ACK_UNKNOWN1                        = 0x04,
     ACK_UNKNOWN2                        = 0x05,
-	ACK_INCORRECT_WRITE_LOCATION        = 0x07, //for when writing to an unconnected extension like deactive motion plus
+	ACK_INACTIVE_EXTENSION              = 0x07, //for when writing to an unconnected extension like deactive motion plus
     ACK_UNKNOWN3                        = 0x08,
 } ack_error_code_t;
+
+typedef enum {
+    // Output Reports (O_) - Wii to Wii Remote
+    READ_SUCCESS                        = 0x00,
+    READ_WRITE_ONLY                     = 0x07,
+    READ_NONEXISTENT                    = 0x08,
+} read_error_code_t;
+
+// Decrypted last 2 bytes (lowest 16 bits) for each device
+const uint16_t EXT_NONE                        = 0x0000;  // None
+const uint16_t EXT_NUNCHUK                     = 0x0000;  // Nunchuk
+const uint16_t EXT_CLASSIC_CONTROLLER          = 0x0101;  // Classic Controller 
+const uint16_t EXT_WII_MOTION_PLUS_INACTIVE    = 0x0005;  // Inactive Wii Motion Plus (Built-in)
+const uint16_t EXT_WII_MOTION_PLUS_ACTIVE      = 0x0405;  // Activated Wii Motion Plus
+const uint16_t EXT_WII_MOTION_PLUS_NUNCHUK_PASSTHROUGH = 0x0505;  // Activated Wii Motion Plus in Nunchuck passthrough mode
+const uint16_t EXT_WII_MOTION_PLUS_CLASSIC_PASSTHROUGH = 0x0705;  // Activated Wii Motion Plus in Classic Controller passthrough mode
+
+const uint16_t EXTENSION_A4_TAG = 0x20A4; //in reverse because memcpy
+const uint16_t EXTENSION_A6_TAG = 0x20A6; //in reverse because memcpy
 
 // Button GPIO definitions
 //GPIO 34-39 CANNOT SOFTWARE PULLUP
@@ -244,7 +263,7 @@ static esp_hid_device_config_t bt_hid_config = {
     .vendor_id          = 0x057e,
     .product_id         = 0x0306,
     .version            = 0x0100,
-    .device_name        = "Nintendo RVL-CNT-01",
+    .device_name        = "Nintendo RVL-CNT-01-TR",
     .manufacturer_name  = "Nintendo",
     .serial_number      = "1234567890",
     .report_maps        = bt_report_maps,
@@ -258,7 +277,7 @@ bool rumbling = false;
 bool speaker_enable = false;
 uint8_t status_byte = 0;
 
-bool has_extension = false; //change to a "which extension uint48_t"
+uint16_t which_extension = EXT_NONE;
 
 //IMU
 //In the image in README, the raw accel shows the relevant value when it is facing up. For example in the image in README, the face buttons are facing upwards, and we get a +Z value on the accelerometer.
@@ -276,9 +295,30 @@ uint8_t extension_controller_settings_data[256]; //A40000 - A400FF
 uint8_t wii_motion_plus_settings_data[256]; //A60000 - A600FF
 uint8_t IR_camera_settings[34]; //B00000 - B00033
 
+// array size is 256
+static const uint8_t register_a60000_sample_1[]  = {
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+  0x78, 0xd9, 0x78, 0x38, 0x77, 0x9d, 0x2f, 0x0c, 0xcf, 0xf0, 0x31, 0xad, 0xc8, 0x0b, 0x5e, 0x39, 
+  0x6f, 0x81, 0x7b, 0x89, 0x78, 0x51, 0x33, 0x60, 0xc9, 0xf5, 0x37, 0xc1, 0x2d, 0xe9, 0x15, 0x8d, 
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+  0xb9, 0x3f, 0x25, 0x93, 0x9d, 0x17, 0xbb, 0x9c, 0x05, 0x9d, 0xc3, 0x38, 0x18, 0x3c, 0xba, 0x33, 
+  0xba, 0x18, 0xd1, 0x7a, 0xbc, 0x03, 0xd3, 0x55, 0x32, 0xec, 0x81, 0x38, 0x7d, 0xa6, 0x77, 0xa8, 
+  0x4c, 0xe6, 0xc7, 0x11, 0x7c, 0x50, 0x78, 0x80, 0x77, 0x35, 0x08, 0x81, 0xf6, 0x14, 0x4e, 0x67, 
+  0xd4, 0xb5, 0xcb, 0xde, 0x6a, 0x54, 0x5f, 0x66, 0x3c, 0xc4, 0x25, 0xfd, 0x33, 0xda, 0x1d, 0x75, 
+  0x58, 0x98, 0x15, 0x6d, 0x5e, 0x63, 0x51, 0xee, 0x8f, 0xdd, 0x3a, 0xb2, 0x94, 0xfe, 0x5b, 0x58, 
+  0xbf, 0x17, 0x91, 0x78, 0x7f, 0x84, 0xb4, 0x9b, 0xb0, 0xf9, 0x75, 0xc2, 0x2e, 0x7f, 0x1f, 0xed, 
+  0xe5, 0x6b, 0x02, 0xf4, 0xf2, 0x7d, 0x74, 0x17, 0x3d, 0x23, 0x35, 0x5c, 0xe0, 0x72, 0x22, 0x6e, 
+  0x3b, 0xa7, 0x7b, 0x65, 0x6c, 0x3c, 0x72, 0x7e, 0x5b, 0xae, 0xe7, 0x09, 0x09, 0xf0, 0x01, 0x00, 
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+  0x55, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x10, 0xff, 0xff, 0x00, 0x00, 0xa6, 0x20, 0x00, 0x05
+};
+
 void init_register_chunks(){
-	uint8_t wii_motion_plus_identifier[6] = {0x00,0x00,0xa6,0x20,0x00,0x05};
-	memcpy(wii_motion_plus_settings_data + 0xFA,wii_motion_plus_identifier, 6);
+//	uint8_t wii_motion_plus_identifier[6] = {0x01,0x00,0xa6,0x20,0x00,0x05};
+//	memcpy(wii_motion_plus_settings_data + 0xFA ,wii_motion_plus_identifier, 6);
+	memcpy(wii_motion_plus_settings_data, register_a60000_sample_1, 256);
 }
 
 void init_GPIO(){
@@ -361,6 +401,8 @@ void load_buttons_buffer(uint8_t* destination)
 
 	if(destination != nullptr){
 		memcpy( destination, buttons_buffer, 2);
+	}else{
+		ESP_LOGE("LOAD_BUTTONS_BUFFER", "NO DESTINATION");
 	}
 }
 
@@ -413,14 +455,81 @@ void load_accelerometer_buffer(uint8_t* destination, uint16_t processed_10bit_ac
 	uint8_t accel_z_byte = ((processed_10bit_accel_z & 0x03FC) >> 2);
 	uint8_t accel_z_lower_two_bits = (processed_10bit_accel_z & 0x02) << 5; //shift from bit 1 to bits 6 to align with where it goes in the button matrix
 	
-	ESP_LOGI("MPU6050", "X: %d [0x%04x] Y: %d [0x%04x] Z: %d [0x%04x]", 
-		raw_accel.raw_accel_x, processed_10bit_accel_x, raw_accel.raw_accel_y, processed_10bit_accel_y, raw_accel.raw_accel_z, processed_10bit_accel_z);
+//	ESP_LOGI("MPU6050", "X: %d [0x%04x] Y: %d [0x%04x] Z: %d [0x%04x]", 
+//		raw_accel.raw_accel_x, processed_10bit_accel_x, raw_accel.raw_accel_y, processed_10bit_accel_y, raw_accel.raw_accel_z, processed_10bit_accel_z);
 	if(destination != nullptr){
 		memcpy(destination + 2, &accel_x_byte, 1);
 		memcpy(destination + 3, &accel_y_byte, 1);
 		memcpy(destination + 4, &accel_z_byte, 1);
 		destination[0] |= accel_x_lower_two_bits;
 		destination[1] |= (accel_y_lower_two_bits | accel_z_lower_two_bits);
+	}else{
+		ESP_LOGE("LOAD_ACCELEROMETER_BUFFER", "NO DESTINATION");
+	}
+}
+
+void load_wii_motion_plus_buffer(uint8_t* destination){
+	//fast mode reaches a peak of 2000 degrees per second? and slow mode is potentially 440?
+	esp_err_t ret = mpu6050_get_raw_gyro(mpu6050_handle, &raw_gyro);
+	if (ret != ESP_OK) {
+	    ESP_LOGE("MPU6050", "Read failed");
+	    return;
+	}
+	
+	ESP_LOGI("MPU6050 RAW", "X: %d [0x%04x] Y: %d [0x%04x] Z: %d [0x%04x]", 
+		raw_gyro.raw_gyro_x, raw_gyro.raw_gyro_x, raw_gyro.raw_gyro_y, raw_gyro.raw_gyro_y, raw_gyro.raw_gyro_z, raw_gyro.raw_gyro_z);
+	
+	float gyro_yaw_dps = raw_gyro.raw_gyro_x / 16.4;
+	float gyro_roll_dps = raw_gyro.raw_gyro_y / 16.4;
+	float gyro_pitch_dps = raw_gyro.raw_gyro_z / 16.4;
+	
+	int16_t gyro_yaw_14b   = raw_gyro.raw_gyro_x >> 2;
+	int16_t gyro_roll_14b  = raw_gyro.raw_gyro_y >> 2;
+	int16_t gyro_pitch_14b = raw_gyro.raw_gyro_z >> 2;
+	
+	bool slow_yaw = false, slow_roll = false, slow_pitch = false;
+	
+	//TODO: OPTIMIZE THIS SO IT DOESNT REQUIRE ME TO CALC THE DPS FIRST AND JUST BAKES THE SENSITIVITY INTO THE IF STATEMENT
+	if(gyro_yaw_dps < 440){
+	    gyro_yaw_14b = (int16_t)((gyro_yaw_14b * 440.0 / 2000) + 8191);
+	    slow_yaw = true;
+	}
+
+	if(gyro_roll_dps < 440){
+	    gyro_roll_14b = (int16_t)((gyro_roll_14b * 440.0 / 2000) + 8191);
+	    slow_roll = true;
+	}
+
+	if(gyro_pitch_dps < 440){
+	    gyro_pitch_14b = (int16_t)((gyro_pitch_14b * 440.0 / 2000) + 8191);
+	    slow_pitch = true;
+	}
+	
+	ESP_LOGI("MPU6050 PRC", "Y: %d [0x%04x] R: %d [0x%04x] P: %d [0x%04x]", 
+		gyro_yaw_14b, gyro_yaw_14b, gyro_roll_14b, gyro_roll_14b, gyro_pitch_14b, gyro_pitch_14b);
+	
+	uint8_t yaw7_0 = gyro_yaw_14b & 0xFF;
+	uint8_t yaw13_8 = (gyro_yaw_14b & 0x3F00) >> 6;
+	yaw13_8 |= ((slow_yaw << 1) | slow_pitch); //THIS ZERO IS FOR EXTENSION CONNECTED, TODO: IMPLEMENT
+
+	uint8_t roll7_0 = gyro_roll_14b & 0xFF;
+	uint8_t roll13_8 = (gyro_roll_14b & 0x3F00) >> 6;
+	roll13_8 |= (slow_roll << 1 | 0); //THIS ZERO IS FOR EXTENSION CONNECTED, TODO: IMPLEMENT
+	
+	uint8_t pitch7_0 = gyro_pitch_14b & 0xFF;
+	uint8_t pitch13_8 = (gyro_pitch_14b & 0x3F00) >> 6;
+	roll13_8 |= 0x02;
+
+	
+	if(destination != nullptr){
+		memcpy(destination, &yaw7_0, 1);
+		memcpy(destination+1, &roll7_0, 1);
+		memcpy(destination+2, &pitch7_0, 1);
+		memcpy(destination+3, &yaw13_8, 1);
+		memcpy(destination+4, &roll13_8, 1);
+		memcpy(destination+5, &pitch13_8, 1);
+	}else{
+		ESP_LOGE("LOAD_WII_MOTION_PLUS_BUFFER", "NO DESTINATION");
 	}
 }
 
@@ -442,11 +551,12 @@ void mote_input_data_status()
 void mote_input_data_read(uint8_t size, uint8_t error, uint16_t address_low_16, uint8_t* buffer)
 {
 	load_buttons_buffer(input_report);
-	input_report[2] = ((size-1) & 0xF << 4) | (error & 0xF);
+	input_report[2] = (((size-1) & 0xF) << 4) | (error & 0xF);
+	printf("%d %02x %02x\n", size - 1, (size-1) & 0xF, (((size-1) & 0xF) << 4));
 	//E (low nybble of SE) is the error flag. Known error values are 0 for no error, 7 when attempting to read from a write-only register or an expansion that is not connected, and 8 when attempting to read from nonexistant memory addresses. 
-//	input_report[3] = address_low_16 & 0x00FF;
-//	input_report[4] = (address_low_16 & 0xFF00) >> 8;
-	memcpy(input_report + 3, &address_low_16, 2);
+	input_report[3] = (address_low_16 & 0xFF00) >> 8;
+	input_report[4] = address_low_16 & 0x00FF;
+//	memcpy(input_report + 3, &address_low_16, 2);
 	memset(input_report + 5, 0, 16);
 	memcpy(input_report + 5, buffer + address_low_16, size);
 	esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x21, input_report, 21);
@@ -460,7 +570,7 @@ void mote_input_data_acknowledge(uint8_t report_number, uint8_t error)
 {
 	load_buttons_buffer(input_report);
 	input_report[2] = report_number;
-	input_report[2] = error;
+	input_report[3] = error;
 	esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x22, input_report, 4);
 }
 
@@ -473,8 +583,6 @@ void mote_input_data_core()
 	
 	int16_t accel_10b_x, accel_10b_y, accel_10b_z;
 	read_from_accelerometer(&accel_10b_x, &accel_10b_y, &accel_10b_z);
-	
-	
 	
 	bool send_packet = 
 		continuousReporting || 
@@ -495,7 +603,12 @@ void mote_input_data_core()
 			    break;
 			case 0x32:
 				memcpy(input_report,buttons,2);
-				memset(input_report+2,0,8); //replace with 8 extension bytes
+				if(which_extension == EXT_WII_MOTION_PLUS_ACTIVE){
+					load_wii_motion_plus_buffer(input_report+2);
+					memset(input_report+8,0,2);
+				}else{
+					memset(input_report+2,0xFF,8); //replace with 8 extension bytes
+				}
 				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x32, input_report, 10);
 				ESP_LOG_BUFFER_HEX("SEND 0x32", input_report, 10);
 				
@@ -503,40 +616,64 @@ void mote_input_data_core()
 			case 0x33:
 				memcpy(input_report,buttons,2);
 				load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
-				memset(input_report+5,0,12); //replace with IR bytes
+				memset(input_report+5,0xFF,12); //replace with 12 IR bytes
 				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x33, input_report, 17);
 				ESP_LOG_BUFFER_HEX("SEND 0x33", input_report, 17);
 			    break;
 			case 0x34:
 				memcpy(input_report,buttons,2);
-				memset(input_report+2,0,19); //replace with 19 extension bytes
+				if(which_extension == EXT_WII_MOTION_PLUS_ACTIVE){
+					load_wii_motion_plus_buffer(input_report+2);
+					memset(input_report+8,0,13);
+				}else{
+					memset(input_report+2,0xFF,19); //replace with 19 extension bytes
+				}
 				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x34, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x34", input_report, 21);
 			    break;
 			case 0x35:
 				memcpy(input_report,buttons,2);
 				load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
-				memset(input_report+5,0,16); //replace with 16 extension bytes
+				if(which_extension == EXT_WII_MOTION_PLUS_ACTIVE){
+					load_wii_motion_plus_buffer(input_report+5);
+					memset(input_report+11,0,10);
+				}else{
+					memset(input_report+5,0xFF,16); //replace with 16 extension bytes
+				}
 				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x35, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x35", input_report, 21);
 			    break;
 			case 0x36:
 				memcpy(input_report,buttons,2);
-				memset(input_report+2,0,10); //replace with 10 IR bytes
-				memset(input_report+12,0,9); //replace with 9 extension bytes
+				memset(input_report+2,0xFF,10); //replace with 10 IR bytes
+				if(which_extension == EXT_WII_MOTION_PLUS_ACTIVE){
+					load_wii_motion_plus_buffer(input_report+12);
+					memset(input_report+18,0,3);
+				}else{
+					memset(input_report+12,0xFF,9); //replace with 9 extension bytes
+				}
 				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x36, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x36", input_report, 21);
 			    break;
 			case 0x37:
 				memcpy(input_report,buttons,2);
 				load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
-				memset(input_report+5,0,10); //replace with 10 IR bytes
-				memset(input_report+15,0,6); //replace with 6 extension bytes
+				memset(input_report+5,0xFF,10); //replace with 10 IR bytes
+				if(which_extension == EXT_WII_MOTION_PLUS_ACTIVE){
+					load_wii_motion_plus_buffer(input_report+15);
+				}else{
+					memset(input_report+15,0xFF,6); //replace with 6 extension bytes
+				}
 				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x37, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x37", input_report, 21);
 			    break;
 			case 0x3d:
-				memset(input_report,0,21); //replace with 21 extension bytes
+				if(which_extension == EXT_WII_MOTION_PLUS_ACTIVE){
+					load_wii_motion_plus_buffer(input_report);
+					memset(input_report+6,0,15); 
+				}else{
+					memset(input_report,0xFF,21); //replace with 21 extension bytes
+				}
 				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x3d, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x3d", input_report, 21);
 			    break;
@@ -721,7 +858,7 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 		        
 		    case O_STATUS_INFO_REQUEST:
 		        // 1 byte - request status report
-				ESP_LOGI( TAGW, "Written %2x to Status Info", param->output.data[0]);
+				ESP_LOGI( TAGW, "Requesting %02x to Status Info", param->output.data[0]);
 				
 				mote_input_data_status();
 				
@@ -745,21 +882,29 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 						ESP_LOGI( TAGW, "Attempting to write %d bytes to speaker settings at %6x [%04x]", size, offset, offset_16);
 						memcpy(speaker_settings + offset_16, param->output.data + 5, size);
 					}else if(param->output.data[1] == 0xA4){
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to extension controller settings and data at %6x [%04x]", size, offset);
-						if(has_extension){
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to extension controller settings and data at %6x [%04x]", size, offset, offset_16);
+						if(which_extension != EXT_NONE){
 							memcpy(extension_controller_settings_data + offset_16, param->output.data + 5, size);
 						}else{
-							return_ack = ACK_INCORRECT_WRITE_LOCATION;
+							return_ack = ACK_INACTIVE_EXTENSION;
 						}
 					}else if(param->output.data[1] == 0xA6){
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to wii motion plus settings and data at %6x [%04x]", size, offset);
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to wii motion plus settings and data at %6x [%04x]", size, offset, offset_16);
 						memcpy(wii_motion_plus_settings_data + offset_16, param->output.data + 5, size);
-						//ESP_LOG_BUFFER_HEX("WII_MP DUMP", wii_motion_plus_settings_data, 256);
+						if(offset_16 == 0x00FE && size == 1 && param->output.data[5] == 0x04){ //changing active extension to wii motion plus
+							which_extension = EXT_WII_MOTION_PLUS_ACTIVE;
+							status_byte |= 0x02;
+//							memset(extension_controller_settings_data + 0x00FA, 0, 2);
+//							memcpy(extension_controller_settings_data + 0x00FC, &EXTENSION_A4_TAG, 2);
+//							memcpy(extension_controller_settings_data + 0x00FE, &EXT_WII_MOTION_PLUS_ACTIVE, 2);
+							memcpy(extension_controller_settings_data + 0x00FA, wii_motion_plus_settings_data + 0x00FA, 6);
+							memcpy(extension_controller_settings_data + 0x00FC, &EXTENSION_A4_TAG, 2);
+						}
 					}else if(param->output.data[1] == 0xB0){
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to IR camera settings at %6x [%04x]", size, offset);
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to IR camera settings at %6x [%04x]", size, offset, offset_16);
 						memcpy(IR_camera_settings + offset_16, param->output.data + 5, size);
 					}else {
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to control registers at %6x [%04x]", size, offset);
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to control registers at %6x [%04x]", size, offset, offset_16);
 					}
 				}else{
 					ESP_LOGI( TAGW, "Attempting to write %d bytes to EEPROM Memory at %6x", size, offset);
@@ -784,8 +929,12 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 						mote_input_data_read(size, 0, offset_16, speaker_settings);
 					}else if(param->output.data[1] == 0xA4){
 						ESP_LOGI( TAGW, "Attempting to read %d bytes from extension controller settings and data at %6x [%04x]", size, offset, offset_16);
-						mote_input_data_read(size, 0, offset_16, extension_controller_settings_data);
-
+						if(which_extension != EXT_NONE){
+							mote_input_data_read(size, 0, offset_16, extension_controller_settings_data);
+						}else{
+							uint8_t zero_buffer[16] = {0};
+							mote_input_data_read(16, READ_WRITE_ONLY, offset_16, zero_buffer - offset_16); //TODO: fix this, this is atrocious
+						}
 					}else if(param->output.data[1] == 0xA6){
 						ESP_LOGI( TAGW, "Attempting to read %d bytes from wii motion plus settings and data at %6x [%04x]", size, offset, offset_16);
 						mote_input_data_read(size, 0, offset_16, wii_motion_plus_settings_data);
