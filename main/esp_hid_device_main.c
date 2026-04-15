@@ -263,7 +263,7 @@ static esp_hid_device_config_t bt_hid_config = {
     .vendor_id          = 0x057e,
     .product_id         = 0x0306,
     .version            = 0x0100,
-    .device_name        = "Nintendo RVL-CNT-01-TR",
+    .device_name        = "Nintendo RVL-CNT-01",
     .manufacturer_name  = "Nintendo",
     .serial_number      = "1234567890",
     .report_maps        = bt_report_maps,
@@ -277,7 +277,8 @@ bool rumbling = false;
 bool speaker_enable = false;
 uint8_t status_byte = 0;
 
-uint16_t which_extension = EXT_NONE;
+uint16_t active_extension = EXT_NONE;
+uint16_t plugged_in_extension = EXT_NONE;
 
 //IMU
 //In the image in README, the raw accel shows the relevant value when it is facing up. For example in the image in README, the face buttons are facing upwards, and we get a +Z value on the accelerometer.
@@ -294,6 +295,14 @@ uint8_t speaker_settings[10]; //A20000 - A20009
 uint8_t extension_controller_settings_data[256]; //A40000 - A400FF
 uint8_t wii_motion_plus_settings_data[256]; //A60000 - A600FF
 uint8_t IR_camera_settings[34]; //B00000 - B00033
+
+//Fake EEPROM for calibration stuff
+uint8_t eeprom_start[48] = {
+	0xA1, 0xAA, 0x8B, 0x99, 0xAE, 0x9E, 0x78, 0x30, 0xA7, 0x74, 0xD3,
+	0xA1, 0xAA, 0x8B, 0x99, 0xAE, 0x9E, 0x78, 0x30, 0xA7, 0x74, 0xD3,
+	0x80, 0x80, 0x80, 0x00, 0x99, 0x99, 0x99, 0x00, 0x40, 0xE0,
+	0x80, 0x80, 0x80, 0x00, 0x99, 0x99, 0x99, 0x00, 0x40, 0xE0, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 // array size is 256
 static const uint8_t register_a60000_sample_1[]  = {
@@ -312,7 +321,7 @@ static const uint8_t register_a60000_sample_1[]  = {
   0x3b, 0xa7, 0x7b, 0x65, 0x6c, 0x3c, 0x72, 0x7e, 0x5b, 0xae, 0xe7, 0x09, 0x09, 0xf0, 0x01, 0x00, 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
-  0x55, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x10, 0xff, 0xff, 0x00, 0x00, 0xa6, 0x20, 0x00, 0x05
+  0x55, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x10, 0xff, 0xff, 0x01, 0x00, 0xa6, 0x20, 0x00, 0x05
 };
 
 void init_register_chunks(){
@@ -354,7 +363,7 @@ static const uint8_t BUTTONS_SHIFT_DPAD_LEFT = 0;
 static const uint8_t BUTTONS_SHIFT_DPAD_RIGHT = 1;
 static const uint8_t BUTTONS_SHIFT_DPAD_DOWN = 2;
 static const uint8_t BUTTONS_SHIFT_DPAD_UP = 3;
-static const uint8_t BUTTONS_SHIFT_PLUS = 4;
+//static const uint8_t BUTTONS_SHIFT_PLUS = 4;
 
 //second byte
 static const uint8_t BUTTONS_SHIFT_TWO = 0;
@@ -376,7 +385,7 @@ void load_buttons_buffer(uint8_t* destination)
 	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_DOWN) << BUTTONS_SHIFT_DPAD_DOWN);
 	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_LEFT) << BUTTONS_SHIFT_DPAD_LEFT);
 	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_RIGHT) << BUTTONS_SHIFT_DPAD_RIGHT);
-	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_PLUS) << BUTTONS_SHIFT_PLUS);
+	buttons_buffer[0] |= 0;//(!gpio_get_level(BUTTON_PIN_PLUS) << BUTTONS_SHIFT_PLUS);
 
 	
 	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_A) << BUTTONS_SHIFT_A);
@@ -476,8 +485,8 @@ void load_wii_motion_plus_buffer(uint8_t* destination){
 	    return;
 	}
 	
-	ESP_LOGI("MPU6050 RAW", "X: %d [0x%04x] Y: %d [0x%04x] Z: %d [0x%04x]", 
-		raw_gyro.raw_gyro_x, raw_gyro.raw_gyro_x, raw_gyro.raw_gyro_y, raw_gyro.raw_gyro_y, raw_gyro.raw_gyro_z, raw_gyro.raw_gyro_z);
+//	ESP_LOGI("MPU6050 RAW", "X: %d [0x%04x] Y: %d [0x%04x] Z: %d [0x%04x]", 
+//		raw_gyro.raw_gyro_x, raw_gyro.raw_gyro_x, raw_gyro.raw_gyro_y, raw_gyro.raw_gyro_y, raw_gyro.raw_gyro_z, raw_gyro.raw_gyro_z);
 	
 	float gyro_yaw_dps = raw_gyro.raw_gyro_x / 16.4;
 	float gyro_roll_dps = raw_gyro.raw_gyro_y / 16.4;
@@ -505,12 +514,12 @@ void load_wii_motion_plus_buffer(uint8_t* destination){
 	    slow_pitch = true;
 	}
 	
-	ESP_LOGI("MPU6050 PRC", "Y: %d [0x%04x] R: %d [0x%04x] P: %d [0x%04x]", 
-		gyro_yaw_14b, gyro_yaw_14b, gyro_roll_14b, gyro_roll_14b, gyro_pitch_14b, gyro_pitch_14b);
+//	ESP_LOGI("MPU6050 PRC", "Y: %d [0x%04x] R: %d [0x%04x] P: %d [0x%04x]", 
+//		gyro_yaw_14b, gyro_yaw_14b, gyro_roll_14b, gyro_roll_14b, gyro_pitch_14b, gyro_pitch_14b);
 	
 	uint8_t yaw7_0 = gyro_yaw_14b & 0xFF;
 	uint8_t yaw13_8 = (gyro_yaw_14b & 0x3F00) >> 6;
-	yaw13_8 |= ((slow_yaw << 1) | slow_pitch); //THIS ZERO IS FOR EXTENSION CONNECTED, TODO: IMPLEMENT
+	yaw13_8 |= ((slow_yaw << 1) | slow_pitch);
 
 	uint8_t roll7_0 = gyro_roll_14b & 0xFF;
 	uint8_t roll13_8 = (gyro_roll_14b & 0x3F00) >> 6;
@@ -518,7 +527,7 @@ void load_wii_motion_plus_buffer(uint8_t* destination){
 	
 	uint8_t pitch7_0 = gyro_pitch_14b & 0xFF;
 	uint8_t pitch13_8 = (gyro_pitch_14b & 0x3F00) >> 6;
-	roll13_8 |= 0x02;
+	pitch13_8 |= 0x02; //AAAAAAAAAAAAAAAAAAAAAAAAAAAA I SPENT TWO FUCKING DAYS ON roll13_8 vs pitch13_8
 
 	
 	if(destination != nullptr){
@@ -552,7 +561,7 @@ void mote_input_data_read(uint8_t size, uint8_t error, uint16_t address_low_16, 
 {
 	load_buttons_buffer(input_report);
 	input_report[2] = (((size-1) & 0xF) << 4) | (error & 0xF);
-	printf("%d %02x %02x\n", size - 1, (size-1) & 0xF, (((size-1) & 0xF) << 4));
+//	printf("%d %02x %02x\n", size - 1, (size-1) & 0xF, (((size-1) & 0xF) << 4));
 	//E (low nybble of SE) is the error flag. Known error values are 0 for no error, 7 when attempting to read from a write-only register or an expansion that is not connected, and 8 when attempting to read from nonexistant memory addresses. 
 	input_report[3] = (address_low_16 & 0xFF00) >> 8;
 	input_report[4] = address_low_16 & 0x00FF;
@@ -603,7 +612,7 @@ void mote_input_data_core()
 			    break;
 			case 0x32:
 				memcpy(input_report,buttons,2);
-				if(which_extension == EXT_WII_MOTION_PLUS_ACTIVE){
+				if(active_extension == EXT_WII_MOTION_PLUS_ACTIVE){
 					load_wii_motion_plus_buffer(input_report+2);
 					memset(input_report+8,0,2);
 				}else{
@@ -622,7 +631,7 @@ void mote_input_data_core()
 			    break;
 			case 0x34:
 				memcpy(input_report,buttons,2);
-				if(which_extension == EXT_WII_MOTION_PLUS_ACTIVE){
+				if(active_extension == EXT_WII_MOTION_PLUS_ACTIVE){
 					load_wii_motion_plus_buffer(input_report+2);
 					memset(input_report+8,0,13);
 				}else{
@@ -634,7 +643,7 @@ void mote_input_data_core()
 			case 0x35:
 				memcpy(input_report,buttons,2);
 				load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
-				if(which_extension == EXT_WII_MOTION_PLUS_ACTIVE){
+				if(active_extension == EXT_WII_MOTION_PLUS_ACTIVE){
 					load_wii_motion_plus_buffer(input_report+5);
 					memset(input_report+11,0,10);
 				}else{
@@ -646,7 +655,7 @@ void mote_input_data_core()
 			case 0x36:
 				memcpy(input_report,buttons,2);
 				memset(input_report+2,0xFF,10); //replace with 10 IR bytes
-				if(which_extension == EXT_WII_MOTION_PLUS_ACTIVE){
+				if(active_extension == EXT_WII_MOTION_PLUS_ACTIVE){
 					load_wii_motion_plus_buffer(input_report+12);
 					memset(input_report+18,0,3);
 				}else{
@@ -659,7 +668,7 @@ void mote_input_data_core()
 				memcpy(input_report,buttons,2);
 				load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
 				memset(input_report+5,0xFF,10); //replace with 10 IR bytes
-				if(which_extension == EXT_WII_MOTION_PLUS_ACTIVE){
+				if(active_extension == EXT_WII_MOTION_PLUS_ACTIVE){
 					load_wii_motion_plus_buffer(input_report+15);
 				}else{
 					memset(input_report+15,0xFF,6); //replace with 6 extension bytes
@@ -668,7 +677,7 @@ void mote_input_data_core()
 				ESP_LOG_BUFFER_HEX("SEND 0x37", input_report, 21);
 			    break;
 			case 0x3d:
-				if(which_extension == EXT_WII_MOTION_PLUS_ACTIVE){
+				if(active_extension == EXT_WII_MOTION_PLUS_ACTIVE){
 					load_wii_motion_plus_buffer(input_report);
 					memset(input_report+6,0,15); 
 				}else{
@@ -877,13 +886,15 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 				
 				ack_error_code_t return_ack = ACK_SUCCESS;
 				
+				bool extension_activated = false;
+				
 				if((param->output.data[0] & 0x04)){
 					if(param->output.data[1] == 0xA2){
 						ESP_LOGI( TAGW, "Attempting to write %d bytes to speaker settings at %6x [%04x]", size, offset, offset_16);
 						memcpy(speaker_settings + offset_16, param->output.data + 5, size);
 					}else if(param->output.data[1] == 0xA4){
 						ESP_LOGI( TAGW, "Attempting to write %d bytes to extension controller settings and data at %6x [%04x]", size, offset, offset_16);
-						if(which_extension != EXT_NONE){
+						if(active_extension != EXT_NONE){
 							memcpy(extension_controller_settings_data + offset_16, param->output.data + 5, size);
 						}else{
 							return_ack = ACK_INACTIVE_EXTENSION;
@@ -891,29 +902,36 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 					}else if(param->output.data[1] == 0xA6){
 						ESP_LOGI( TAGW, "Attempting to write %d bytes to wii motion plus settings and data at %6x [%04x]", size, offset, offset_16);
 						memcpy(wii_motion_plus_settings_data + offset_16, param->output.data + 5, size);
-						if(offset_16 == 0x00FE && size == 1 && param->output.data[5] == 0x04){ //changing active extension to wii motion plus
-							which_extension = EXT_WII_MOTION_PLUS_ACTIVE;
+						if(offset_16 == 0x00FE && size == 1 && (param->output.data[5] == 0x04 || param->output.data[5] == 0x05 || param->output.data[5] == 0x07)){ //changing active extension to wii motion plus
+							active_extension = EXT_WII_MOTION_PLUS_ACTIVE;
 							status_byte |= 0x02;
 //							memset(extension_controller_settings_data + 0x00FA, 0, 2);
 //							memcpy(extension_controller_settings_data + 0x00FC, &EXTENSION_A4_TAG, 2);
 //							memcpy(extension_controller_settings_data + 0x00FE, &EXT_WII_MOTION_PLUS_ACTIVE, 2);
 							memcpy(extension_controller_settings_data + 0x00FA, wii_motion_plus_settings_data + 0x00FA, 6);
 							memcpy(extension_controller_settings_data + 0x00FC, &EXTENSION_A4_TAG, 2);
+							
+							extension_activated = true;
 						}
 					}else if(param->output.data[1] == 0xB0){
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to IR camera settings at %6x [%04x]", size, offset, offset_16);
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to IR camera settings at 0x%06x [%04x]", size, offset, offset_16);
 						memcpy(IR_camera_settings + offset_16, param->output.data + 5, size);
 					}else {
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to control registers at %6x [%04x]", size, offset, offset_16);
+						ESP_LOGI( TAGW, "Attempting to write %d bytes to control registers at 0x%06x [%04x]", size, offset, offset_16);
 					}
 				}else{
-					ESP_LOGI( TAGW, "Attempting to write %d bytes to EEPROM Memory at %6x", size, offset);
+					ESP_LOGI( TAGW, "Attempting to write %d bytes to EEPROM Memory at 0x%06x", size, offset);
+					return_ack = ACK_ERROR;
 				}
 				ESP_LOG_BUFFER_HEX(TAGW, param->output.data + 5, size); 
 					
 				//apparently all writes request an ack automatically
 				mote_input_data_acknowledge(param->feature.report_id, return_ack);
 
+				if(extension_activated){
+					mote_input_data_status();
+				}
+				
 				break;
 		        
 		    case O_READ_MEMORY_REGISTERS: //TODO: SET UP READS FOR GREATER THAN 16 BYTES TOTAL 
@@ -925,29 +943,33 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 				size = (param->output.data[4] << 8) | (param->output.data[5]);
 				if((param->output.data[0] & 0x04)){
 					if(param->output.data[1] == 0xA2){
-						ESP_LOGI( TAGW, "Attempting to read %d bytes from speaker settings at %6x [%04x]", size, offset, offset_16);
+						ESP_LOGI( TAGW, "Attempting to read %d bytes from speaker settings at 0x%06x [%04x]", size, offset, offset_16);
 						mote_input_data_read(size, 0, offset_16, speaker_settings);
 					}else if(param->output.data[1] == 0xA4){
-						ESP_LOGI( TAGW, "Attempting to read %d bytes from extension controller settings and data at %6x [%04x]", size, offset, offset_16);
-						if(which_extension != EXT_NONE){
+						ESP_LOGI( TAGW, "Attempting to read %d bytes from extension controller settings and data at 0x%06x [%04x]", size, offset, offset_16);
+						if(active_extension != EXT_NONE){
 							mote_input_data_read(size, 0, offset_16, extension_controller_settings_data);
 						}else{
 							uint8_t zero_buffer[16] = {0};
 							mote_input_data_read(16, READ_WRITE_ONLY, offset_16, zero_buffer - offset_16); //TODO: fix this, this is atrocious
 						}
 					}else if(param->output.data[1] == 0xA6){
-						ESP_LOGI( TAGW, "Attempting to read %d bytes from wii motion plus settings and data at %6x [%04x]", size, offset, offset_16);
+						ESP_LOGI( TAGW, "Attempting to read %d bytes from wii motion plus settings and data at 0x%06x [%04x]", size, offset, offset_16);
 						mote_input_data_read(size, 0, offset_16, wii_motion_plus_settings_data);
-						//ESP_LOG_BUFFER_HEX("WII_MP DUMP", wii_motion_plus_settings_data, 256);
 					}else if(param->output.data[1] == 0xB0){
-						ESP_LOGI( TAGW, "Attempting to read %d bytes from IR camera settings at %6x [%04x]", size, offset, offset_16);
+						ESP_LOGI( TAGW, "Attempting to read %d bytes from IR camera settings at 0x%06x [%04x]", size, offset, offset_16);
 						mote_input_data_read(size, 0, offset_16, IR_camera_settings);
 
 					}else {
-						ESP_LOGI( TAGW, "Attempting to read %d bytes from control registers at %6x", size, offset);
+						ESP_LOGI( TAGW, "Attempting to read %d bytes from control registers at 0x%06x", size, offset);
 					}
 				}else{
-					ESP_LOGI( TAGW, "Attempting to read %d bytes from EEPROM Memory at %6x", size, offset);
+					ESP_LOGI( TAGW, "Attempting to read %d bytes from EEPROM Memory at 0x%06x", size, offset);
+					if(size + offset <= 48){
+						mote_input_data_read(size, 0, offset_16, eeprom_start);
+					}else{
+						printf("READING OUT OF RANGE");
+					}
 				}
 					
 				//bit 1 of any output report is requesting an acknowledgement input report
