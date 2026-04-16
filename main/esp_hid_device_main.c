@@ -650,18 +650,30 @@ void mote_input_data_status()
 //21 BB BB SE AA AA DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD
 void mote_input_data_read(uint8_t size, uint8_t error, uint16_t address_low_16, uint8_t* buffer)
 {
+	//TODO: MAKE SURE DONT MEM OVERFLOW
 	load_buttons_buffer(input_report);
-	input_report[2] = (((size-1) & 0xF) << 4) | (error & 0xF);
-	input_report[3] = (address_low_16 & 0xFF00) >> 8;
-	input_report[4] = address_low_16 & 0x00FF;
 //	memcpy(input_report + 3, &address_low_16, 2);
+int index = 0;
+while(index < size){
+	uint8_t chunk = size - index;
+	uint16_t pointer = address_low_16 + index;
+	if(chunk >= 16){
+		input_report[2] = (0xF << 4) | (error & 0xF);
+	}else{
+		input_report[2] = (((chunk - 1) & 0xF) << 4) | (error & 0xF);
+	}
+	input_report[3] = (pointer & 0xFF00) >> 8;
+	input_report[4] = pointer & 0x00FF;
 
 	memset(input_report + 5, 0, 16);
-	memcpy(input_report + 5, buffer + address_low_16, size);
+	memcpy(input_report + 5, buffer + pointer, size);
+
 	esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x21, input_report, 21);
+	ESP_LOG_BUFFER_HEX("Responding to read", input_report + 5, size);
 	
-	ESP_LOGI( TAGSEND, "Responding to read");
-	ESP_LOG_BUFFER_HEX(TAGSEND, buffer + address_low_16, size);
+	index += 16;
+}
+
 	
 	//TODO: WORK ON READS OVER 16 bytes
 }
