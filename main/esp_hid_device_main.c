@@ -10,6 +10,7 @@
 #include <string.h>
 #include <inttypes.h>
 
+#include "esp_rom_crc.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
@@ -289,6 +290,12 @@ float accel_scale_4g = 100 / (8192.0); //multiply values by this to get +-100 at
 const int16_t accel_zero_value = 0x0200;
 
 mpu6050_raw_gyro_value_t raw_gyro;
+const uint16_t CALIBRATION_ZERO = 0x8000;
+const uint16_t CALIBRATION_SCALE_OFFSET = 0x4400;
+const uint16_t CALIBRATION_FAST_SCALE_DEGREES = 1200;
+const uint16_t CALIBRATION_SLOW_SCALE_DEGREES = 270;
+const uint16_t VALUE_ZERO = 0x2000;
+const uint16_t VALUE_SCALE_OFFSET = 0x1100;
 
 // Register chunks
 uint8_t speaker_settings[10]; //A20000 - A20009
@@ -308,26 +315,75 @@ uint8_t eeprom_start[48] = {
 static const uint8_t register_a60000_sample_1[]  = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
   0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
-  0x78, 0xd9, 0x78, 0x38, 0x77, 0x9d, 0x2f, 0x0c, 0xcf, 0xf0, 0x31, 0xad, 0xc8, 0x0b, 0x5e, 0x39, 
-  0x6f, 0x81, 0x7b, 0x89, 0x78, 0x51, 0x33, 0x60, 0xc9, 0xf5, 0x37, 0xc1, 0x2d, 0xe9, 0x15, 0x8d, 
+  
+  0x80, 0x00, 0x80, 0x00, 0x80, 0x00, 0x44, 0x00, 0x44, 0x00, 0x44, 0x00, 0xc8, 0x01, 0x03, 0xbf, 
+  0x80, 0x00, 0x80, 0x00, 0x80, 0x00, 0x44, 0x00, 0x44, 0x00, 0x44, 0x00, 0x2d, 0x6e, 0x13, 0xf7, 
+  
+//  0x78, 0xd9, 0x78, 0x38, 0x77, 0x9d, 0x2f, 0x0c, 0xcf, 0xf0, 0x31, 0xad, 0xc8, 0x0b, 0x00, 0x00,
+//  0x6f, 0x81, 0x7b, 0x89, 0x78, 0x51, 0x33, 0x60, 0xc9, 0xf5, 0x37, 0xc1, 0x2d, 0xe9, 0x00, 0x00,
+
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+  
   0xb9, 0x3f, 0x25, 0x93, 0x9d, 0x17, 0xbb, 0x9c, 0x05, 0x9d, 0xc3, 0x38, 0x18, 0x3c, 0xba, 0x33, 
   0xba, 0x18, 0xd1, 0x7a, 0xbc, 0x03, 0xd3, 0x55, 0x32, 0xec, 0x81, 0x38, 0x7d, 0xa6, 0x77, 0xa8, 
   0x4c, 0xe6, 0xc7, 0x11, 0x7c, 0x50, 0x78, 0x80, 0x77, 0x35, 0x08, 0x81, 0xf6, 0x14, 0x4e, 0x67, 
   0xd4, 0xb5, 0xcb, 0xde, 0x6a, 0x54, 0x5f, 0x66, 0x3c, 0xc4, 0x25, 0xfd, 0x33, 0xda, 0x1d, 0x75, 
+  
   0x58, 0x98, 0x15, 0x6d, 0x5e, 0x63, 0x51, 0xee, 0x8f, 0xdd, 0x3a, 0xb2, 0x94, 0xfe, 0x5b, 0x58, 
   0xbf, 0x17, 0x91, 0x78, 0x7f, 0x84, 0xb4, 0x9b, 0xb0, 0xf9, 0x75, 0xc2, 0x2e, 0x7f, 0x1f, 0xed, 
   0xe5, 0x6b, 0x02, 0xf4, 0xf2, 0x7d, 0x74, 0x17, 0x3d, 0x23, 0x35, 0x5c, 0xe0, 0x72, 0x22, 0x6e, 
   0x3b, 0xa7, 0x7b, 0x65, 0x6c, 0x3c, 0x72, 0x7e, 0x5b, 0xae, 0xe7, 0x09, 0x09, 0xf0, 0x01, 0x00, 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+  
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
   0x55, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x10, 0xff, 0xff, 0x01, 0x00, 0xa6, 0x20, 0x00, 0x05
 };
 
+//0x78, 0xd9, 0x78, 0x38, 0x77, 0x9d, 0x2f, 0x0c, 0xcf, 0xf0, 0x31, 0xad, 0xc8, 0x0b, 0x5e, 0x39
+//0x6f, 0x81, 0x7b, 0x89, 0x78, 0x51, 0x33, 0x60, 0xc9, 0xf5, 0x37, 0xc1, 0x2d, 0xe9, 0x15, 0x8d
+//crc: 0x5e39158d
+
+//taken from dolphin MotionPlus.h
+//a60000 register map
+// 0x00 21 bytes of controller data
+// 0x15 11 bytes of 0xFF (unknown)
+// 0x20 32 bytes of calibration
+// 0x40 16 bytes of passthrough extension calibration
+// 0x50 64 bytes of challenge data
+// 0x90 96 bytes of unknown
+// 0xF0 1 byte of init trigger
+// 0xF1 1 byte of challenge type
+// 0xF2 1 byte of calibration trigger
+// 0xF3 3 bytes of unknown
+// 0xF6 1 byte of passthrough_extension_id_4
+// 0xF7 1 byte of challenge_state
+// DOLPHIN: Games read this value to know when the data at 0x50 is ready.
+// DOLPHIN: Value is 0x02 upon activation. (via a write to 0xfe)
+// DOLPHIN: Real M+ changes this value to 0x4, 0x8, 0xc, and finally 0xe.
+// DOLPHIN: Games then trigger a 2nd stage via a write to 0xf1.
+// DOLPHIN: Real M+ changes this value to 0x14, 0x18, and finally 0x1a.
+// DOLPHIN: Note: We don't progress like this. We jump to the final value as soon as possible.
+// 0xF8 1 byte of passthrough_extension_id_0
+// 0xF9 1 byte of passthrough_extension_id_5
+// 0xFA 6 bytes of identifier (for motion plus)
+
 void init_register_chunks(){
 //	uint8_t wii_motion_plus_identifier[6] = {0x01,0x00,0xa6,0x20,0x00,0x05};
 //	memcpy(wii_motion_plus_settings_data + 0xFA ,wii_motion_plus_identifier, 6);
+
 	memcpy(wii_motion_plus_settings_data, register_a60000_sample_1, 256);
+	
+//	uint32_t crc_result = esp_rom_crc32_le(0, wii_motion_plus_settings_data + 0x20, 14);
+//	crc_result = esp_rom_crc32_le(crc_result, wii_motion_plus_settings_data + 0x30, 14);
+//	
+//	ESP_LOG_BUFFER_HEX("CRC THINGU", wii_motion_plus_settings_data + 0x20, 0x20);
+//
+//	uint16_t crc_msb = (crc_result >> 16) & 0xFFFF;
+//	uint16_t crc_lsb = (crc_result & 0xFFFF);
+//	
+//	printf("0x %04x %04x", crc_msb, crc_lsb);
+	
+//	memcpy(&wii_motion_plus_settings_data + 46, &crc_msb, 2);
 }
 
 void init_GPIO(){
@@ -359,20 +415,20 @@ void init_GPIO(){
 }
 
 //first byte
-static const uint8_t BUTTONS_SHIFT_DPAD_LEFT = 0;
-static const uint8_t BUTTONS_SHIFT_DPAD_RIGHT = 1;
-static const uint8_t BUTTONS_SHIFT_DPAD_DOWN = 2;
-static const uint8_t BUTTONS_SHIFT_DPAD_UP = 3;
+const uint8_t BUTTONS_SHIFT_DPAD_LEFT = 0;
+const uint8_t BUTTONS_SHIFT_DPAD_RIGHT = 1;
+const uint8_t BUTTONS_SHIFT_DPAD_DOWN = 2;
+const uint8_t BUTTONS_SHIFT_DPAD_UP = 3;
 //static const uint8_t BUTTONS_SHIFT_PLUS = 4;
 
 //second byte
-static const uint8_t BUTTONS_SHIFT_TWO = 0;
-static const uint8_t BUTTONS_SHIFT_ONE = 1;
-static const uint8_t BUTTONS_SHIFT_B = 2;
-static const uint8_t BUTTONS_SHIFT_A = 3;
-static const uint8_t BUTTONS_SHIFT_MINUS = 4;
+const uint8_t BUTTONS_SHIFT_TWO = 0;
+const uint8_t BUTTONS_SHIFT_ONE = 1;
+const uint8_t BUTTONS_SHIFT_B = 2;
+const uint8_t BUTTONS_SHIFT_A = 3;
+const uint8_t BUTTONS_SHIFT_MINUS = 4;
 
-static const uint8_t BUTTONS_SHIFT_HOME = 7;
+const uint8_t BUTTONS_SHIFT_HOME = 7;
 
 // send the buttons, change in x, and change in y
 
@@ -477,6 +533,16 @@ void load_accelerometer_buffer(uint8_t* destination, uint16_t processed_10bit_ac
 	}
 }
 
+//u32 StartCRC32()
+//{
+//  return crc32_z(0L, Z_NULL, 0);
+//}
+//
+//u32 UpdateCRC32(u32 crc, const u8* data, size_t len)
+//{
+//  return crc32_z(crc, data, len);
+//}
+
 void load_wii_motion_plus_buffer(uint8_t* destination){
 	//fast mode reaches a peak of 2000 degrees per second? and slow mode is potentially 440?
 	esp_err_t ret = mpu6050_get_raw_gyro(mpu6050_handle, &raw_gyro);
@@ -488,31 +554,56 @@ void load_wii_motion_plus_buffer(uint8_t* destination){
 //	ESP_LOGI("MPU6050 RAW", "X: %d [0x%04x] Y: %d [0x%04x] Z: %d [0x%04x]", 
 //		raw_gyro.raw_gyro_x, raw_gyro.raw_gyro_x, raw_gyro.raw_gyro_y, raw_gyro.raw_gyro_y, raw_gyro.raw_gyro_z, raw_gyro.raw_gyro_z);
 	
-	float gyro_yaw_dps = raw_gyro.raw_gyro_x / 16.4;
-	float gyro_roll_dps = raw_gyro.raw_gyro_y / 16.4;
-	float gyro_pitch_dps = raw_gyro.raw_gyro_z / 16.4;
-	
-	int16_t gyro_yaw_14b   = raw_gyro.raw_gyro_x >> 2;
-	int16_t gyro_roll_14b  = raw_gyro.raw_gyro_y >> 2;
-	int16_t gyro_pitch_14b = raw_gyro.raw_gyro_z >> 2;
-	
-	bool slow_yaw = false, slow_roll = false, slow_pitch = false;
-	
-	//TODO: OPTIMIZE THIS SO IT DOESNT REQUIRE ME TO CALC THE DPS FIRST AND JUST BAKES THE SENSITIVITY INTO THE IF STATEMENT
-	if(gyro_yaw_dps < 440){
-	    gyro_yaw_14b = (int16_t)((gyro_yaw_14b * 440.0 / 2000) + 8191);
-	    slow_yaw = true;
-	}
+//	float gyro_yaw_dps = raw_gyro.raw_gyro_x / 16.4;
+//	float gyro_roll_dps = raw_gyro.raw_gyro_y / 16.4;
+//	float gyro_pitch_dps = raw_gyro.raw_gyro_z / 16.4;
+//	
+//	int16_t gyro_yaw_14b   = raw_gyro.raw_gyro_x >> 2;
+//	int16_t gyro_roll_14b  = raw_gyro.raw_gyro_y >> 2;
+//	int16_t gyro_pitch_14b = raw_gyro.raw_gyro_z >> 2;
+//	
+//	bool slow_yaw = false, slow_roll = false, slow_pitch = false;
+//	
+//	//TODO: OPTIMIZE THIS SO IT DOESNT REQUIRE ME TO CALC THE DPS FIRST AND JUST BAKES THE SENSITIVITY INTO THE IF STATEMENT
+//	if(gyro_yaw_dps < 440){
+//	    gyro_yaw_14b = (int16_t)((gyro_yaw_14b * 440.0 / 2000) + 8191);
+//	    slow_yaw = true;
+//	}
+//
+//	if(gyro_roll_dps < 440){
+//	    gyro_roll_14b = (int16_t)((gyro_roll_14b * 440.0 / 2000) + 8191);
+//	    slow_roll = true;
+//	}
+//
+//	if(gyro_pitch_dps < 440){
+//	    gyro_pitch_14b = (int16_t)((gyro_pitch_14b * 440.0 / 2000) + 8191);
+//	    slow_pitch = true;
+//	}
 
-	if(gyro_roll_dps < 440){
-	    gyro_roll_14b = (int16_t)((gyro_roll_14b * 440.0 / 2000) + 8191);
-	    slow_roll = true;
+	//value that is 0 to 1 on the range from 0 to 440
+	float gyro_yaw_base = raw_gyro.raw_gyro_x / 16384.0 * 2000 / 440;
+	float gyro_roll_base = raw_gyro.raw_gyro_y / 16384.0 * 2000 / 440;
+	float gyro_pitch_base = raw_gyro.raw_gyro_z / 16384.0 * 2000 / 440;
+	
+	bool slow_yaw = true, slow_roll = true, slow_pitch = true;
+	
+	if(gyro_yaw_base > 1.0 || gyro_yaw_base < -1.0){
+		slow_yaw = false;
+		gyro_yaw_base *= (440.0 / 1200);
 	}
+	if(gyro_roll_base > 1.0 || gyro_roll_base < -1.0){
+		slow_roll = false;
+		gyro_roll_base *= (440.0 / 1200);
+	}
+	if(gyro_pitch_base > 1.0 || gyro_pitch_base < -1.0){
+		slow_pitch = false;
+		gyro_pitch_base *= (440.0 / 1200);
+	}
+	
+	int16_t gyro_yaw_14b = VALUE_ZERO + (gyro_yaw_base * VALUE_SCALE_OFFSET);
+	int16_t gyro_roll_14b = VALUE_ZERO + (gyro_roll_base * VALUE_SCALE_OFFSET);
+	int16_t gyro_pitch_14b = VALUE_ZERO + (gyro_pitch_base * VALUE_SCALE_OFFSET);
 
-	if(gyro_pitch_dps < 440){
-	    gyro_pitch_14b = (int16_t)((gyro_pitch_14b * 440.0 / 2000) + 8191);
-	    slow_pitch = true;
-	}
 	
 //	ESP_LOGI("MPU6050 PRC", "Y: %d [0x%04x] R: %d [0x%04x] P: %d [0x%04x]", 
 //		gyro_yaw_14b, gyro_yaw_14b, gyro_roll_14b, gyro_roll_14b, gyro_pitch_14b, gyro_pitch_14b);
@@ -561,17 +652,18 @@ void mote_input_data_read(uint8_t size, uint8_t error, uint16_t address_low_16, 
 {
 	load_buttons_buffer(input_report);
 	input_report[2] = (((size-1) & 0xF) << 4) | (error & 0xF);
-//	printf("%d %02x %02x\n", size - 1, (size-1) & 0xF, (((size-1) & 0xF) << 4));
-	//E (low nybble of SE) is the error flag. Known error values are 0 for no error, 7 when attempting to read from a write-only register or an expansion that is not connected, and 8 when attempting to read from nonexistant memory addresses. 
 	input_report[3] = (address_low_16 & 0xFF00) >> 8;
 	input_report[4] = address_low_16 & 0x00FF;
 //	memcpy(input_report + 3, &address_low_16, 2);
+
 	memset(input_report + 5, 0, 16);
 	memcpy(input_report + 5, buffer + address_low_16, size);
 	esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x21, input_report, 21);
 	
 	ESP_LOGI( TAGSEND, "Responding to read");
 	ESP_LOG_BUFFER_HEX(TAGSEND, buffer + address_low_16, size);
+	
+	//TODO: WORK ON READS OVER 16 bytes
 }
 
 //22 BB BB RR EE
@@ -905,11 +997,13 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 						if(offset_16 == 0x00FE && size == 1 && (param->output.data[5] == 0x04 || param->output.data[5] == 0x05 || param->output.data[5] == 0x07)){ //changing active extension to wii motion plus
 							active_extension = EXT_WII_MOTION_PLUS_ACTIVE;
 							status_byte |= 0x02;
-//							memset(extension_controller_settings_data + 0x00FA, 0, 2);
-//							memcpy(extension_controller_settings_data + 0x00FC, &EXTENSION_A4_TAG, 2);
-//							memcpy(extension_controller_settings_data + 0x00FE, &EXT_WII_MOTION_PLUS_ACTIVE, 2);
+
+							//copy wii motion plus extension data
 							memcpy(extension_controller_settings_data + 0x00FA, wii_motion_plus_settings_data + 0x00FA, 6);
 							memcpy(extension_controller_settings_data + 0x00FC, &EXTENSION_A4_TAG, 2);
+							
+							//copy wii motion plus calibration
+							memcpy(extension_controller_settings_data + 0x20, wii_motion_plus_settings_data + 0x20, 0x20);
 							
 							extension_activated = true;
 						}
