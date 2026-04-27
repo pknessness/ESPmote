@@ -37,6 +37,7 @@
 #include "driver/gpio.h"
 #include "esp_mac.h"
 #include "mpu6050.h"
+#include "driver/uart.h"
 
 static const char *TAG = "HID_DEV_DEMO";
 static const char *TAGSEND = "WIIMOTE_OUTPUT";
@@ -50,6 +51,15 @@ typedef struct
     uint8_t protocol_mode;
     uint8_t *buffer;
 } local_param_t;
+
+typedef struct
+{
+	uint16_t x;
+	uint16_t y;
+	uint8_t size;
+} ir_data_t;
+
+ir_data_t IR_DATA[4] = {0};
 
 typedef enum {
     // Output Reports (O_) - Wii to Wii Remote
@@ -100,6 +110,13 @@ typedef enum {
     READ_WRITE_ONLY                     = 0x07,
     READ_NONEXISTENT                    = 0x08,
 } read_error_code_t;
+
+typedef enum {
+    // Output Reports (O_) - Wii to Wii Remote
+    IR_BASIC                        = 0x01,
+    IR_EXTENDED                     = 0x03,
+    IR_FULL                   		= 0x05,
+} ir_modes_t;
 
 // Decrypted last 2 bytes (lowest 16 bits) for each device
 const uint16_t EXT_NONE                        = 0x0000;  // None
@@ -281,6 +298,9 @@ uint8_t status_byte = 0;
 uint16_t active_extension = EXT_NONE;
 uint16_t plugged_in_extension = EXT_NONE;
 
+//IR CAMERA
+uint8_t ir_raw_buffer[12];
+
 //IMU
 //In the image in README, the raw accel shows the relevant value when it is facing up. For example in the image in README, the face buttons are facing upwards, and we get a +Z value on the accelerometer.
 //standard accelerometer values are ~100 when at normal earth gravity values (aka not moving)
@@ -301,7 +321,7 @@ const uint16_t VALUE_SCALE_OFFSET = 0x1100;
 uint8_t speaker_settings[10]; //A20000 - A20009
 uint8_t extension_controller_settings_data[256]; //A40000 - A400FF
 uint8_t wii_motion_plus_settings_data[256]; //A60000 - A600FF
-uint8_t IR_camera_settings[34]; //B00000 - B00033
+uint8_t IR_camera_settings[52]; //B00000 - B00033
 
 //Fake EEPROM for calibration stuff
 uint8_t eeprom_start[48] = {
@@ -318,9 +338,6 @@ static const uint8_t register_a60000_sample_1[]  = {
   
   0x80, 0x00, 0x80, 0x00, 0x80, 0x00, 0x44, 0x00, 0x44, 0x00, 0x44, 0x00, 0xc8, 0x01, 0x03, 0xbf, 
   0x80, 0x00, 0x80, 0x00, 0x80, 0x00, 0x44, 0x00, 0x44, 0x00, 0x44, 0x00, 0x2d, 0x6e, 0x13, 0xf7, 
-  
-//  0x78, 0xd9, 0x78, 0x38, 0x77, 0x9d, 0x2f, 0x0c, 0xcf, 0xf0, 0x31, 0xad, 0xc8, 0x0b, 0x00, 0x00,
-//  0x6f, 0x81, 0x7b, 0x89, 0x78, 0x51, 0x33, 0x60, 0xc9, 0xf5, 0x37, 0xc1, 0x2d, 0xe9, 0x00, 0x00,
 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
   
@@ -471,6 +488,57 @@ void load_buttons_buffer(uint8_t* destination)
 	}
 }
 
+uint8_t get_IR_mode(){
+	return IR_camera_settings[0x33];
+}
+
+void read_IR(){
+	// Read data from UART.
+	const uart_port_t uart_num = UART_NUM_2;
+	uint8_t data[129];
+	size_t length = 0;
+	ESP_ERROR_CHECK(uart_get_buffered_data_len(uart_num, &length));
+	
+	//ESP_LOGI("PICO read", "READ %d", length);
+	
+	if(length > 0){
+		length = uart_read_bytes(uart_num, data, length, 100);
+		
+		for(int i = 0; i < length; i += 14){
+			if(data[i] == 0x55 && data[i+13] == 0xa5){ //TODO: DO ACTUAL CHECKSUM TO VERIFY DATA
+				memcpy(ir_raw_buffer, (data+i+1), 12); //DONT BE STUPID AND COPY LIKE 20 BUFFERS IN A ROW IF THE LAST ONE IS KNOWN TO BE MOST RECENT
+				ESP_LOGI("IR DIRECT", "%u,%u[%u] %u,%u[%u] %u,%u[%u] %u,%u[%u]", 
+					data[i+1] | ((data[i+3] & 0x30) << 4), data[i+2] | ((data[i+3] & 0xC0) << 2), data[i+3] & 0xF, 
+					data[i+4] | ((data[i+6] & 0x30) << 4), data[i+5] | ((data[i+6] & 0xC0) << 2), data[i+6] & 0xF, 
+					data[i+7] | ((data[i+9] & 0x30) << 4), data[i+8] | ((data[i+9] & 0xC0) << 2), data[i+9] & 0xF, 
+					data[i+10] | ((data[i+12] & 0x30) << 4), data[i+11] | ((data[i+12] & 0xC0) << 2), data[i+12] & 0xF);
+			}
+		}
+		
+		uart_flush(uart_num);
+	}
+	
+	//ESP_LOG_BUFFER_HEX("PICO read", data, length);
+}
+
+void load_IR_basic_buffer(uint8_t* destination){
+	memcpy(destination, ir_raw_buffer, 2);
+	memset(destination+2, (ir_raw_buffer[2] & 0xF0) | ((ir_raw_buffer[5] & 0xF0) >> 4), 1);
+	memcpy(destination+3, ir_raw_buffer+3, 2);
+	
+	memcpy(destination+5, ir_raw_buffer+6, 2);
+	memset(destination+7, (ir_raw_buffer[8] & 0xF0) | ((ir_raw_buffer[11] & 0xF0) >> 4), 1);
+	memcpy(destination+8, ir_raw_buffer+9, 2);
+}
+
+void load_IR_extended_buffer(uint8_t* destination){
+	memcpy(destination, ir_raw_buffer, 12);
+}
+
+void load_IR_full_buffer(uint8_t* destination){
+	
+}
+
 int16_t accelerometer_raw_to_10bit(int16_t raw_accel, int16_t offset){
 	int16_t aligned = raw_accel + offset;
 	float scaled = aligned * accel_scale_4g;
@@ -532,16 +600,6 @@ void load_accelerometer_buffer(uint8_t* destination, uint16_t processed_10bit_ac
 		ESP_LOGE("LOAD_ACCELEROMETER_BUFFER", "NO DESTINATION");
 	}
 }
-
-//u32 StartCRC32()
-//{
-//  return crc32_z(0L, Z_NULL, 0);
-//}
-//
-//u32 UpdateCRC32(u32 crc, const u8* data, size_t len)
-//{
-//  return crc32_z(crc, data, len);
-//}
 
 void load_wii_motion_plus_buffer(uint8_t* destination){
 	//fast mode reaches a peak of 2000 degrees per second? and slow mode is potentially 440?
@@ -697,6 +755,8 @@ void mote_input_data_core()
 	int16_t accel_10b_x, accel_10b_y, accel_10b_z;
 	read_from_accelerometer(&accel_10b_x, &accel_10b_y, &accel_10b_z);
 	
+	read_IR();
+	
 	bool send_packet = 
 		continuousReporting || 
 		(reportingMode != 0x3d && (old_buttons[0] != buttons[0] || old_buttons[1] != buttons[1])) || 
@@ -729,7 +789,12 @@ void mote_input_data_core()
 			case 0x33:
 				memcpy(input_report,buttons,2);
 				load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
-				memset(input_report+5,0xFF,12); //replace with 12 IR bytes
+				if(get_IR_mode() == IR_EXTENDED){
+					load_IR_extended_buffer(input_report+5);
+				}else{
+					memset(input_report+5,0xFF,12); //blank 12 IR bytes
+					ESP_LOGW("SEND 0x37", "WRONG IR MODE: %d instead of 3", get_IR_mode());
+				}
 				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x33, input_report, 17);
 				ESP_LOG_BUFFER_HEX("SEND 0x33", input_report, 17);
 			    break;
@@ -758,7 +823,12 @@ void mote_input_data_core()
 			    break;
 			case 0x36:
 				memcpy(input_report,buttons,2);
-				memset(input_report+2,0xFF,10); //replace with 10 IR bytes
+				if(get_IR_mode() == IR_BASIC){
+					load_IR_basic_buffer(input_report+5);
+				}else{
+					memset(input_report+5,0xFF,10); //blank 10 IR bytes
+					ESP_LOGW("SEND 0x37", "WRONG IR MODE: %d instead of 1", get_IR_mode());
+				}
 				if(active_extension == EXT_WII_MOTION_PLUS_ACTIVE){
 					load_wii_motion_plus_buffer(input_report+12);
 					memset(input_report+18,0,3);
@@ -771,7 +841,12 @@ void mote_input_data_core()
 			case 0x37:
 				memcpy(input_report,buttons,2);
 				load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
-				memset(input_report+5,0xFF,10); //replace with 10 IR bytes
+				if(get_IR_mode() == IR_BASIC){
+					load_IR_basic_buffer(input_report+5);
+				}else{
+					memset(input_report+5,0xFF,10); //blank 10 IR bytes
+					ESP_LOGW("SEND 0x37", "WRONG IR MODE: %d instead of 1", get_IR_mode());
+				}
 				if(active_extension == EXT_WII_MOTION_PLUS_ACTIVE){
 					load_wii_motion_plus_buffer(input_report+15);
 				}else{
@@ -816,7 +891,7 @@ void mote_hid_main_task(void *pvParameters)
     printf("%s\n", help_string);
     char c = 0;
     while (1) {
-		c = fgetc(stdin);
+		//c = fgetc(stdin);
 		
 		mote_input_data_core();
 		
@@ -1022,6 +1097,7 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 					}else if(param->output.data[1] == 0xB0){
 						ESP_LOGI( TAGW, "Attempting to write %d bytes to IR camera settings at 0x%06x [%04x]", size, offset, offset_16);
 						memcpy(IR_camera_settings + offset_16, param->output.data + 5, size);
+						ESP_LOG_BUFFER_HEX(TAGW, IR_camera_settings, 52);
 					}else {
 						ESP_LOGI( TAGW, "Attempting to write %d bytes to control registers at 0x%06x [%04x]", size, offset, offset_16);
 					}
@@ -1215,6 +1291,29 @@ void app_main(void)
 	
 	init_GPIO();
 	init_register_chunks();
+	
+	//UART
+	const uart_port_t uart_num = UART_NUM_2;
+	uart_config_t uart_config = {
+	    .baud_rate = 115200,
+	    .data_bits = UART_DATA_8_BITS,
+	    .parity = UART_PARITY_DISABLE,
+	    .stop_bits = UART_STOP_BITS_1,
+	    .flow_ctrl = UART_HW_FLOWCTRL_CTS_RTS,
+	    .rx_flow_ctrl_thresh = 122,
+	};
+	// Configure UART parameters
+	ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config));
+
+	// Setup UART buffered IO with event queue
+	const int uart_buffer_size = (129); //in theory i want exactly enough for two bytes, which is 28, but i have to go up to 128 because that is the minimum UART_HW_FIFO_LEN(uart_num)
+	QueueHandle_t uart_queue;
+	// Install UART driver using an event queue here
+	ESP_ERROR_CHECK(uart_driver_install(UART_NUM_2, uart_buffer_size, uart_buffer_size, 10, &uart_queue, 0));
+	
+	// Set UART pins(TX: IO17, RX: IO16, RTS: UNUSED, CTS: UNUSED, DTR: UNUSED, DSR: UNUSED)
+	ESP_ERROR_CHECK(uart_set_pin(UART_NUM_2, 17, 16, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+	
 	
 	i2c_master_bus_config_t bus_config = {
 	    .i2c_port = I2C_MODE_MASTER,               // I2C port number
