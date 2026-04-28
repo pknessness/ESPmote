@@ -116,7 +116,17 @@ esp_err_t mpu6050_create(i2c_master_bus_handle_t i2c_bus_handle, mpu6050_info_t 
 esp_err_t mpu6050_config(mpu6050_handle_t mpu_handle, mpu6050_config_t config)
 {
     uint8_t config_regs[2] = {config.gyro_fs << 3,  config.accel_fs << 3};
-    return mpu6050_write(mpu_handle, MPU6050_GYRO_CONFIG, config_regs, sizeof(config_regs));
+	
+	esp_err_t ret = mpu6050_write(mpu_handle, MPU6050_GYRO_CONFIG, config_regs, sizeof(config_regs));
+	uint8_t val[2];
+	mpu6050_read(mpu_handle, MPU6050_GYRO_CONFIG, val, 2);
+	
+	if(val[0] != config_regs[0] || val[1] != config_regs[1]){
+		ret = 0x2000;
+	}
+//	ESP_LOGI("MPU CONFIG", "D:%x %x => A:%x %x\n", config_regs[0], config_regs[1], val[0], val[1]);
+	
+    return ret;
 }
 
 esp_err_t mpu6050_reset(mpu6050_handle_t mpu_handle)
