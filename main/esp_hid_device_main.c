@@ -507,11 +507,11 @@ void read_IR(){
 		for(int i = 0; i < length; i += 14){
 			if(data[i] == 0x55 && data[i+13] == 0xa5){ //TODO: DO ACTUAL CHECKSUM TO VERIFY DATA
 				memcpy(ir_raw_buffer, (data+i+1), 12); //DONT BE STUPID AND COPY LIKE 20 BUFFERS IN A ROW IF THE LAST ONE IS KNOWN TO BE MOST RECENT
-//				ESP_LOGI("IR DIRECT", "%u,%u[%u] %u,%u[%u] %u,%u[%u] %u,%u[%u]", 
-//					data[i+1] | ((data[i+3] & 0x30) << 4), data[i+2] | ((data[i+3] & 0xC0) << 2), data[i+3] & 0xF, 
-//					data[i+4] | ((data[i+6] & 0x30) << 4), data[i+5] | ((data[i+6] & 0xC0) << 2), data[i+6] & 0xF, 
-//					data[i+7] | ((data[i+9] & 0x30) << 4), data[i+8] | ((data[i+9] & 0xC0) << 2), data[i+9] & 0xF, 
-//					data[i+10] | ((data[i+12] & 0x30) << 4), data[i+11] | ((data[i+12] & 0xC0) << 2), data[i+12] & 0xF);
+				ESP_LOGI("IR DIRECT", "%u,%u[%u] %u,%u[%u] %u,%u[%u] %u,%u[%u]", 
+					data[i+1] | ((data[i+3] & 0x30) << 4), data[i+2] | ((data[i+3] & 0xC0) << 2), data[i+3] & 0xF, 
+					data[i+4] | ((data[i+6] & 0x30) << 4), data[i+5] | ((data[i+6] & 0xC0) << 2), data[i+6] & 0xF, 
+					data[i+7] | ((data[i+9] & 0x30) << 4), data[i+8] | ((data[i+9] & 0xC0) << 2), data[i+9] & 0xF, 
+					data[i+10] | ((data[i+12] & 0x30) << 4), data[i+11] | ((data[i+12] & 0xC0) << 2), data[i+12] & 0xF);
 			}
 		}
 		
@@ -1292,31 +1292,6 @@ void app_main(void)
 	init_GPIO();
 	init_register_chunks();
 	
-	//flash?
-	ret = nvs_flash_init();
-	if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-	    ESP_ERROR_CHECK(nvs_flash_erase());
-	    ret = nvs_flash_init();
-	}
-	ESP_ERROR_CHECK( ret );
-	
-	//BLUETOOTH
-	ESP_LOGI(TAG, "setting hid gap, mode:%d", HID_DEV_MODE);
-	ret = esp_hid_gap_init(HID_DEV_MODE);
-	ESP_ERROR_CHECK( ret );
-
-	ESP_LOGI(TAG, "setting device name");
-	esp_bt_gap_set_device_name(bt_hid_config.device_name);
-
-	ESP_LOGI(TAG, "setting cod major, peripheral");
-	esp_bt_cod_t cod = {0};
-	cod.major = ESP_BT_COD_MAJOR_DEV_PERIPHERAL;
-	cod.minor = ESP_BT_COD_MINOR_PERIPHERAL_JOYSTICK;
-	cod.service = ESP_BT_COD_SRVC_LMTD_DISCOVER;
-	esp_bt_gap_set_cod(cod, ESP_BT_SET_COD_MAJOR_MINOR);
-	
-	vTaskDelay(10000 / portTICK_PERIOD_MS);
-	
 	//UART
 	const uart_port_t uart_num = UART_NUM_2;
 	uart_config_t uart_config = {
@@ -1335,11 +1310,11 @@ void app_main(void)
 	QueueHandle_t uart_queue;
 	// Install UART driver using an event queue here
 	ESP_ERROR_CHECK(uart_driver_install(UART_NUM_2, uart_buffer_size, uart_buffer_size, 10, &uart_queue, 0));
-
+	
 	// Set UART pins(TX: IO17, RX: IO16, RTS: UNUSED, CTS: UNUSED, DTR: UNUSED, DSR: UNUSED)
 	ESP_ERROR_CHECK(uart_set_pin(UART_NUM_2, 17, 16, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 	
-	//I2C
+	
 	i2c_master_bus_config_t bus_config = {
 	    .i2c_port = I2C_MODE_MASTER,               // I2C port number
 	    .sda_io_num = I2C_MASTER_SDA_IO,         // GPIO number for I2C sda signal
@@ -1372,10 +1347,6 @@ void app_main(void)
 	ret = mpu6050_config(mpu6050_handle, config);
 	if (ret != ESP_OK) {
 	    ESP_LOGE("MPU6050", "Config failed");
-		while(ret == 0x2000){
-			char* test_str = "CONFIG FAILED\n";
-			uart_write_bytes(uart_num, (const char*)test_str, strlen(test_str));
-		}
 	    return;
 	}
 	ret = mpu6050_wake_up(mpu6050_handle);
@@ -1384,13 +1355,39 @@ void app_main(void)
 	    return;
 	}
 	
+    ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK( ret );
 
+    ESP_LOGI(TAG, "setting hid gap, mode:%d", HID_DEV_MODE);
+    ret = esp_hid_gap_init(HID_DEV_MODE);
+    ESP_ERROR_CHECK( ret );
+
+#if CONFIG_BT_HID_DEVICE_ENABLED
+
+    ESP_LOGI(TAG, "setting device name");
+    esp_bt_gap_set_device_name(bt_hid_config.device_name);
+	
+    ESP_LOGI(TAG, "setting cod major, peripheral");
+    esp_bt_cod_t cod = {0};
+    cod.major = ESP_BT_COD_MAJOR_DEV_PERIPHERAL;
+    cod.minor = ESP_BT_COD_MINOR_PERIPHERAL_JOYSTICK;
+	cod.service = ESP_BT_COD_SRVC_LMTD_DISCOVER;
+    esp_bt_gap_set_cod(cod, ESP_BT_SET_COD_MAJOR_MINOR);
+	
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 	
     ESP_LOGI(TAG, "setting bt device");
     ESP_ERROR_CHECK(
         esp_hidd_dev_init(&bt_hid_config, ESP_HID_TRANSPORT_BT, bt_hidd_event_callback, &s_bt_hid_param.hid_dev));
 	
+#if CONFIG_BT_SDP_COMMON_ENABLED
     ESP_ERROR_CHECK(esp_sdp_register_callback(esp_sdp_cb));
     ESP_ERROR_CHECK(esp_sdp_init());
+#endif /* CONFIG_BT_SDP_COMMON_ENABLED */
+
+#endif /* CONFIG_BT_HID_DEVICE_ENABLED */
 }
