@@ -1,0 +1,1 @@
+I am making a PCB replacement for a Wii remote. Many wii remotes nowadays have corroded or nonfunctional pcbs nowadays, so I'm hoping that my replacement can be an open source resource for members of the Wii community

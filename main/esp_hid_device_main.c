@@ -36,7 +36,7 @@
 #include "esp_random.h"
 #include "driver/gpio.h"
 #include "esp_mac.h"
-#include "mpu6050.h"
+#include "lsm6ds3.h"
 #include "driver/uart.h"
 
 static const char *TAG = "HID_DEV_DEMO";

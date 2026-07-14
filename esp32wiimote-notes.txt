@@ -317,3 +317,7 @@ BTA_SdpCreateRecordByUser {btc_sdp_api.c}
 | GPIO37 | ADC1_CH1        | RTC_GPIO1   | GPI                    |                                       |                 |
 | GPIO38 | ADC1_CH2        | RTC_GPIO2   | GPI                    |                                       |                 |
 | GPIO39 | ADC1_CH3        | RTC_GPIO3   | GPI                    |                                       |                 |
+
+Parts:
+Battery Lead -/+ : https://www.digikey.com/en/products/detail/keystone-electronics/108-2/315163
+https://mm.digikey.com/Volume0/opasdata/d220001/medias/docus/8913/SG-210STF_X1G0041710031_en.pdf
