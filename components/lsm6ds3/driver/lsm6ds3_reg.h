@@ -43,7 +43,7 @@
 extern "C" {
 #endif
 
-#define LSM6DS3_ID 0x69
+#define LSM6DS3_ID 0x6A
 
 typedef struct {
     int16_t i16bit[3];

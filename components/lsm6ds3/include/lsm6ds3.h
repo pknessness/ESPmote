@@ -29,6 +29,7 @@
 #include <stdbool.h>
 #include "driver/i2c_master.h"
 //#include "driver/spi_master.h"
+#include "driver/i2c_types.h"
 #include "lsm6ds3_reg.h"
 
 #ifdef __cplusplus
@@ -49,7 +50,7 @@ typedef struct {
     lsm6ds3_calibration_t calibration;
 } lsm6ds3_handle_t;
 
-esp_err_t lsm6ds3_init(lsm6ds3_handle_t *handle);
+esp_err_t lsm6ds3_init(i2c_master_bus_handle_t bus_handle, lsm6ds3_handle_t *handle);
 esp_err_t lsm6ds3_deinit(lsm6ds3_handle_t *handle);
 esp_err_t lsm6ds3_reset(lsm6ds3_handle_t *handle);
 esp_err_t lsm6ds3_get_device_id(lsm6ds3_handle_t *handle, uint8_t *device_id);

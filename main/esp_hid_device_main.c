@@ -130,19 +130,44 @@ const uint16_t EXT_WII_MOTION_PLUS_CLASSIC_PASSTHROUGH = 0x0705;  // Activated W
 const uint16_t EXTENSION_A4_TAG = 0x20A4; //in reverse because memcpy
 const uint16_t EXTENSION_A6_TAG = 0x20A6; //in reverse because memcpy
 
+// LED GPIO
+#define LED1 GPIO_NUM_12
+#define LED2 GPIO_NUM_13
+#define LED3 GPIO_NUM_14
+#define LED4 GPIO_NUM_15
+
 // Button GPIO definitions
-//GPIO 34-39 CANNOT SOFTWARE PULLUP
-#define BUTTON_PIN_A        GPIO_NUM_32 //
-#define BUTTON_PIN_B        GPIO_NUM_27 //
-#define BUTTON_PIN_ONE      GPIO_NUM_18 //
-#define BUTTON_PIN_TWO      GPIO_NUM_19 //
-#define BUTTON_PIN_PLUS     GPIO_NUM_4 //
-#define BUTTON_PIN_MINUS    GPIO_NUM_23 //
-#define BUTTON_PIN_HOME     GPIO_NUM_34 //
-#define BUTTON_PIN_UP       GPIO_NUM_26 //
-#define BUTTON_PIN_DOWN     GPIO_NUM_33 //
-#define BUTTON_PIN_LEFT     GPIO_NUM_35 //  
-#define BUTTON_PIN_RIGHT    GPIO_NUM_25 //
+//GPIO 34-39 CANNOT SOFTWARE PULLUP 	//TODO: RE-ENABLE
+//#define BUTTON_PIN_A        GPIO_NUM_32 //
+//#define BUTTON_PIN_B        GPIO_NUM_27 //
+//#define BUTTON_PIN_ONE      GPIO_NUM_18 //
+//#define BUTTON_PIN_TWO      GPIO_NUM_19 //
+//#define BUTTON_PIN_PLUS     GPIO_NUM_4 //
+//#define BUTTON_PIN_MINUS    GPIO_NUM_23 //
+//#define BUTTON_PIN_HOME     GPIO_NUM_34 //
+//#define BUTTON_PIN_UP       GPIO_NUM_26 //
+//#define BUTTON_PIN_DOWN     GPIO_NUM_33 //
+//#define BUTTON_PIN_LEFT     GPIO_NUM_35 //  
+//#define BUTTON_PIN_RIGHT    GPIO_NUM_25 //
+
+#define BUTTON_I1 GPIO_NUM_19
+#define BUTTON_I2 GPIO_NUM_18
+#define BUTTON_I3 GPIO_NUM_27
+
+#define BUTTON_O1 GPIO_NUM_36
+#define BUTTON_O2 GPIO_NUM_39
+#define BUTTON_O3 GPIO_NUM_34
+#define BUTTON_O4 GPIO_NUM_35
+
+#define BUTTON_A GPIO_NUM_33
+
+#define LED1 GPIO_NUM_12
+#define LED2 GPIO_NUM_13
+#define LED3 GPIO_NUM_14
+#define LED4 GPIO_NUM_15
+
+#define TIME_ON 10
+#define TIME_OFF 10
 
 //IMU (I2C)
 #define I2C_MASTER_SCL_IO    22 // SCL pin
@@ -150,7 +175,7 @@ const uint16_t EXTENSION_A6_TAG = 0x20A6; //in reverse because memcpy
 #define I2C_MASTER_FREQ_HZ   400000
 #define I2C_MASTER_NUM       I2C_NUM_0
 #define ESP_INTR_FLAG_DEFAULT 0
-mpu6050_handle_t mpu6050_handle;
+lsm6ds3_handle_t imu_handle;
 
 #if CONFIG_BT_HID_DEVICE_ENABLED
 static local_param_t s_bt_hid_param = {0};
@@ -303,13 +328,19 @@ uint8_t ir_raw_buffer[12];
 
 //IMU
 //In the image in README, the raw accel shows the relevant value when it is facing up. For example in the image in README, the face buttons are facing upwards, and we get a +Z value on the accelerometer.
-//standard accelerometer values are ~100 when at normal earth gravity values (aka not moving)
-mpu6050_raw_accel_value_t raw_accel;
-int16_t accel_offset_4g[3] = {-340, 88, 764}; //add these to values, before multing by scale
-float accel_scale_4g = 100 / (8192.0); //multiply values by this to get +-100 at +- 1G to match wiimote range
+//Standard accelerometer values are ~100 when at normal earth gravity values (aka not moving)
+//When sending over bt, we add these values to 0x200 (512) to get a 10 bit positive number that is 512 +- G 
+float accel_mg[3];
+
+//int16_t accel_offset_4g[3] = {-340, 88, 764}; //add these to values, before multing by scale
+//float accel_scale_4g = 100 / (8192.0); //multiply values by this to get +-100 at +- 1G to match wiimote range
+
+float accel_offset_mg[3] = {0, 0, 0}; //add these to values, before multing by scale
+float accel_scale_mg = 100 / (1000.0); //multiply values by this to get +-100 at +- 1G to match wiimote range
 const int16_t accel_zero_value = 0x0200;
 
-mpu6050_raw_gyro_value_t raw_gyro;
+float gyro_mdps[3];
+float gyro_dps[3];
 const uint16_t CALIBRATION_ZERO = 0x8000;
 const uint16_t CALIBRATION_SCALE_OFFSET = 0x4400;
 const uint16_t CALIBRATION_FAST_SCALE_DEGREES = 1200;
@@ -403,32 +434,50 @@ void init_register_chunks(){
 //	memcpy(&wii_motion_plus_settings_data + 46, &crc_msb, 2);
 }
 
-void init_GPIO(){
+void init_GPIO(){ 	//TODO: RE-ENABLE
 	// Set button GPIO directions to input
-	gpio_set_direction(BUTTON_PIN_A, GPIO_MODE_INPUT);
-	gpio_set_direction(BUTTON_PIN_B, GPIO_MODE_INPUT);
-	gpio_set_direction(BUTTON_PIN_ONE, GPIO_MODE_INPUT);
-	gpio_set_direction(BUTTON_PIN_TWO, GPIO_MODE_INPUT);
-	gpio_set_direction(BUTTON_PIN_PLUS, GPIO_MODE_INPUT);
-	gpio_set_direction(BUTTON_PIN_MINUS, GPIO_MODE_INPUT);
-	gpio_set_direction(BUTTON_PIN_HOME, GPIO_MODE_INPUT);
-	gpio_set_direction(BUTTON_PIN_UP, GPIO_MODE_INPUT);
-	gpio_set_direction(BUTTON_PIN_DOWN, GPIO_MODE_INPUT);
-	gpio_set_direction(BUTTON_PIN_LEFT, GPIO_MODE_INPUT);
-	gpio_set_direction(BUTTON_PIN_RIGHT, GPIO_MODE_INPUT);
-	
-	// Set button GPIO pull-up enable
-	gpio_pullup_en(BUTTON_PIN_A);
-	gpio_pullup_en(BUTTON_PIN_B);
-	gpio_pullup_en(BUTTON_PIN_ONE);
-	gpio_pullup_en(BUTTON_PIN_TWO);
-	gpio_pullup_en(BUTTON_PIN_PLUS);
-	gpio_pullup_en(BUTTON_PIN_MINUS);
-	gpio_pullup_en(BUTTON_PIN_HOME);
-	gpio_pullup_en(BUTTON_PIN_UP);
-	gpio_pullup_en(BUTTON_PIN_DOWN);
-	gpio_pullup_en(BUTTON_PIN_LEFT);
-	gpio_pullup_en(BUTTON_PIN_RIGHT);
+//	gpio_set_direction(BUTTON_PIN_A, GPIO_MODE_INPUT);
+//	gpio_set_direction(BUTTON_PIN_B, GPIO_MODE_INPUT);
+//	gpio_set_direction(BUTTON_PIN_ONE, GPIO_MODE_INPUT);
+//	gpio_set_direction(BUTTON_PIN_TWO, GPIO_MODE_INPUT);
+//	gpio_set_direction(BUTTON_PIN_PLUS, GPIO_MODE_INPUT);
+//	gpio_set_direction(BUTTON_PIN_MINUS, GPIO_MODE_INPUT);
+//	gpio_set_direction(BUTTON_PIN_HOME, GPIO_MODE_INPUT);
+//	gpio_set_direction(BUTTON_PIN_UP, GPIO_MODE_INPUT);
+//	gpio_set_direction(BUTTON_PIN_DOWN, GPIO_MODE_INPUT);
+//	gpio_set_direction(BUTTON_PIN_LEFT, GPIO_MODE_INPUT);
+//	gpio_set_direction(BUTTON_PIN_RIGHT, GPIO_MODE_INPUT);
+//	
+//	// Set button GPIO pull-up enable
+//	gpio_pullup_en(BUTTON_PIN_A);
+//	gpio_pullup_en(BUTTON_PIN_B);
+//	gpio_pullup_en(BUTTON_PIN_ONE);
+//	gpio_pullup_en(BUTTON_PIN_TWO);
+//	gpio_pullup_en(BUTTON_PIN_PLUS);
+//	gpio_pullup_en(BUTTON_PIN_MINUS);
+//	gpio_pullup_en(BUTTON_PIN_HOME);
+//	gpio_pullup_en(BUTTON_PIN_UP);
+//	gpio_pullup_en(BUTTON_PIN_DOWN);
+//	gpio_pullup_en(BUTTON_PIN_LEFT);
+//	gpio_pullup_en(BUTTON_PIN_RIGHT);
+
+	//LED SETUP
+	gpio_reset_pin(LED1);
+	gpio_reset_pin(LED2);
+	gpio_reset_pin(LED3);
+	gpio_reset_pin(LED4);
+	gpio_set_direction(LED1, GPIO_MODE_OUTPUT);
+	gpio_set_direction(LED2, GPIO_MODE_OUTPUT);
+	gpio_set_direction(LED3, GPIO_MODE_OUTPUT);
+	gpio_set_direction(LED4, GPIO_MODE_OUTPUT);
+}
+
+void setLEDBinary(uint8_t bin){
+	gpio_set_level(LED4, bin & 0x01);
+	gpio_set_level(LED3, bin & 0x02);
+	gpio_set_level(LED2, bin & 0x04);
+	gpio_set_level(LED1, bin & 0x08);
+
 }
 
 //first byte
@@ -454,19 +503,20 @@ void load_buttons_buffer(uint8_t* destination)
 	static uint8_t buttons_buffer[2];
 	memset(buttons_buffer, 0, 2);
 	
-	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_UP) << BUTTONS_SHIFT_DPAD_UP);
-	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_DOWN) << BUTTONS_SHIFT_DPAD_DOWN);
-	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_LEFT) << BUTTONS_SHIFT_DPAD_LEFT);
-	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_RIGHT) << BUTTONS_SHIFT_DPAD_RIGHT);
-	buttons_buffer[0] |= 0;//(!gpio_get_level(BUTTON_PIN_PLUS) << BUTTONS_SHIFT_PLUS);
-
-	
-	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_A) << BUTTONS_SHIFT_A);
-	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_B) << BUTTONS_SHIFT_B);
-	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_ONE) << BUTTONS_SHIFT_ONE);
-	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_TWO) << BUTTONS_SHIFT_TWO);
-	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_MINUS) << BUTTONS_SHIFT_MINUS);
-	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_HOME) << BUTTONS_SHIFT_HOME);
+	//TODO: RE-ENABLE
+//	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_UP) << BUTTONS_SHIFT_DPAD_UP);
+//	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_DOWN) << BUTTONS_SHIFT_DPAD_DOWN);
+//	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_LEFT) << BUTTONS_SHIFT_DPAD_LEFT);
+//	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_RIGHT) << BUTTONS_SHIFT_DPAD_RIGHT);
+//	buttons_buffer[0] |= 0;//(!gpio_get_level(BUTTON_PIN_PLUS) << BUTTONS_SHIFT_PLUS);
+//
+//	
+//	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_A) << BUTTONS_SHIFT_A);
+//	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_B) << BUTTONS_SHIFT_B);
+//	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_ONE) << BUTTONS_SHIFT_ONE);
+//	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_TWO) << BUTTONS_SHIFT_TWO);
+//	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_MINUS) << BUTTONS_SHIFT_MINUS);
+//	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_HOME) << BUTTONS_SHIFT_HOME);
 	
 //	ESP_LOGI(TAG, "[%c%c%c%c%c%c%c%c%c%c%c]",
 //	         (gpio_get_level(BUTTON_PIN_A) ? ' ' : 'A'),
@@ -539,32 +589,58 @@ void load_IR_full_buffer(uint8_t* destination){
 	
 }
 
-int16_t accelerometer_raw_to_10bit(int16_t raw_accel, int16_t offset){
-	int16_t aligned = raw_accel + offset;
-	float scaled = aligned * accel_scale_4g;
-	int16_t scaled_int = (int16_t)(scaled);
+//int16_t accelerometer_raw_to_10bit(int16_t raw_accel, int16_t offset){
+//	int16_t aligned = raw_accel + offset;
+//	float scaled = aligned * accel_scale_mg;
+//	int16_t scaled_int = (int16_t)(scaled);
+//	int16_t plus_zero = scaled_int + accel_zero_value;
+////	ESP_LOGI("MPU MATH", "(%d+%d)[%d] %f[%d] 0x%04x + 0x200 = 0x%04x", 
+////		raw_accel, 
+////		offset, 
+////		aligned, 
+////		scaled, 
+////		scaled_int, 
+////		scaled_int,
+////		plus_zero);
+//	return plus_zero;
+//}
+
+int16_t accelerometer_mg_to_10bit(float accel_mg, float offset){
+	int16_t aligned = accel_mg + offset;
+	float scaled = aligned * accel_scale_mg;
+	int16_t scaled_int = (int16_t)(scaled); //TODO: ROUND INSTEAD OF TRUNCATING
 	int16_t plus_zero = scaled_int + accel_zero_value;
-//	ESP_LOGI("MPU MATH", "(%d+%d)[%d] %f[%d] 0x%04x + 0x200 = 0x%04x", 
-//		raw_accel, 
+	
+//	ESP_LOGI("MPU MATH", "(%.2f+%.2f)[%.2f] %f[%d] 0x%04x + 0x200 = 0x%04x", 
+//		accel_mg, 
 //		offset, 
 //		aligned, 
 //		scaled, 
 //		scaled_int, 
 //		scaled_int,
 //		plus_zero);
+
 	return plus_zero;
 }
 
 //send the start of the buffer because accelerometer data also places bits into the buttons section
 void read_from_accelerometer(int16_t* processed_10bit_accel_x, int16_t* processed_10bit_accel_y, int16_t* processed_10bit_accel_z){
-    esp_err_t ret = mpu6050_get_raw_accel(mpu6050_handle, &raw_accel);
+    esp_err_t ret = lsm6ds3_read_accel(&imu_handle, accel_mg);
 	if (ret != ESP_OK) {
 	    ESP_LOGE("MPU6050", "Read failed");
 	    return;
 	}
-	*processed_10bit_accel_x = accelerometer_raw_to_10bit(raw_accel.raw_accel_x,accel_offset_4g[0]);
-	*processed_10bit_accel_y = accelerometer_raw_to_10bit(raw_accel.raw_accel_y,accel_offset_4g[1]);
-	*processed_10bit_accel_z = accelerometer_raw_to_10bit(raw_accel.raw_accel_z,accel_offset_4g[2]);
+	
+//	ESP_LOGI("LSM6 DIRECT", "%.3f %.3f %.3f", accel_mg[0], accel_mg[1], accel_mg[2]);
+	
+	//IMU is rotated from what is desired by wiimote protocol
+	//x => [1]
+	//y => [0]
+	//z => [2]
+	
+	*processed_10bit_accel_x = accelerometer_mg_to_10bit(accel_mg[1],accel_offset_mg[1]);
+	*processed_10bit_accel_y = accelerometer_mg_to_10bit(accel_mg[0],accel_offset_mg[0]);
+	*processed_10bit_accel_z = accelerometer_mg_to_10bit(accel_mg[2],accel_offset_mg[2]);
 
 //	ESP_LOGI("MPU MATH", "(%d+%d)[%d] %f[%d] 0x%04x", 
 //		raw_accel.raw_accel_x, 
@@ -603,7 +679,7 @@ void load_accelerometer_buffer(uint8_t* destination, uint16_t processed_10bit_ac
 
 void load_wii_motion_plus_buffer(uint8_t* destination){
 	//fast mode reaches a peak of 2000 degrees per second? and slow mode is potentially 440?
-	esp_err_t ret = mpu6050_get_raw_gyro(mpu6050_handle, &raw_gyro);
+	esp_err_t ret = lsm6ds3_read_gyro(&imu_handle, gyro_mdps);
 	if (ret != ESP_OK) {
 	    ESP_LOGE("MPU6050", "Read failed");
 	    return;
@@ -638,10 +714,14 @@ void load_wii_motion_plus_buffer(uint8_t* destination){
 //	    slow_pitch = true;
 //	}
 
-	//value that is 0 to 1 on the range from 0 to 440
-	float gyro_yaw_base = raw_gyro.raw_gyro_x / 16384.0 * 2000 / 440;
-	float gyro_roll_base = raw_gyro.raw_gyro_y / 16384.0 * 2000 / 440;
-	float gyro_pitch_base = raw_gyro.raw_gyro_z / 16384.0 * 2000 / 440;
+	gyro_dps[0] = gyro_mdps[0] / 1000.0f;
+	gyro_dps[1] = gyro_mdps[1] / 1000.0f;
+	gyro_dps[2] = gyro_mdps[2] / 1000.0f;
+
+	//_base value should be 0 to 1 on the range from 0 to 440
+	float gyro_yaw_base = gyro_dps[0] / 440;
+	float gyro_roll_base = gyro_dps[1] / 440;
+	float gyro_pitch_base = gyro_dps[2] / 440;
 	
 	bool slow_yaw = true, slow_roll = true, slow_pitch = true;
 	
@@ -710,27 +790,27 @@ void mote_input_data_read(uint8_t size, uint8_t error, uint16_t address_low_16, 
 {
 	//TODO: MAKE SURE DONT MEM OVERFLOW
 	load_buttons_buffer(input_report);
-//	memcpy(input_report + 3, &address_low_16, 2);
-int index = 0;
-while(index < size){
-	uint8_t chunk = size - index;
-	uint16_t pointer = address_low_16 + index;
-	if(chunk >= 16){
-		input_report[2] = (0xF << 4) | (error & 0xF);
-	}else{
-		input_report[2] = (((chunk - 1) & 0xF) << 4) | (error & 0xF);
-	}
-	input_report[3] = (pointer & 0xFF00) >> 8;
-	input_report[4] = pointer & 0x00FF;
-
-	memset(input_report + 5, 0, 16);
-	memcpy(input_report + 5, buffer + pointer, size);
-
-	esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x21, input_report, 21);
-	ESP_LOG_BUFFER_HEX("Responding to read", input_report + 5, size);
+	//	memcpy(input_report + 3, &address_low_16, 2);
+	int index = 0;
+	while(index < size){
+		uint8_t chunk = size - index;
+		uint16_t pointer = address_low_16 + index;
+		if(chunk >= 16){
+			input_report[2] = (0xF << 4) | (error & 0xF);
+		}else{
+			input_report[2] = (((chunk - 1) & 0xF) << 4) | (error & 0xF);
+		}
+		input_report[3] = (pointer & 0xFF00) >> 8;
+		input_report[4] = pointer & 0x00FF;
 	
-	index += 16;
-}
+		memset(input_report + 5, 0, 16);
+		memcpy(input_report + 5, buffer + pointer, size);
+	
+		esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x21, input_report, 21);
+		ESP_LOG_BUFFER_HEX("Responding to read", input_report + 5, size);
+		
+		index += 16;
+	}
 
 	
 	//TODO: WORK ON READS OVER 16 bytes
@@ -905,6 +985,7 @@ void mote_hid_main_task(void *pvParameters)
 		default:
 		    break;
 		}
+		gpio_set_level(LED1, !gpio_get_level(LED1));
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
@@ -1292,6 +1373,8 @@ void app_main(void)
 	init_GPIO();
 	init_register_chunks();
 	
+	setLEDBinary(1);
+	
 	//UART
 	const uart_port_t uart_num = UART_NUM_2;
 	uart_config_t uart_config = {
@@ -1304,6 +1387,8 @@ void app_main(void)
 	};
 	// Configure UART parameters
 	ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config));
+	
+	setLEDBinary(2);
 
 	// Setup UART buffered IO with event queue
 	const int uart_buffer_size = (129); //in theory i want exactly enough for two bytes, which is 28, but i have to go up to 128 because that is the minimum UART_HW_FIFO_LEN(uart_num)
@@ -1311,9 +1396,12 @@ void app_main(void)
 	// Install UART driver using an event queue here
 	ESP_ERROR_CHECK(uart_driver_install(UART_NUM_2, uart_buffer_size, uart_buffer_size, 10, &uart_queue, 0));
 	
+	setLEDBinary(3);
+
 	// Set UART pins(TX: IO17, RX: IO16, RTS: UNUSED, CTS: UNUSED, DTR: UNUSED, DSR: UNUSED)
 	ESP_ERROR_CHECK(uart_set_pin(UART_NUM_2, 17, 16, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 	
+	setLEDBinary(4);
 	
 	i2c_master_bus_config_t bus_config = {
 	    .i2c_port = I2C_MODE_MASTER,               // I2C port number
@@ -1329,31 +1417,36 @@ void app_main(void)
 	i2c_master_bus_handle_t i2c_bus_handle = NULL;
 	ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &i2c_bus_handle));
 
+	setLEDBinary(5);
+
+	
 	// Initialize MPU6050
-	mpu6050_info_t info = {
-		.address = 0x68,
-		.clock_speed = I2C_MASTER_FREQ_HZ
-	};
-	ret = mpu6050_create(i2c_bus_handle, info, &mpu6050_handle);
+//	lsm6ds3_config_t sensor_config = {
+//	    .interface = LSM6DS3_INTERFACE_I2C,
+//	    .bus.i2c.bus_handle = i2c_bus_handle,
+//	    .bus.i2c.address = LSM6DS3_I2C_ADDR,
+//	};
+	
+	ret = lsm6ds3_init(i2c_bus_handle, &imu_handle);
 	if (ret != ESP_OK) {
-	    ESP_LOGE("MPU6050", "Creation failed");
+	    ESP_LOGE("LSM6DS3", "Creation failed");
 	    return;
 	}
 	
-	mpu6050_config_t config = {
-		.accel_fs = ACCEL_FS_4G,
-		.gyro_fs = GYRO_FS_2000DPS
-	};
-	ret = mpu6050_config(mpu6050_handle, config);
-	if (ret != ESP_OK) {
-	    ESP_LOGE("MPU6050", "Config failed");
-	    return;
-	}
-	ret = mpu6050_wake_up(mpu6050_handle);
-	if (ret != ESP_OK) {
-	    ESP_LOGE("MPU6050", "Wakeup failed");
-	    return;
-	}
+	setLEDBinary(6);
+	
+//	vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+	
+	lsm6ds3_set_accel_odr(&imu_handle, LSM6DS3_XL_ODR_104Hz);
+	lsm6ds3_set_accel_full_scale(&imu_handle, LSM6DS3_4g);
+	lsm6ds3_set_gyro_odr(&imu_handle, LSM6DS3_GY_ODR_104Hz);
+	lsm6ds3_set_gyro_full_scale(&imu_handle, LSM6DS3_2000dps);
+	
+	setLEDBinary(7);
+
+//	vTaskDelay(1000 / portTICK_PERIOD_MS);
+
 	
     ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -1361,16 +1454,27 @@ void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK( ret );
+	
+	setLEDBinary(8);
+//	vTaskDelay(1000 / portTICK_PERIOD_MS);
+
 
     ESP_LOGI(TAG, "setting hid gap, mode:%d", HID_DEV_MODE);
     ret = esp_hid_gap_init(HID_DEV_MODE);
     ESP_ERROR_CHECK( ret );
+	
+	setLEDBinary(9);
+//	vTaskDelay(1000 / portTICK_PERIOD_MS);
+
 
 #if CONFIG_BT_HID_DEVICE_ENABLED
 
     ESP_LOGI(TAG, "setting device name");
     esp_bt_gap_set_device_name(bt_hid_config.device_name);
 	
+	setLEDBinary(10);
+//	vTaskDelay(1000 / portTICK_PERIOD_MS);
+
     ESP_LOGI(TAG, "setting cod major, peripheral");
     esp_bt_cod_t cod = {0};
     cod.major = ESP_BT_COD_MAJOR_DEV_PERIPHERAL;
@@ -1381,13 +1485,19 @@ void app_main(void)
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 	
     ESP_LOGI(TAG, "setting bt device");
-    ESP_ERROR_CHECK(
-        esp_hidd_dev_init(&bt_hid_config, ESP_HID_TRANSPORT_BT, bt_hidd_event_callback, &s_bt_hid_param.hid_dev));
+    ESP_ERROR_CHECK( esp_hidd_dev_init(&bt_hid_config, ESP_HID_TRANSPORT_BT, bt_hidd_event_callback, &s_bt_hid_param.hid_dev));
 	
+	setLEDBinary(11);
+		
 #if CONFIG_BT_SDP_COMMON_ENABLED
     ESP_ERROR_CHECK(esp_sdp_register_callback(esp_sdp_cb));
     ESP_ERROR_CHECK(esp_sdp_init());
 #endif /* CONFIG_BT_SDP_COMMON_ENABLED */
 
 #endif /* CONFIG_BT_HID_DEVICE_ENABLED */
+
+
+	int16_t x, y, z;
+	read_from_accelerometer(&x, &y, &z);
+	ESP_LOGI("IMU_DATA","%d %d %d", x, y, z);
 }
