@@ -25,6 +25,7 @@
 #include "esp_bt_defs.h"
 #include "esp_bt_main.h"
 #include "esp_bt_device.h"
+#include "portmacro.h"
 #if CONFIG_BT_SDP_COMMON_ENABLED
 #include "esp_sdp_api.h"
 #endif /* CONFIG_BT_SDP_COMMON_ENABLED */
@@ -39,10 +40,23 @@
 #include "lsm6ds3.h"
 #include "driver/uart.h"
 
+#include "esp_adc/adc_continuous.h"
+
 static const char *TAG = "HID_DEV_DEMO";
 static const char *TAGSEND = "WIIMOTE_OUTPUT";
 static const char *TAGW = "WII_OUTPUT";
 
+#define ADC_READ_LEN                    256
+
+#define EXAMPLE_ADC_UNIT                    ADC_UNIT_1
+#define _EXAMPLE_ADC_UNIT_STR(unit)         #unit
+#define EXAMPLE_ADC_UNIT_STR(unit)          _EXAMPLE_ADC_UNIT_STR(unit)
+#define EXAMPLE_ADC_CONV_MODE               ADC_CONV_SINGLE_UNIT_1
+#define EXAMPLE_ADC_ATTEN                   ADC_ATTEN_DB_0
+#define EXAMPLE_ADC_BIT_WIDTH               SOC_ADC_DIGI_MAX_BITWIDTH
+#define EXAMPLE_ADC_OUTPUT_TYPE             ADC_DIGI_OUTPUT_FORMAT_TYPE1
+#define EXAMPLE_ADC_GET_CHANNEL(p_data)     ((p_data)->type1.channel)
+#define EXAMPLE_ADC_GET_DATA(p_data)        ((p_data)->type1.data)
 
 typedef struct
 {
@@ -161,13 +175,52 @@ const uint16_t EXTENSION_A6_TAG = 0x20A6; //in reverse because memcpy
 
 #define BUTTON_A GPIO_NUM_33
 
+//#define BUTTON_TIME_ON 10
+//#define BUTTON_TIME_OFF 10
+
 #define LED1 GPIO_NUM_12
 #define LED2 GPIO_NUM_13
 #define LED3 GPIO_NUM_14
 #define LED4 GPIO_NUM_15
 
-#define TIME_ON 10
-#define TIME_OFF 10
+#define TIME_ON 20
+
+TaskHandle_t adc_task_hdl;
+
+typedef enum {
+    // Output Reports (O_) - Wii to Wii Remote
+	BTN_A,
+	BTN_B,
+	BTN_ONE,
+	BTN_TWO,
+	BTN_PLUS,
+	BTN_MINUS,
+	BTN_HOME,
+	BTN_UP,
+	BTN_DOWN,
+	BTN_LEFT,
+	BTN_RIGHT,
+	BTN_SYNC,
+	BTN_POWER
+} button_ids;
+
+int32_t button_thresholds[13] = {100,100,100,100,100,100,100,100,100,100,100,100,100};
+static adc_channel_t button_adc_channels[5] = {ADC_CHANNEL_0, ADC_CHANNEL_3, ADC_CHANNEL_6, ADC_CHANNEL_7, ADC_CHANNEL_5};
+
+//gpio_num_t button_I[3] = {GPIO_NUM_19, GPIO_NUM_18, GPIO_NUM_27};
+//gpio_num_t button_O[4] = {GPIO_NUM_36, GPIO_NUM_39, GPIO_NUM_34, GPIO_NUM_35};
+//O1,2,3,4 = ADC1_ 0, 3, 6, 7
+int32_t adc1_channels[10] = {0};
+int8_t keyboard_matrix_input = 0;
+
+button_ids reverse_button_index[3][4] = {
+	{BTN_UP, BTN_DOWN, BTN_LEFT, BTN_RIGHT},
+	{BTN_SYNC, BTN_HOME, BTN_ONE, BTN_TWO},
+	{BTN_PLUS, BTN_MINUS, BTN_B, BTN_POWER}
+};
+
+bool button_array[13] = {0};
+int32_t button_array_adc[13] = {0};
 
 //IMU (I2C)
 #define I2C_MASTER_SCL_IO    22 // SCL pin
@@ -332,9 +385,6 @@ uint8_t ir_raw_buffer[12];
 //When sending over bt, we add these values to 0x200 (512) to get a 10 bit positive number that is 512 +- G 
 float accel_mg[3];
 
-//int16_t accel_offset_4g[3] = {-340, 88, 764}; //add these to values, before multing by scale
-//float accel_scale_4g = 100 / (8192.0); //multiply values by this to get +-100 at +- 1G to match wiimote range
-
 float accel_offset_mg[3] = {0, 0, 0}; //add these to values, before multing by scale
 float accel_scale_mg = 100 / (1000.0); //multiply values by this to get +-100 at +- 1G to match wiimote range
 const int16_t accel_zero_value = 0x0200;
@@ -461,6 +511,27 @@ void init_GPIO(){ 	//TODO: RE-ENABLE
 //	gpio_pullup_en(BUTTON_PIN_LEFT);
 //	gpio_pullup_en(BUTTON_PIN_RIGHT);
 
+	gpio_reset_pin(BUTTON_I1);
+	gpio_reset_pin(BUTTON_I2);
+	gpio_reset_pin(BUTTON_I3);
+//	gpio_reset_pin(BUTTON_O1);
+//	gpio_reset_pin(BUTTON_O2);
+//	gpio_reset_pin(BUTTON_O3);
+//	gpio_reset_pin(BUTTON_O4);
+	gpio_reset_pin(BUTTON_A);
+	
+	//these are flipped because input to the keyboard array is output on ESP32 GPIO and vice versa
+	gpio_set_direction(BUTTON_I1, GPIO_MODE_OUTPUT);
+	gpio_set_direction(BUTTON_I2, GPIO_MODE_OUTPUT);
+	gpio_set_direction(BUTTON_I3, GPIO_MODE_OUTPUT);
+	
+//	gpio_set_direction(BUTTON_O1, GPIO_MODE_INPUT);
+//	gpio_set_direction(BUTTON_O2, GPIO_MODE_INPUT);
+//	gpio_set_direction(BUTTON_O3, GPIO_MODE_INPUT);
+//	gpio_set_direction(BUTTON_O4, GPIO_MODE_INPUT);
+	
+	gpio_set_direction(BUTTON_A, GPIO_MODE_INPUT);
+
 	//LED SETUP
 	gpio_reset_pin(LED1);
 	gpio_reset_pin(LED2);
@@ -485,7 +556,7 @@ const uint8_t BUTTONS_SHIFT_DPAD_LEFT = 0;
 const uint8_t BUTTONS_SHIFT_DPAD_RIGHT = 1;
 const uint8_t BUTTONS_SHIFT_DPAD_DOWN = 2;
 const uint8_t BUTTONS_SHIFT_DPAD_UP = 3;
-//static const uint8_t BUTTONS_SHIFT_PLUS = 4;
+static const uint8_t BUTTONS_SHIFT_PLUS = 4;
 
 //second byte
 const uint8_t BUTTONS_SHIFT_TWO = 0;
@@ -498,44 +569,269 @@ const uint8_t BUTTONS_SHIFT_HOME = 7;
 
 // send the buttons, change in x, and change in y
 
+//static void scan_buttons() {
+//	gpio_set_level(BUTTON_I1, 1);
+//	gpio_set_level(LED1, 1);
+//	vTaskDelay(TIME_ON / portTICK_PERIOD_MS);
+//	button_array[BTN_UP] = gpio_get_level(BUTTON_O1);
+//	button_array[BTN_DOWN] = gpio_get_level(BUTTON_O2);
+//	button_array[BTN_LEFT] = gpio_get_level(BUTTON_O3);
+//	button_array[BTN_RIGHT] = gpio_get_level(BUTTON_O4);
+//	gpio_set_level(BUTTON_I1, 0);
+//	gpio_set_level(LED1, 0);
+//	vTaskDelay(TIME_OFF / portTICK_PERIOD_MS);
+//	
+//	gpio_set_level(BUTTON_I2, 1);
+//	gpio_set_level(LED2, 1);
+//	vTaskDelay(TIME_ON / portTICK_PERIOD_MS);
+//	button_array[BTN_SYNC] = gpio_get_level(BUTTON_O1);
+//	button_array[BTN_HOME] = gpio_get_level(BUTTON_O2);
+//	button_array[BTN_ONE] = gpio_get_level(BUTTON_O3);
+//	button_array[BTN_TWO] = gpio_get_level(BUTTON_O4);
+//	gpio_set_level(BUTTON_I2, 0);
+//	gpio_set_level(LED2, 0);
+//	vTaskDelay(TIME_OFF / portTICK_PERIOD_MS);
+//	
+//	gpio_set_level(BUTTON_I3, 1);
+//	gpio_set_level(LED3, 1);
+//	vTaskDelay(TIME_ON / portTICK_PERIOD_MS);
+//	button_array[BTN_PLUS] = gpio_get_level(BUTTON_O1);
+//	button_array[BTN_MINUS] = gpio_get_level(BUTTON_O2);
+//	button_array[BTN_B] = gpio_get_level(BUTTON_O3);
+//	button_array[BTN_POWER] = gpio_get_level(BUTTON_O4);
+//	gpio_set_level(BUTTON_I3, 0);
+//	gpio_set_level(LED3, 0);
+//vTaskDelay(TIME_OFF / portTICK_PERIOD_MS);
+//
+//	button_array[BTN_A] = gpio_get_level(BUTTON_A);
+//
+//}
+
+void assign_buttons_adc(){
+	gpio_set_level(BUTTON_I1, 1);
+	gpio_set_level(LED1, 1);
+	keyboard_matrix_input = 1;
+	vTaskDelay(TIME_ON / portTICK_PERIOD_MS);
+//	button_array[BTN_UP] = adc1_channels[0] > button_thresholds[BTN_UP];
+//	button_array[BTN_DOWN] = adc1_channels[3] > button_thresholds[BTN_DOWN];
+//	button_array[BTN_LEFT] = adc1_channels[6] > button_thresholds[BTN_LEFT];
+//	button_array[BTN_RIGHT] = adc1_channels[7] > button_thresholds[BTN_RIGHT];
+	gpio_set_level(BUTTON_I1, 0);
+	gpio_set_level(LED1, 0);
+	//vTaskDelay(TIME_OFF / portTICK_PERIOD_MS);
+	
+	gpio_set_level(BUTTON_I2, 1);
+	gpio_set_level(LED2, 1);
+	keyboard_matrix_input = 2;
+	vTaskDelay(TIME_ON / portTICK_PERIOD_MS);
+//	button_array[BTN_SYNC] = adc1_channels[0] > button_thresholds[BTN_SYNC];
+//	button_array[BTN_HOME] = adc1_channels[3] > button_thresholds[BTN_HOME];
+//	button_array[BTN_ONE] = adc1_channels[6] > button_thresholds[BTN_ONE];
+//	button_array[BTN_TWO] = adc1_channels[7] > button_thresholds[BTN_TWO];
+	gpio_set_level(BUTTON_I2, 0);
+	gpio_set_level(LED2, 0);
+	//vTaskDelay(TIME_OFF / portTICK_PERIOD_MS);
+	
+	gpio_set_level(BUTTON_I3, 1);
+	gpio_set_level(LED3, 1);
+	keyboard_matrix_input = 3;
+	vTaskDelay(TIME_ON / portTICK_PERIOD_MS);
+	keyboard_matrix_input = 0;
+
+//	button_array[BTN_PLUS] = adc1_channels[0] > button_thresholds[BTN_PLUS];
+//	button_array[BTN_MINUS] = adc1_channels[3] > button_thresholds[BTN_MINUS];
+//	button_array[BTN_B] = adc1_channels[6] > button_thresholds[BTN_B];
+//	button_array[BTN_POWER] = adc1_channels[7] > button_thresholds[BTN_POWER];
+	gpio_set_level(BUTTON_I3, 0);
+	gpio_set_level(LED3, 0);
+	//vTaskDelay(TIME_OFF / portTICK_PERIOD_MS);
+
+	button_array[BTN_A] = adc1_channels[5] > button_thresholds[BTN_A];
+	button_array_adc[BTN_A] =  adc1_channels[5];
+}
+
+
 void load_buttons_buffer(uint8_t* destination)
 {
 	static uint8_t buttons_buffer[2];
 	memset(buttons_buffer, 0, 2);
 	
+//	scan_buttons();
+	
 	//TODO: RE-ENABLE
-//	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_UP) << BUTTONS_SHIFT_DPAD_UP);
-//	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_DOWN) << BUTTONS_SHIFT_DPAD_DOWN);
-//	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_LEFT) << BUTTONS_SHIFT_DPAD_LEFT);
-//	buttons_buffer[0] |= (!gpio_get_level(BUTTON_PIN_RIGHT) << BUTTONS_SHIFT_DPAD_RIGHT);
-//	buttons_buffer[0] |= 0;//(!gpio_get_level(BUTTON_PIN_PLUS) << BUTTONS_SHIFT_PLUS);
-//
-//	
-//	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_A) << BUTTONS_SHIFT_A);
-//	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_B) << BUTTONS_SHIFT_B);
-//	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_ONE) << BUTTONS_SHIFT_ONE);
-//	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_TWO) << BUTTONS_SHIFT_TWO);
-//	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_MINUS) << BUTTONS_SHIFT_MINUS);
-//	buttons_buffer[1] |= (!gpio_get_level(BUTTON_PIN_HOME) << BUTTONS_SHIFT_HOME);
+	buttons_buffer[0] |= (button_array[BTN_UP] << BUTTONS_SHIFT_DPAD_UP);
+	buttons_buffer[0] |= (button_array[BTN_DOWN] << BUTTONS_SHIFT_DPAD_DOWN);
+	buttons_buffer[0] |= (button_array[BTN_LEFT] << BUTTONS_SHIFT_DPAD_LEFT);
+	buttons_buffer[0] |= (button_array[BTN_RIGHT] << BUTTONS_SHIFT_DPAD_RIGHT);
+	buttons_buffer[0] |= (button_array[BTN_PLUS] << BUTTONS_SHIFT_PLUS);
+
+	
+	buttons_buffer[1] |= (button_array[BTN_A] << BUTTONS_SHIFT_A);
+	buttons_buffer[1] |= (button_array[BTN_B] << BUTTONS_SHIFT_B);
+	buttons_buffer[1] |= (button_array[BTN_ONE] << BUTTONS_SHIFT_ONE);
+	buttons_buffer[1] |= (button_array[BTN_TWO] << BUTTONS_SHIFT_TWO);
+	buttons_buffer[1] |= (button_array[BTN_MINUS] << BUTTONS_SHIFT_MINUS);
+	buttons_buffer[1] |= (button_array[BTN_HOME] << BUTTONS_SHIFT_HOME);
 	
 //	ESP_LOGI(TAG, "[%c%c%c%c%c%c%c%c%c%c%c]",
-//	         (gpio_get_level(BUTTON_PIN_A) ? ' ' : 'A'),
-//	         (gpio_get_level(BUTTON_PIN_B) ? ' ' : 'B'),
-//	         (gpio_get_level(BUTTON_PIN_ONE) ? ' ' : '1'),
-//	         (gpio_get_level(BUTTON_PIN_TWO) ? ' ' : '2'),
-//	         (gpio_get_level(BUTTON_PIN_PLUS) ? ' ' : '+'),
-//	         (gpio_get_level(BUTTON_PIN_MINUS) ? '-' : ' '),
-//	         (gpio_get_level(BUTTON_PIN_HOME) ? ' ' : 'H'),
-//	         (gpio_get_level(BUTTON_PIN_UP) ? ' ' : '^'),
-//	         (gpio_get_level(BUTTON_PIN_DOWN) ? ' ' : 'v'),
-//	         (gpio_get_level(BUTTON_PIN_LEFT) ? '<' : ' '),
-//	         (gpio_get_level(BUTTON_PIN_RIGHT) ? ' ' : '>'));
+//	         (gpio_get_level(button_array[BTN_A) ? ' ' : 'A'),
+//	         (gpio_get_level(button_array[BTN_B) ? ' ' : 'B'),
+//	         (gpio_get_level(button_array[BTN_ONE) ? ' ' : '1'),
+//	         (gpio_get_level(button_array[BTN_TWO) ? ' ' : '2'),
+//	         (gpio_get_level(button_array[BTN_PLUS) ? ' ' : '+'),
+//	         (gpio_get_level(button_array[BTN_MINUS) ? '-' : ' '),
+//	         (gpio_get_level(button_array[BTN_HOME) ? ' ' : 'H'),
+//	         (gpio_get_level(button_array[BTN_UP) ? ' ' : '^'),
+//	         (gpio_get_level(button_array[BTN_DOWN) ? ' ' : 'v'),
+//	         (gpio_get_level(button_array[BTN_LEFT) ? '<' : ' '),
+//	         (gpio_get_level(button_array[BTN_RIGHT) ? ' ' : '>'));
 
 	if(destination != nullptr){
 		memcpy( destination, buttons_buffer, 2);
 	}else{
 		ESP_LOGE("LOAD_BUTTONS_BUFFER", "NO DESTINATION");
 	}
+}
+
+static TaskHandle_t s_task_handle;
+
+static bool IRAM_ATTR s_conv_done_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data)
+{
+    BaseType_t mustYield = pdFALSE;
+    // Notify that ADC continuous driver has done enough number of conversions
+    vTaskNotifyGiveFromISR(s_task_handle, &mustYield);
+
+    return (mustYield == pdTRUE);
+}
+
+static void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc_continuous_handle_t *out_handle)
+{
+    adc_continuous_handle_t handle = NULL;
+
+    adc_continuous_handle_cfg_t adc_config = {
+        .max_store_buf_size = 1024,
+        .conv_frame_size = ADC_READ_LEN,
+    };
+    ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &handle));
+
+    adc_continuous_config_t dig_cfg = {
+        .sample_freq_hz = 20 * 1000,
+        .conv_mode = EXAMPLE_ADC_CONV_MODE,
+        .format = EXAMPLE_ADC_OUTPUT_TYPE,
+    };
+
+    adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {0};
+    dig_cfg.pattern_num = channel_num;
+    for (int i = 0; i < channel_num; i++) {
+        adc_pattern[i].atten = ADC_ATTEN_DB_12;
+        adc_pattern[i].channel = channel[i] & 0x7;
+        adc_pattern[i].unit = EXAMPLE_ADC_UNIT;
+        adc_pattern[i].bit_width = ADC_BITWIDTH_12;
+
+        ESP_LOGI(TAG, "adc_pattern[%d].atten is :%"PRIx8, i, adc_pattern[i].atten);
+        ESP_LOGI(TAG, "adc_pattern[%d].channel is :%"PRIx8, i, adc_pattern[i].channel);
+        ESP_LOGI(TAG, "adc_pattern[%d].unit is :%"PRIx8, i, adc_pattern[i].unit);
+    }
+    dig_cfg.adc_pattern = adc_pattern;
+    ESP_ERROR_CHECK(adc_continuous_config(handle, &dig_cfg));
+
+    *out_handle = handle;
+}
+
+void continuous_adc(void *pvParameters){ //TODO: MUTEX THIS SAFELY
+	esp_err_t ret;
+    uint32_t ret_num = 0;
+    uint8_t result[ADC_READ_LEN] = {0};
+    memset(result, 0xcc, ADC_READ_LEN);
+
+    s_task_handle = xTaskGetCurrentTaskHandle();
+
+    adc_continuous_handle_t handle = NULL;
+    continuous_adc_init(button_adc_channels, sizeof(button_adc_channels) / sizeof(adc_channel_t), &handle);
+
+    adc_continuous_evt_cbs_t cbs = {
+        .on_conv_done = s_conv_done_cb,
+    };
+    ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(handle, &cbs, NULL));
+    ESP_ERROR_CHECK(adc_continuous_start(handle));
+
+	ESP_LOGI("ADC", "ADC CONTINUOUS BEGIN");
+	
+    while (1) {
+
+         // This is to show you the way to use the ADC continuous mode driver event callback.
+         // This `ulTaskNotifyTake` will block when the data processing in the task is fast.
+         // However in this example, the data processing (print) is slow, so you barely block here.
+         // Without using this event callback (to notify this task), you can still just call
+         // adc_continuous_read() here in a loop, with/without a certain block timeout.
+         // ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+        char unit[] = EXAMPLE_ADC_UNIT_STR(EXAMPLE_ADC_UNIT);
+
+        while (1) {
+            ret = adc_continuous_read(handle, result, ADC_READ_LEN, &ret_num, 0);
+            if (ret == ESP_OK) {
+                //ESP_LOGI("TASK", "ret is %x, ret_num is %"PRIu32" bytes", ret, ret_num);
+                for (int i = 0; i < ret_num; i += SOC_ADC_DIGI_RESULT_BYTES) {
+                    adc_digi_output_data_t *p = (adc_digi_output_data_t*)&result[i];
+                    uint32_t chan_num = EXAMPLE_ADC_GET_CHANNEL(p);
+                    uint32_t data = EXAMPLE_ADC_GET_DATA(p);
+		            // Check the channel number validation, the data is invalid if the channel num exceed the maximum channel 
+		            if (chan_num < SOC_ADC_CHANNEL_NUM(EXAMPLE_ADC_UNIT)) {
+		                //ESP_LOGI(TAG, "Unit: %s, Channel: %"PRIu32", Value: %"PRIx32, unit, chan_num, data);
+		                //ESP_LOGI(TAG, "Unit: %s, Channel: %"PRIu32", Value: %lu", unit, chan_num, data);
+						adc1_channels[chan_num] = data;
+		            } else {
+		                ESP_LOGW(TAG, "Invalid data [%s_%"PRIu32"_%"PRIx32"]", unit, chan_num, data);
+		            }
+		        }
+				
+				// ESP_LOGI(TAG, "O: [%d] [%d] [%d] [%d] {%d} %d", adc1_channels[0], adc1_channels[3], adc1_channels[6], adc1_channels[7], adc1_channels[5], keyboard_matrix_input);
+		        //  Because printing is slow, so every time you call `ulTaskNotifyTake`, it will immediately return.
+		        //  To avoid a task watchdog timeout, add a delay here. When you replace the way you process the data,
+		        //  usually you don't need this delay (as this task will block for a while).
+		        if(keyboard_matrix_input == 1){
+					button_array[BTN_UP] = adc1_channels[0] > button_thresholds[BTN_UP];
+					button_array[BTN_DOWN] = adc1_channels[3] > button_thresholds[BTN_DOWN];
+					button_array[BTN_LEFT] = adc1_channels[6] > button_thresholds[BTN_LEFT];
+					button_array[BTN_RIGHT] = adc1_channels[7] > button_thresholds[BTN_RIGHT];
+					
+					button_array_adc[BTN_UP] = adc1_channels[0];
+					button_array_adc[BTN_DOWN] = adc1_channels[3];
+					button_array_adc[BTN_LEFT] = adc1_channels[6];
+					button_array_adc[BTN_RIGHT] = adc1_channels[7];
+				}else if (keyboard_matrix_input == 2){
+					button_array[BTN_SYNC] = adc1_channels[0] > button_thresholds[BTN_SYNC];
+					button_array[BTN_HOME] = adc1_channels[3] > button_thresholds[BTN_HOME];
+					button_array[BTN_ONE] = adc1_channels[6] > button_thresholds[BTN_ONE];
+					button_array[BTN_TWO] = adc1_channels[7] > button_thresholds[BTN_TWO];
+					
+					button_array_adc[BTN_SYNC] = adc1_channels[0];
+					button_array_adc[BTN_HOME] = adc1_channels[3];
+					button_array_adc[BTN_ONE] = adc1_channels[6];
+					button_array_adc[BTN_TWO] = adc1_channels[7];
+				}else if (keyboard_matrix_input == 3){
+					button_array[BTN_PLUS] = adc1_channels[0] > button_thresholds[BTN_PLUS];
+					button_array[BTN_MINUS] = adc1_channels[3] > button_thresholds[BTN_MINUS];
+					button_array[BTN_B] = adc1_channels[6] > button_thresholds[BTN_B];
+					button_array[BTN_POWER] = adc1_channels[7] > button_thresholds[BTN_POWER];
+					
+					button_array_adc[BTN_PLUS] = adc1_channels[0];
+					button_array_adc[BTN_MINUS] = adc1_channels[3];
+					button_array_adc[BTN_B] = adc1_channels[6];
+					button_array_adc[BTN_POWER] = adc1_channels[7];
+				}
+				
+		        vTaskDelay(2 / portTICK_PERIOD_MS);
+		    } else if (ret == ESP_ERR_TIMEOUT) {
+		        // We try to read `EXAMPLE_READ_LEN` until API returns timeout, which means there's no available data
+		        break;
+		    }
+		}
+	}
+	
+	ESP_ERROR_CHECK(adc_continuous_stop(handle));
+	ESP_ERROR_CHECK(adc_continuous_deinit(handle));
 }
 
 uint8_t get_IR_mode(){
@@ -556,7 +852,7 @@ void read_IR(){
 		
 		for(int i = 0; i < length; i += 14){
 			if(data[i] == 0x55 && data[i+13] == 0xa5){ //TODO: DO ACTUAL CHECKSUM TO VERIFY DATA
-				memcpy(ir_raw_buffer, (data+i+1), 12); //DONT BE STUPID AND COPY LIKE 20 BUFFERS IN A ROW IF THE LAST ONE IS KNOWN TO BE MOST RECENT
+				memcpy(ir_raw_buffer, (data+i+1), 12); //DONT BE STUPID AND COPY LIKE 20 BUFFERS IN A ROW IF THE LAST ONE IS KNOWN TO BE MOST RECENT (FUTURE NOTE, WHAT DOES THIS MEAN????)
 				ESP_LOGI("IR DIRECT", "%u,%u[%u] %u,%u[%u] %u,%u[%u] %u,%u[%u]", 
 					data[i+1] | ((data[i+3] & 0x30) << 4), data[i+2] | ((data[i+3] & 0xC0) << 2), data[i+3] & 0xF, 
 					data[i+4] | ((data[i+6] & 0x30) << 4), data[i+5] | ((data[i+6] & 0xC0) << 2), data[i+6] & 0xF, 
@@ -611,7 +907,7 @@ int16_t accelerometer_mg_to_10bit(float accel_mg, float offset){
 	int16_t scaled_int = (int16_t)(scaled); //TODO: ROUND INSTEAD OF TRUNCATING
 	int16_t plus_zero = scaled_int + accel_zero_value;
 	
-//	ESP_LOGI("MPU MATH", "(%.2f+%.2f)[%.2f] %f[%d] 0x%04x + 0x200 = 0x%04x", 
+//	ESP_LOGI("LSM6 MATH", "(%.2f+%.2f)[%.2f] %f[%d] 0x%04x + 0x200 = 0x%04x", 
 //		accel_mg, 
 //		offset, 
 //		aligned, 
@@ -627,7 +923,7 @@ int16_t accelerometer_mg_to_10bit(float accel_mg, float offset){
 void read_from_accelerometer(int16_t* processed_10bit_accel_x, int16_t* processed_10bit_accel_y, int16_t* processed_10bit_accel_z){
     esp_err_t ret = lsm6ds3_read_accel(&imu_handle, accel_mg);
 	if (ret != ESP_OK) {
-	    ESP_LOGE("MPU6050", "Read failed");
+	    ESP_LOGE("LSM6DS3", "Read failed");
 	    return;
 	}
 	
@@ -642,7 +938,7 @@ void read_from_accelerometer(int16_t* processed_10bit_accel_x, int16_t* processe
 	*processed_10bit_accel_y = accelerometer_mg_to_10bit(accel_mg[0],accel_offset_mg[0]);
 	*processed_10bit_accel_z = accelerometer_mg_to_10bit(accel_mg[2],accel_offset_mg[2]);
 
-//	ESP_LOGI("MPU MATH", "(%d+%d)[%d] %f[%d] 0x%04x", 
+//	ESP_LOGI("LSM6 MATH", "(%d+%d)[%d] %f[%d] 0x%04x", 
 //		raw_accel.raw_accel_x, 
 //		accel_offset_4g[0], 
 //		(raw_accel.raw_accel_x + accel_offset_4g[0]), 
@@ -664,7 +960,7 @@ void load_accelerometer_buffer(uint8_t* destination, uint16_t processed_10bit_ac
 	uint8_t accel_z_byte = ((processed_10bit_accel_z & 0x03FC) >> 2);
 	uint8_t accel_z_lower_two_bits = (processed_10bit_accel_z & 0x02) << 5; //shift from bit 1 to bits 6 to align with where it goes in the button matrix
 	
-//	ESP_LOGI("MPU6050", "X: %d [0x%04x] Y: %d [0x%04x] Z: %d [0x%04x]", 
+//	ESP_LOGI("LSM6DS3", "X: %d [0x%04x] Y: %d [0x%04x] Z: %d [0x%04x]", 
 //		raw_accel.raw_accel_x, processed_10bit_accel_x, raw_accel.raw_accel_y, processed_10bit_accel_y, raw_accel.raw_accel_z, processed_10bit_accel_z);
 	if(destination != nullptr){
 		memcpy(destination + 2, &accel_x_byte, 1);
@@ -681,7 +977,7 @@ void load_wii_motion_plus_buffer(uint8_t* destination){
 	//fast mode reaches a peak of 2000 degrees per second? and slow mode is potentially 440?
 	esp_err_t ret = lsm6ds3_read_gyro(&imu_handle, gyro_mdps);
 	if (ret != ESP_OK) {
-	    ESP_LOGE("MPU6050", "Read failed");
+	    ESP_LOGE("LSM6DS3", "Read failed");
 	    return;
 	}
 	
@@ -972,8 +1268,39 @@ void mote_hid_main_task(void *pvParameters)
     char c = 0;
     while (1) {
 		//c = fgetc(stdin);
-		
+		assign_buttons_adc();
 		mote_input_data_core();
+		
+//		ESP_LOGI(TAG, "%c%c%c%c%c%c%c%c%c%c%c%c%c",
+//		    button_array[BTN_A] ? 'A' : ' ',
+//		    button_array[BTN_B] ? 'B' : ' ',
+//		    button_array[BTN_ONE] ? '1' : ' ',
+//		    button_array[BTN_TWO] ? '2' : ' ',
+//		    button_array[BTN_PLUS] ? '+' : ' ',
+//		    button_array[BTN_MINUS] ? '-' : ' ',
+//		    button_array[BTN_HOME] ? 'H' : ' ',
+//		    button_array[BTN_UP] ? 'U' : ' ',
+//		    button_array[BTN_DOWN] ? 'D' : ' ',
+//		    button_array[BTN_LEFT] ? 'L' : ' ',
+//		    button_array[BTN_RIGHT] ? 'R' : ' ',
+//		    button_array[BTN_SYNC] ? 'S' : ' ',
+//		    button_array[BTN_POWER] ? 'P' : ' '
+//		);  
+//		ESP_LOGI(TAG, "%d %d %d %d %d %d %d %d %d %d %d %d %d",
+//		    button_array_adc[BTN_A],
+//		    button_array_adc[BTN_B],
+//		    button_array_adc[BTN_ONE],
+//		    button_array_adc[BTN_TWO],
+//		    button_array_adc[BTN_PLUS],
+//		    button_array_adc[BTN_MINUS],
+//		    button_array_adc[BTN_HOME],
+//		    button_array_adc[BTN_UP],
+//		    button_array_adc[BTN_DOWN],
+//		    button_array_adc[BTN_LEFT],
+//		    button_array_adc[BTN_RIGHT],
+//		    button_array_adc[BTN_SYNC],
+//		    button_array_adc[BTN_POWER]
+//		);  
 		
 		switch (c) {
 		case 'q':
@@ -1488,6 +1815,8 @@ void app_main(void)
     ESP_ERROR_CHECK( esp_hidd_dev_init(&bt_hid_config, ESP_HID_TRANSPORT_BT, bt_hidd_event_callback, &s_bt_hid_param.hid_dev));
 	
 	setLEDBinary(11);
+	
+	xTaskCreate(continuous_adc, "adc_async_buttons_task", 2 * 1024, NULL, configMAX_PRIORITIES - 4, &adc_task_hdl);
 		
 #if CONFIG_BT_SDP_COMMON_ENABLED
     ESP_ERROR_CHECK(esp_sdp_register_callback(esp_sdp_cb));
@@ -1495,7 +1824,6 @@ void app_main(void)
 #endif /* CONFIG_BT_SDP_COMMON_ENABLED */
 
 #endif /* CONFIG_BT_HID_DEVICE_ENABLED */
-
 
 	int16_t x, y, z;
 	read_from_accelerometer(&x, &y, &z);
