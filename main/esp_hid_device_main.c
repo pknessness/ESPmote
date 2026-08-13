@@ -58,7 +58,7 @@ static const char *TAGW = "WII_OUTPUT";
 #define EXAMPLE_ADC_GET_CHANNEL(p_data)     ((p_data)->type1.channel)
 #define EXAMPLE_ADC_GET_DATA(p_data)        ((p_data)->type1.data)
 
-typedef struct
+typedef struct //came with bt example
 {
     TaskHandle_t task_hdl;
     esp_hidd_dev_t *hid_dev;
@@ -75,7 +75,9 @@ typedef struct
 
 ir_data_t IR_DATA[4] = {0};
 
-typedef enum {
+// From https://wiibrew.org/wiki/Wiimote
+// HID input and output report IDs
+typedef enum { 
     // Output Reports (O_) - Wii to Wii Remote
     O_RUMBLE                         = 0x10,  // 1 byte
     O_PLAYER_LEDS                    = 0x11,  // 1 byte
@@ -108,7 +110,9 @@ typedef enum {
     I_INTERLEAVED_36_IR_ALT          = 0x3f   // Interleaved Core Buttons + Accelerometer + 36 IR bytes (alternate)
 } wii_report_id_t;
 
-typedef enum {
+//From https://wiibrew.org/wiki/Wiimote#0x22:_Acknowledge_output_report,_return_function_result
+//Error codes for acknowledge output report
+typedef enum { 
     // Output Reports (O_) - Wii to Wii Remote
     ACK_SUCCESS                         = 0x00,
     ACK_ERROR                           = 0x03,
@@ -118,6 +122,8 @@ typedef enum {
     ACK_UNKNOWN3                        = 0x08,
 } ack_error_code_t;
 
+//From https://wiibrew.org/wiki/Wiimote#0x21:_Read_Memory_Data
+//Error codes for read memory data response
 typedef enum {
     // Output Reports (O_) - Wii to Wii Remote
     READ_SUCCESS                        = 0x00,
@@ -125,6 +131,8 @@ typedef enum {
     READ_NONEXISTENT                    = 0x08,
 } read_error_code_t;
 
+//From https://wiibrew.org/wiki/Wiimote#Data_Formats
+//IR camera data formats
 typedef enum {
     // Output Reports (O_) - Wii to Wii Remote
     IR_BASIC                        = 0x01,
@@ -132,6 +140,7 @@ typedef enum {
     IR_FULL                   		= 0x05,
 } ir_modes_t;
 
+// EXTENSION IDS
 // Decrypted last 2 bytes (lowest 16 bits) for each device
 const uint16_t EXT_NONE                        = 0x0000;  // None
 const uint16_t EXT_NUNCHUK                     = 0x0000;  // Nunchuk
@@ -150,20 +159,7 @@ const uint16_t EXTENSION_A6_TAG = 0x20A6; //in reverse because memcpy
 #define LED3 GPIO_NUM_14
 #define LED4 GPIO_NUM_15
 
-// Button GPIO definitions
-//GPIO 34-39 CANNOT SOFTWARE PULLUP 	//TODO: RE-ENABLE
-//#define BUTTON_PIN_A        GPIO_NUM_32 //
-//#define BUTTON_PIN_B        GPIO_NUM_27 //
-//#define BUTTON_PIN_ONE      GPIO_NUM_18 //
-//#define BUTTON_PIN_TWO      GPIO_NUM_19 //
-//#define BUTTON_PIN_PLUS     GPIO_NUM_4 //
-//#define BUTTON_PIN_MINUS    GPIO_NUM_23 //
-//#define BUTTON_PIN_HOME     GPIO_NUM_34 //
-//#define BUTTON_PIN_UP       GPIO_NUM_26 //
-//#define BUTTON_PIN_DOWN     GPIO_NUM_33 //
-//#define BUTTON_PIN_LEFT     GPIO_NUM_35 //  
-//#define BUTTON_PIN_RIGHT    GPIO_NUM_25 //
-
+// Button Matrix GPIO
 #define BUTTON_I1 GPIO_NUM_19
 #define BUTTON_I2 GPIO_NUM_18
 #define BUTTON_I3 GPIO_NUM_27
@@ -175,18 +171,11 @@ const uint16_t EXTENSION_A6_TAG = 0x20A6; //in reverse because memcpy
 
 #define BUTTON_A GPIO_NUM_33
 
-//#define BUTTON_TIME_ON 10
-//#define BUTTON_TIME_OFF 10
-
-#define LED1 GPIO_NUM_12
-#define LED2 GPIO_NUM_13
-#define LED3 GPIO_NUM_14
-#define LED4 GPIO_NUM_15
-
-#define TIME_ON 20
+#define BUTTON_MATRIX_TIME_ON 20
 
 TaskHandle_t adc_task_hdl;
 
+//My own IDS for buttons, relevant for button_array and button_array_adc
 typedef enum {
     // Output Reports (O_) - Wii to Wii Remote
 	BTN_A,
@@ -204,25 +193,28 @@ typedef enum {
 	BTN_POWER
 } button_ids;
 
-int32_t button_thresholds[13] = {100,100,100,100,100,100,100,100,100,100,100,100,100};
-static adc_channel_t button_adc_channels[5] = {ADC_CHANNEL_0, ADC_CHANNEL_3, ADC_CHANNEL_6, ADC_CHANNEL_7, ADC_CHANNEL_5};
-
-//gpio_num_t button_I[3] = {GPIO_NUM_19, GPIO_NUM_18, GPIO_NUM_27};
-//gpio_num_t button_O[4] = {GPIO_NUM_36, GPIO_NUM_39, GPIO_NUM_34, GPIO_NUM_35};
-//O1,2,3,4 = ADC1_ 0, 3, 6, 7
-int32_t adc1_channels[10] = {0};
-int8_t keyboard_matrix_input = 0;
-
-button_ids reverse_button_index[3][4] = {
-	{BTN_UP, BTN_DOWN, BTN_LEFT, BTN_RIGHT},
-	{BTN_SYNC, BTN_HOME, BTN_ONE, BTN_TWO},
-	{BTN_PLUS, BTN_MINUS, BTN_B, BTN_POWER}
-};
-
+//boolean value of each button, indexed by button_ids enum
 bool button_array[13] = {0};
+//adc value of each button, indexed by button_ids enum
 int32_t button_array_adc[13] = {0};
 
-//IMU (I2C)
+//ADC thresholds for buttons to be considered active
+int32_t button_thresholds[13] = {100,100,100,100,100,100,100,100,100,100,100,100,100};
+
+//Array of which channels the ADC is looking at during continuous mode
+static adc_channel_t button_adc_channels[5] = {ADC_CHANNEL_0, ADC_CHANNEL_3, ADC_CHANNEL_6, ADC_CHANNEL_7, ADC_CHANNEL_5};
+//O1,2,3,4 = ADC1_ 0, 3, 6, 7
+//A button = ADC1_5
+//TODO: ADD BATTERY READ WHICH IS IO32
+
+//ADC channel most recent read
+//Some slots are empty but this is easier to index
+int32_t adc1_channels[10] = {0};
+
+//which input (1, 2, or 3) is the button matrix currently holding high.
+int8_t button_matrix_input = 0;
+
+//IMU (I2C) config bits
 #define I2C_MASTER_SCL_IO    22 // SCL pin
 #define I2C_MASTER_SDA_IO    21 // SDA pin
 #define I2C_MASTER_FREQ_HZ   400000
@@ -366,7 +358,7 @@ static esp_hid_device_config_t bt_hid_config = {
     .report_maps_len    = 1
 };
 
-// Operational Variables
+// Wiimote Operational Variables
 bool continuousReporting = false;
 uint8_t reportingMode = 0x30;
 bool rumbling = false;
@@ -386,22 +378,23 @@ uint8_t ir_raw_buffer[12];
 float accel_mg[3];
 
 float accel_offset_mg[3] = {0, 0, 0}; //add these to values, before multing by scale
-float accel_scale_mg = 100 / (1000.0); //multiply values by this to get +-100 at +- 1G to match wiimote range
-const int16_t accel_zero_value = 0x0200;
+const int16_t CALIBRATION_ACCEL_1G_OFFSET = 100;
+float accel_scale_mg = CALIBRATION_ACCEL_1G_OFFSET / (1000.0); //multiply values by this to get +-100 at +- 1G to match wiimote range
+const int16_t CALIBRATION_ACCEL_ZERO = 0x0200;
 
 float gyro_mdps[3];
 float gyro_dps[3];
-const uint16_t CALIBRATION_ZERO = 0x8000;
-const uint16_t CALIBRATION_SCALE_OFFSET = 0x4400;
-const uint16_t CALIBRATION_FAST_SCALE_DEGREES = 1200;
-const uint16_t CALIBRATION_SLOW_SCALE_DEGREES = 270;
+const uint16_t CALIBRATION_GYRO_ZERO = 0x8000; //CALIBRATION VALUES ARE BAKED INTO THE REGISTER THING, TODO IS TO NOT BAKE THEM IN? 
+const uint16_t CALIBRATION_GYRO_SCALE_OFFSET = 0x4400;
+const uint16_t CALIBRATION_GYRO_FAST_SCALE_DEGREES = 1200;
+const uint16_t CALIBRATION_GYRO_SLOW_SCALE_DEGREES = 270;
 const uint16_t VALUE_ZERO = 0x2000;
 const uint16_t VALUE_SCALE_OFFSET = 0x1100;
 
 // Register chunks
 uint8_t speaker_settings[10]; //A20000 - A20009
 uint8_t extension_controller_settings_data[256]; //A40000 - A400FF
-uint8_t wii_motion_plus_settings_data[256]; //A60000 - A600FF
+//uint8_t wii_motion_plus_settings_data[256]; //A60000 - A600FF
 uint8_t IR_camera_settings[52]; //B00000 - B00033
 
 //Fake EEPROM for calibration stuff
@@ -412,8 +405,8 @@ uint8_t eeprom_start[48] = {
 	0x80, 0x80, 0x80, 0x00, 0x99, 0x99, 0x99, 0x00, 0x40, 0xE0, 
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-// array size is 256
-static const uint8_t register_a60000_sample_1[]  = {
+//A60000 - A600FF
+uint8_t wii_motion_plus_settings_data[256]  = { //TODO: HAVE CALIBRATION VALUES BETTER MATCH REAL MOTE STUFF
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
   0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
   
@@ -437,6 +430,7 @@ static const uint8_t register_a60000_sample_1[]  = {
   0x55, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x10, 0xff, 0xff, 0x01, 0x00, 0xa6, 0x20, 0x00, 0x05
 };
 
+//real mote calibration values
 //0x78, 0xd9, 0x78, 0x38, 0x77, 0x9d, 0x2f, 0x0c, 0xcf, 0xf0, 0x31, 0xad, 0xc8, 0x0b, 0x5e, 0x39
 //0x6f, 0x81, 0x7b, 0x89, 0x78, 0x51, 0x33, 0x60, 0xc9, 0xf5, 0x37, 0xc1, 0x2d, 0xe9, 0x15, 0x8d
 //crc: 0x5e39158d
@@ -465,11 +459,11 @@ static const uint8_t register_a60000_sample_1[]  = {
 // 0xF9 1 byte of passthrough_extension_id_5
 // 0xFA 6 bytes of identifier (for motion plus)
 
-void init_register_chunks(){
+void init_register_chunks(){ //TODO: THIS IS FOR INITIALIZING THE A60000 REGISTERS, CURRENTLY HARDCODED
 //	uint8_t wii_motion_plus_identifier[6] = {0x01,0x00,0xa6,0x20,0x00,0x05};
 //	memcpy(wii_motion_plus_settings_data + 0xFA ,wii_motion_plus_identifier, 6);
 
-	memcpy(wii_motion_plus_settings_data, register_a60000_sample_1, 256);
+//	memcpy(wii_motion_plus_settings_data, register_a60000_sample_1, 256);
 	
 //	uint32_t crc_result = esp_rom_crc32_le(0, wii_motion_plus_settings_data + 0x20, 14);
 //	crc_result = esp_rom_crc32_le(crc_result, wii_motion_plus_settings_data + 0x30, 14);
@@ -484,53 +478,17 @@ void init_register_chunks(){
 //	memcpy(&wii_motion_plus_settings_data + 46, &crc_msb, 2);
 }
 
-void init_GPIO(){ 	//TODO: RE-ENABLE
-	// Set button GPIO directions to input
-//	gpio_set_direction(BUTTON_PIN_A, GPIO_MODE_INPUT);
-//	gpio_set_direction(BUTTON_PIN_B, GPIO_MODE_INPUT);
-//	gpio_set_direction(BUTTON_PIN_ONE, GPIO_MODE_INPUT);
-//	gpio_set_direction(BUTTON_PIN_TWO, GPIO_MODE_INPUT);
-//	gpio_set_direction(BUTTON_PIN_PLUS, GPIO_MODE_INPUT);
-//	gpio_set_direction(BUTTON_PIN_MINUS, GPIO_MODE_INPUT);
-//	gpio_set_direction(BUTTON_PIN_HOME, GPIO_MODE_INPUT);
-//	gpio_set_direction(BUTTON_PIN_UP, GPIO_MODE_INPUT);
-//	gpio_set_direction(BUTTON_PIN_DOWN, GPIO_MODE_INPUT);
-//	gpio_set_direction(BUTTON_PIN_LEFT, GPIO_MODE_INPUT);
-//	gpio_set_direction(BUTTON_PIN_RIGHT, GPIO_MODE_INPUT);
-//	
-//	// Set button GPIO pull-up enable
-//	gpio_pullup_en(BUTTON_PIN_A);
-//	gpio_pullup_en(BUTTON_PIN_B);
-//	gpio_pullup_en(BUTTON_PIN_ONE);
-//	gpio_pullup_en(BUTTON_PIN_TWO);
-//	gpio_pullup_en(BUTTON_PIN_PLUS);
-//	gpio_pullup_en(BUTTON_PIN_MINUS);
-//	gpio_pullup_en(BUTTON_PIN_HOME);
-//	gpio_pullup_en(BUTTON_PIN_UP);
-//	gpio_pullup_en(BUTTON_PIN_DOWN);
-//	gpio_pullup_en(BUTTON_PIN_LEFT);
-//	gpio_pullup_en(BUTTON_PIN_RIGHT);
-
+void init_GPIO(){
 	gpio_reset_pin(BUTTON_I1);
 	gpio_reset_pin(BUTTON_I2);
 	gpio_reset_pin(BUTTON_I3);
-//	gpio_reset_pin(BUTTON_O1);
-//	gpio_reset_pin(BUTTON_O2);
-//	gpio_reset_pin(BUTTON_O3);
-//	gpio_reset_pin(BUTTON_O4);
-	gpio_reset_pin(BUTTON_A);
 	
 	//these are flipped because input to the keyboard array is output on ESP32 GPIO and vice versa
 	gpio_set_direction(BUTTON_I1, GPIO_MODE_OUTPUT);
 	gpio_set_direction(BUTTON_I2, GPIO_MODE_OUTPUT);
 	gpio_set_direction(BUTTON_I3, GPIO_MODE_OUTPUT);
 	
-//	gpio_set_direction(BUTTON_O1, GPIO_MODE_INPUT);
-//	gpio_set_direction(BUTTON_O2, GPIO_MODE_INPUT);
-//	gpio_set_direction(BUTTON_O3, GPIO_MODE_INPUT);
-//	gpio_set_direction(BUTTON_O4, GPIO_MODE_INPUT);
-	
-	gpio_set_direction(BUTTON_A, GPIO_MODE_INPUT);
+	//No GPIO for O1,O2,O3,O4 as they are handled by the ADC, not GPIO.
 
 	//LED SETUP
 	gpio_reset_pin(LED1);
@@ -543,14 +501,15 @@ void init_GPIO(){ 	//TODO: RE-ENABLE
 	gpio_set_direction(LED4, GPIO_MODE_OUTPUT);
 }
 
+//set all four LEDs to the binary representation of a number.
 void setLEDBinary(uint8_t bin){
 	gpio_set_level(LED4, bin & 0x01);
 	gpio_set_level(LED3, bin & 0x02);
 	gpio_set_level(LED2, bin & 0x04);
 	gpio_set_level(LED1, bin & 0x08);
-
 }
 
+//bit shifts for buttons buffer
 //first byte
 const uint8_t BUTTONS_SHIFT_DPAD_LEFT = 0;
 const uint8_t BUTTONS_SHIFT_DPAD_RIGHT = 1;
@@ -564,87 +523,25 @@ const uint8_t BUTTONS_SHIFT_ONE = 1;
 const uint8_t BUTTONS_SHIFT_B = 2;
 const uint8_t BUTTONS_SHIFT_A = 3;
 const uint8_t BUTTONS_SHIFT_MINUS = 4;
-
 const uint8_t BUTTONS_SHIFT_HOME = 7;
 
-// send the buttons, change in x, and change in y
-
-//static void scan_buttons() {
-//	gpio_set_level(BUTTON_I1, 1);
-//	gpio_set_level(LED1, 1);
-//	vTaskDelay(TIME_ON / portTICK_PERIOD_MS);
-//	button_array[BTN_UP] = gpio_get_level(BUTTON_O1);
-//	button_array[BTN_DOWN] = gpio_get_level(BUTTON_O2);
-//	button_array[BTN_LEFT] = gpio_get_level(BUTTON_O3);
-//	button_array[BTN_RIGHT] = gpio_get_level(BUTTON_O4);
-//	gpio_set_level(BUTTON_I1, 0);
-//	gpio_set_level(LED1, 0);
-//	vTaskDelay(TIME_OFF / portTICK_PERIOD_MS);
-//	
-//	gpio_set_level(BUTTON_I2, 1);
-//	gpio_set_level(LED2, 1);
-//	vTaskDelay(TIME_ON / portTICK_PERIOD_MS);
-//	button_array[BTN_SYNC] = gpio_get_level(BUTTON_O1);
-//	button_array[BTN_HOME] = gpio_get_level(BUTTON_O2);
-//	button_array[BTN_ONE] = gpio_get_level(BUTTON_O3);
-//	button_array[BTN_TWO] = gpio_get_level(BUTTON_O4);
-//	gpio_set_level(BUTTON_I2, 0);
-//	gpio_set_level(LED2, 0);
-//	vTaskDelay(TIME_OFF / portTICK_PERIOD_MS);
-//	
-//	gpio_set_level(BUTTON_I3, 1);
-//	gpio_set_level(LED3, 1);
-//	vTaskDelay(TIME_ON / portTICK_PERIOD_MS);
-//	button_array[BTN_PLUS] = gpio_get_level(BUTTON_O1);
-//	button_array[BTN_MINUS] = gpio_get_level(BUTTON_O2);
-//	button_array[BTN_B] = gpio_get_level(BUTTON_O3);
-//	button_array[BTN_POWER] = gpio_get_level(BUTTON_O4);
-//	gpio_set_level(BUTTON_I3, 0);
-//	gpio_set_level(LED3, 0);
-//vTaskDelay(TIME_OFF / portTICK_PERIOD_MS);
-//
-//	button_array[BTN_A] = gpio_get_level(BUTTON_A);
-//
-//}
-
+//Cycle through button matrix inputs
 void assign_buttons_adc(){
 	gpio_set_level(BUTTON_I1, 1);
-	gpio_set_level(LED1, 1);
-	keyboard_matrix_input = 1;
-	vTaskDelay(TIME_ON / portTICK_PERIOD_MS);
-//	button_array[BTN_UP] = adc1_channels[0] > button_thresholds[BTN_UP];
-//	button_array[BTN_DOWN] = adc1_channels[3] > button_thresholds[BTN_DOWN];
-//	button_array[BTN_LEFT] = adc1_channels[6] > button_thresholds[BTN_LEFT];
-//	button_array[BTN_RIGHT] = adc1_channels[7] > button_thresholds[BTN_RIGHT];
+	button_matrix_input = 1;
+	vTaskDelay(BUTTON_MATRIX_TIME_ON / portTICK_PERIOD_MS);
 	gpio_set_level(BUTTON_I1, 0);
-	gpio_set_level(LED1, 0);
-	//vTaskDelay(TIME_OFF / portTICK_PERIOD_MS);
 	
 	gpio_set_level(BUTTON_I2, 1);
-	gpio_set_level(LED2, 1);
-	keyboard_matrix_input = 2;
-	vTaskDelay(TIME_ON / portTICK_PERIOD_MS);
-//	button_array[BTN_SYNC] = adc1_channels[0] > button_thresholds[BTN_SYNC];
-//	button_array[BTN_HOME] = adc1_channels[3] > button_thresholds[BTN_HOME];
-//	button_array[BTN_ONE] = adc1_channels[6] > button_thresholds[BTN_ONE];
-//	button_array[BTN_TWO] = adc1_channels[7] > button_thresholds[BTN_TWO];
+	button_matrix_input = 2;
+	vTaskDelay(BUTTON_MATRIX_TIME_ON / portTICK_PERIOD_MS);
 	gpio_set_level(BUTTON_I2, 0);
-	gpio_set_level(LED2, 0);
-	//vTaskDelay(TIME_OFF / portTICK_PERIOD_MS);
 	
 	gpio_set_level(BUTTON_I3, 1);
-	gpio_set_level(LED3, 1);
-	keyboard_matrix_input = 3;
-	vTaskDelay(TIME_ON / portTICK_PERIOD_MS);
-	keyboard_matrix_input = 0;
-
-//	button_array[BTN_PLUS] = adc1_channels[0] > button_thresholds[BTN_PLUS];
-//	button_array[BTN_MINUS] = adc1_channels[3] > button_thresholds[BTN_MINUS];
-//	button_array[BTN_B] = adc1_channels[6] > button_thresholds[BTN_B];
-//	button_array[BTN_POWER] = adc1_channels[7] > button_thresholds[BTN_POWER];
+	button_matrix_input = 3;
+	vTaskDelay(BUTTON_MATRIX_TIME_ON / portTICK_PERIOD_MS);
+	button_matrix_input = 0;
 	gpio_set_level(BUTTON_I3, 0);
-	gpio_set_level(LED3, 0);
-	//vTaskDelay(TIME_OFF / portTICK_PERIOD_MS);
 
 	button_array[BTN_A] = adc1_channels[5] > button_thresholds[BTN_A];
 	button_array_adc[BTN_A] =  adc1_channels[5];
@@ -656,9 +553,6 @@ void load_buttons_buffer(uint8_t* destination)
 	static uint8_t buttons_buffer[2];
 	memset(buttons_buffer, 0, 2);
 	
-//	scan_buttons();
-	
-	//TODO: RE-ENABLE
 	buttons_buffer[0] |= (button_array[BTN_UP] << BUTTONS_SHIFT_DPAD_UP);
 	buttons_buffer[0] |= (button_array[BTN_DOWN] << BUTTONS_SHIFT_DPAD_DOWN);
 	buttons_buffer[0] |= (button_array[BTN_LEFT] << BUTTONS_SHIFT_DPAD_LEFT);
@@ -673,18 +567,19 @@ void load_buttons_buffer(uint8_t* destination)
 	buttons_buffer[1] |= (button_array[BTN_MINUS] << BUTTONS_SHIFT_MINUS);
 	buttons_buffer[1] |= (button_array[BTN_HOME] << BUTTONS_SHIFT_HOME);
 	
-//	ESP_LOGI(TAG, "[%c%c%c%c%c%c%c%c%c%c%c]",
-//	         (gpio_get_level(button_array[BTN_A) ? ' ' : 'A'),
-//	         (gpio_get_level(button_array[BTN_B) ? ' ' : 'B'),
-//	         (gpio_get_level(button_array[BTN_ONE) ? ' ' : '1'),
-//	         (gpio_get_level(button_array[BTN_TWO) ? ' ' : '2'),
-//	         (gpio_get_level(button_array[BTN_PLUS) ? ' ' : '+'),
-//	         (gpio_get_level(button_array[BTN_MINUS) ? '-' : ' '),
-//	         (gpio_get_level(button_array[BTN_HOME) ? ' ' : 'H'),
-//	         (gpio_get_level(button_array[BTN_UP) ? ' ' : '^'),
-//	         (gpio_get_level(button_array[BTN_DOWN) ? ' ' : 'v'),
-//	         (gpio_get_level(button_array[BTN_LEFT) ? '<' : ' '),
-//	         (gpio_get_level(button_array[BTN_RIGHT) ? ' ' : '>'));
+//	ESP_LOGI(TAG, "%c%c%c%c%c%c%c%c%c%c%c",
+//	    button_array[BTN_A] ? 'A' : ' ',
+//	    button_array[BTN_B] ? 'B' : ' ',
+//	    button_array[BTN_ONE] ? '1' : ' ',
+//	    button_array[BTN_TWO] ? '2' : ' ',
+//	    button_array[BTN_PLUS] ? '+' : ' ',
+//	    button_array[BTN_MINUS] ? '-' : ' ',
+//	    button_array[BTN_HOME] ? 'H' : ' ',
+//	    button_array[BTN_UP] ? '^' : ' ',
+//	    button_array[BTN_DOWN] ? 'v' : ' ',
+//	    button_array[BTN_LEFT] ? '<' : ' ',
+//	    button_array[BTN_RIGHT] ? '>' : ' '
+//	);  
 
 	if(destination != nullptr){
 		memcpy( destination, buttons_buffer, 2);
@@ -693,8 +588,8 @@ void load_buttons_buffer(uint8_t* destination)
 	}
 }
 
+//TODO: gain a better understanding of what this does and how this works, src: https://randomnerdtutorials.com/esp-idf-esp32-gpio-analog-adc/
 static TaskHandle_t s_task_handle;
-
 static bool IRAM_ATTR s_conv_done_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data)
 {
     BaseType_t mustYield = pdFALSE;
@@ -790,7 +685,7 @@ void continuous_adc(void *pvParameters){ //TODO: MUTEX THIS SAFELY
 		        //  Because printing is slow, so every time you call `ulTaskNotifyTake`, it will immediately return.
 		        //  To avoid a task watchdog timeout, add a delay here. When you replace the way you process the data,
 		        //  usually you don't need this delay (as this task will block for a while).
-		        if(keyboard_matrix_input == 1){
+		        if(button_matrix_input == 1){
 					button_array[BTN_UP] = adc1_channels[0] > button_thresholds[BTN_UP];
 					button_array[BTN_DOWN] = adc1_channels[3] > button_thresholds[BTN_DOWN];
 					button_array[BTN_LEFT] = adc1_channels[6] > button_thresholds[BTN_LEFT];
@@ -800,7 +695,7 @@ void continuous_adc(void *pvParameters){ //TODO: MUTEX THIS SAFELY
 					button_array_adc[BTN_DOWN] = adc1_channels[3];
 					button_array_adc[BTN_LEFT] = adc1_channels[6];
 					button_array_adc[BTN_RIGHT] = adc1_channels[7];
-				}else if (keyboard_matrix_input == 2){
+				}else if (button_matrix_input == 2){
 					button_array[BTN_SYNC] = adc1_channels[0] > button_thresholds[BTN_SYNC];
 					button_array[BTN_HOME] = adc1_channels[3] > button_thresholds[BTN_HOME];
 					button_array[BTN_ONE] = adc1_channels[6] > button_thresholds[BTN_ONE];
@@ -810,7 +705,7 @@ void continuous_adc(void *pvParameters){ //TODO: MUTEX THIS SAFELY
 					button_array_adc[BTN_HOME] = adc1_channels[3];
 					button_array_adc[BTN_ONE] = adc1_channels[6];
 					button_array_adc[BTN_TWO] = adc1_channels[7];
-				}else if (keyboard_matrix_input == 3){
+				}else if (button_matrix_input == 3){
 					button_array[BTN_PLUS] = adc1_channels[0] > button_thresholds[BTN_PLUS];
 					button_array[BTN_MINUS] = adc1_channels[3] > button_thresholds[BTN_MINUS];
 					button_array[BTN_B] = adc1_channels[6] > button_thresholds[BTN_B];
@@ -822,7 +717,7 @@ void continuous_adc(void *pvParameters){ //TODO: MUTEX THIS SAFELY
 					button_array_adc[BTN_POWER] = adc1_channels[7];
 				}
 				
-		        vTaskDelay(2 / portTICK_PERIOD_MS);
+		        vTaskDelay(1);
 		    } else if (ret == ESP_ERR_TIMEOUT) {
 		        // We try to read `EXAMPLE_READ_LEN` until API returns timeout, which means there's no available data
 		        break;
@@ -885,50 +780,22 @@ void load_IR_full_buffer(uint8_t* destination){
 	
 }
 
-//int16_t accelerometer_raw_to_10bit(int16_t raw_accel, int16_t offset){
-//	int16_t aligned = raw_accel + offset;
-//	float scaled = aligned * accel_scale_mg;
-//	int16_t scaled_int = (int16_t)(scaled);
-//	int16_t plus_zero = scaled_int + accel_zero_value;
-////	ESP_LOGI("MPU MATH", "(%d+%d)[%d] %f[%d] 0x%04x + 0x200 = 0x%04x", 
-////		raw_accel, 
-////		offset, 
-////		aligned, 
-////		scaled, 
-////		scaled_int, 
-////		scaled_int,
-////		plus_zero);
-//	return plus_zero;
-//}
-
-int16_t accelerometer_mg_to_10bit(float accel_mg, float offset){
+//Converts the mg of acceleration we get from imu into the 10-bit format that the wiimote protocol calls for
+int16_t accelerometer_mg_to_10bit(float accel_mg, float offset){ //TODO: speed this up, this was split into several lines for debugging reasons
 	int16_t aligned = accel_mg + offset;
 	float scaled = aligned * accel_scale_mg;
 	int16_t scaled_int = (int16_t)(scaled); //TODO: ROUND INSTEAD OF TRUNCATING
-	int16_t plus_zero = scaled_int + accel_zero_value;
-	
-//	ESP_LOGI("LSM6 MATH", "(%.2f+%.2f)[%.2f] %f[%d] 0x%04x + 0x200 = 0x%04x", 
-//		accel_mg, 
-//		offset, 
-//		aligned, 
-//		scaled, 
-//		scaled_int, 
-//		scaled_int,
-//		plus_zero);
+	int16_t plus_zero = scaled_int + CALIBRATION_ACCEL_ZERO;
 
 	return plus_zero;
 }
 
-//send the start of the buffer because accelerometer data also places bits into the buttons section
 void read_from_accelerometer(int16_t* processed_10bit_accel_x, int16_t* processed_10bit_accel_y, int16_t* processed_10bit_accel_z){
     esp_err_t ret = lsm6ds3_read_accel(&imu_handle, accel_mg);
 	if (ret != ESP_OK) {
 	    ESP_LOGE("LSM6DS3", "Read failed");
 	    return;
 	}
-	
-//	ESP_LOGI("LSM6 DIRECT", "%.3f %.3f %.3f", accel_mg[0], accel_mg[1], accel_mg[2]);
-	
 	//IMU is rotated from what is desired by wiimote protocol
 	//x => [1]
 	//y => [0]
@@ -937,18 +804,9 @@ void read_from_accelerometer(int16_t* processed_10bit_accel_x, int16_t* processe
 	*processed_10bit_accel_x = accelerometer_mg_to_10bit(accel_mg[1],accel_offset_mg[1]);
 	*processed_10bit_accel_y = accelerometer_mg_to_10bit(accel_mg[0],accel_offset_mg[0]);
 	*processed_10bit_accel_z = accelerometer_mg_to_10bit(accel_mg[2],accel_offset_mg[2]);
-
-//	ESP_LOGI("LSM6 MATH", "(%d+%d)[%d] %f[%d] 0x%04x", 
-//		raw_accel.raw_accel_x, 
-//		accel_offset_4g[0], 
-//		(raw_accel.raw_accel_x + accel_offset_4g[0]), 
-//		((raw_accel.raw_accel_x + accel_offset_4g[0]) * accel_scale_4g), 
-//		(int16_t)((raw_accel.raw_accel_x + accel_offset_4g[0]) * accel_scale_4g), 
-//		(int16_t)((raw_accel.raw_accel_z + accel_offset_4g[0]) * accel_scale_4g));
-
 }
 
-//send the start of the buffer because accelerometer data also places bits into the buttons section
+//Note: destination is the start of the buffer because accelerometer data also places bits into the buttons section
 void load_accelerometer_buffer(uint8_t* destination, uint16_t processed_10bit_accel_x, uint16_t processed_10bit_accel_y, uint16_t processed_10bit_accel_z){
 	
 	uint8_t accel_x_byte = ((processed_10bit_accel_x & 0x03FC) >> 2);
@@ -960,8 +818,6 @@ void load_accelerometer_buffer(uint8_t* destination, uint16_t processed_10bit_ac
 	uint8_t accel_z_byte = ((processed_10bit_accel_z & 0x03FC) >> 2);
 	uint8_t accel_z_lower_two_bits = (processed_10bit_accel_z & 0x02) << 5; //shift from bit 1 to bits 6 to align with where it goes in the button matrix
 	
-//	ESP_LOGI("LSM6DS3", "X: %d [0x%04x] Y: %d [0x%04x] Z: %d [0x%04x]", 
-//		raw_accel.raw_accel_x, processed_10bit_accel_x, raw_accel.raw_accel_y, processed_10bit_accel_y, raw_accel.raw_accel_z, processed_10bit_accel_z);
 	if(destination != nullptr){
 		memcpy(destination + 2, &accel_x_byte, 1);
 		memcpy(destination + 3, &accel_y_byte, 1);
@@ -973,6 +829,7 @@ void load_accelerometer_buffer(uint8_t* destination, uint16_t processed_10bit_ac
 	}
 }
 
+//TODO: LOOK AT THIS AND COMMENT PROPERLY (AND MAYBE REWRITE), WHY TF IS THERE 1200 AND NOT 2000?
 void load_wii_motion_plus_buffer(uint8_t* destination){
 	//fast mode reaches a peak of 2000 degrees per second? and slow mode is potentially 440?
 	esp_err_t ret = lsm6ds3_read_gyro(&imu_handle, gyro_mdps);
@@ -980,35 +837,6 @@ void load_wii_motion_plus_buffer(uint8_t* destination){
 	    ESP_LOGE("LSM6DS3", "Read failed");
 	    return;
 	}
-	
-//	ESP_LOGI("MPU6050 RAW", "X: %d [0x%04x] Y: %d [0x%04x] Z: %d [0x%04x]", 
-//		raw_gyro.raw_gyro_x, raw_gyro.raw_gyro_x, raw_gyro.raw_gyro_y, raw_gyro.raw_gyro_y, raw_gyro.raw_gyro_z, raw_gyro.raw_gyro_z);
-	
-//	float gyro_yaw_dps = raw_gyro.raw_gyro_x / 16.4;
-//	float gyro_roll_dps = raw_gyro.raw_gyro_y / 16.4;
-//	float gyro_pitch_dps = raw_gyro.raw_gyro_z / 16.4;
-//	
-//	int16_t gyro_yaw_14b   = raw_gyro.raw_gyro_x >> 2;
-//	int16_t gyro_roll_14b  = raw_gyro.raw_gyro_y >> 2;
-//	int16_t gyro_pitch_14b = raw_gyro.raw_gyro_z >> 2;
-//	
-//	bool slow_yaw = false, slow_roll = false, slow_pitch = false;
-//	
-//	//TODO: OPTIMIZE THIS SO IT DOESNT REQUIRE ME TO CALC THE DPS FIRST AND JUST BAKES THE SENSITIVITY INTO THE IF STATEMENT
-//	if(gyro_yaw_dps < 440){
-//	    gyro_yaw_14b = (int16_t)((gyro_yaw_14b * 440.0 / 2000) + 8191);
-//	    slow_yaw = true;
-//	}
-//
-//	if(gyro_roll_dps < 440){
-//	    gyro_roll_14b = (int16_t)((gyro_roll_14b * 440.0 / 2000) + 8191);
-//	    slow_roll = true;
-//	}
-//
-//	if(gyro_pitch_dps < 440){
-//	    gyro_pitch_14b = (int16_t)((gyro_pitch_14b * 440.0 / 2000) + 8191);
-//	    slow_pitch = true;
-//	}
 
 	gyro_dps[0] = gyro_mdps[0] / 1000.0f;
 	gyro_dps[1] = gyro_mdps[1] / 1000.0f;
@@ -1037,10 +865,6 @@ void load_wii_motion_plus_buffer(uint8_t* destination){
 	int16_t gyro_yaw_14b = VALUE_ZERO + (gyro_yaw_base * VALUE_SCALE_OFFSET);
 	int16_t gyro_roll_14b = VALUE_ZERO + (gyro_roll_base * VALUE_SCALE_OFFSET);
 	int16_t gyro_pitch_14b = VALUE_ZERO + (gyro_pitch_base * VALUE_SCALE_OFFSET);
-
-	
-//	ESP_LOGI("MPU6050 PRC", "Y: %d [0x%04x] R: %d [0x%04x] P: %d [0x%04x]", 
-//		gyro_yaw_14b, gyro_yaw_14b, gyro_roll_14b, gyro_roll_14b, gyro_pitch_14b, gyro_pitch_14b);
 	
 	uint8_t yaw7_0 = gyro_yaw_14b & 0xFF;
 	uint8_t yaw13_8 = (gyro_yaw_14b & 0x3F00) >> 6;
@@ -1072,7 +896,6 @@ uint8_t input_report[21] = {0};
 //20 BB BB LF 00 00 VV
 void mote_input_data_status()
 {
-//	memcpy(input_report,buttons,2);
 	load_buttons_buffer(input_report);
 	input_report[2] = status_byte;
 	input_report[3] = 0;
@@ -1121,6 +944,7 @@ void mote_input_data_acknowledge(uint8_t report_number, uint8_t error)
 	esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x22, input_report, 4);
 }
 
+//central function for all hid input data (wiimote > wii)
 void mote_input_data_core()
 {
     static uint8_t old_buttons[2] = {0};
@@ -1257,17 +1081,10 @@ void mote_input_data_core()
 	old_accel[1] = accel_10b_z;
 }
 
+//main loop for ESPmote, begun on successful bluetooth connection
 void mote_hid_main_task(void *pvParameters)
 {
-    static const char* help_string = "########################################################################\n"\
-    "ESPmote:\n"\
-    "q -- send pressed buttons\n"\
-    "h -- show the help\n"\
-    "########################################################################\n";
-    printf("%s\n", help_string);
-    char c = 0;
     while (1) {
-		//c = fgetc(stdin);
 		assign_buttons_adc();
 		mote_input_data_core();
 		
@@ -1302,16 +1119,6 @@ void mote_hid_main_task(void *pvParameters)
 //		    button_array_adc[BTN_POWER]
 //		);  
 		
-		switch (c) {
-		case 'q':
-		 	
-		    break;
-		case 'h':
-		    printf("%s\n", help_string);
-		    break;
-		default:
-		    break;
-		}
 		gpio_set_level(LED1, !gpio_get_level(LED1));
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
@@ -1319,7 +1126,6 @@ void mote_hid_main_task(void *pvParameters)
 
 void bt_hid_task_start_up(void)
 {
-//    xTaskCreate(bt_hid_demo_task, "bt_hid_demo_task", 2 * 1024, NULL, configMAX_PRIORITIES - 3, &s_bt_hid_param.task_hdl);
 	xTaskCreate(mote_hid_main_task, "mote_hid_main_task", 2 * 1024, NULL, configMAX_PRIORITIES - 3, &s_bt_hid_param.task_hdl);
 	return;
 }
@@ -1385,7 +1191,7 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 		    case O_RUMBLE:
 		        // 1 byte - bit 0 controls rumble
 				//ESP_LOGI(TAG, "RUMBLING");
-		        //ignore this because actually bit 0 of any report is for rumble, this bit is just for only rumble
+		        //ignore this because actually bit 0 of any report is for rumble, this report is for *only* rumble
 				break;
 		        
 		    case O_PLAYER_LEDS:
@@ -1700,8 +1506,6 @@ void app_main(void)
 	init_GPIO();
 	init_register_chunks();
 	
-	setLEDBinary(1);
-	
 	//UART
 	const uart_port_t uart_num = UART_NUM_2;
 	uart_config_t uart_config = {
@@ -1714,8 +1518,6 @@ void app_main(void)
 	};
 	// Configure UART parameters
 	ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config));
-	
-	setLEDBinary(2);
 
 	// Setup UART buffered IO with event queue
 	const int uart_buffer_size = (129); //in theory i want exactly enough for two bytes, which is 28, but i have to go up to 128 because that is the minimum UART_HW_FIFO_LEN(uart_num)
@@ -1723,13 +1525,10 @@ void app_main(void)
 	// Install UART driver using an event queue here
 	ESP_ERROR_CHECK(uart_driver_install(UART_NUM_2, uart_buffer_size, uart_buffer_size, 10, &uart_queue, 0));
 	
-	setLEDBinary(3);
-
 	// Set UART pins(TX: IO17, RX: IO16, RTS: UNUSED, CTS: UNUSED, DTR: UNUSED, DSR: UNUSED)
 	ESP_ERROR_CHECK(uart_set_pin(UART_NUM_2, 17, 16, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 	
-	setLEDBinary(4);
-	
+	//i2c config
 	i2c_master_bus_config_t bus_config = {
 	    .i2c_port = I2C_MODE_MASTER,               // I2C port number
 	    .sda_io_num = I2C_MASTER_SDA_IO,         // GPIO number for I2C sda signal
@@ -1743,64 +1542,36 @@ void app_main(void)
 	
 	i2c_master_bus_handle_t i2c_bus_handle = NULL;
 	ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &i2c_bus_handle));
-
-	setLEDBinary(5);
-
 	
-	// Initialize MPU6050
-//	lsm6ds3_config_t sensor_config = {
-//	    .interface = LSM6DS3_INTERFACE_I2C,
-//	    .bus.i2c.bus_handle = i2c_bus_handle,
-//	    .bus.i2c.address = LSM6DS3_I2C_ADDR,
-//	};
-	
+	//lsm6ds3 config
 	ret = lsm6ds3_init(i2c_bus_handle, &imu_handle);
 	if (ret != ESP_OK) {
 	    ESP_LOGE("LSM6DS3", "Creation failed");
 	    return;
 	}
 	
-	setLEDBinary(6);
-	
-//	vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-	
 	lsm6ds3_set_accel_odr(&imu_handle, LSM6DS3_XL_ODR_104Hz);
 	lsm6ds3_set_accel_full_scale(&imu_handle, LSM6DS3_4g);
 	lsm6ds3_set_gyro_odr(&imu_handle, LSM6DS3_GY_ODR_104Hz);
 	lsm6ds3_set_gyro_full_scale(&imu_handle, LSM6DS3_2000dps);
 	
-	setLEDBinary(7);
-
-//	vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-	
+	//nvs flash init (TODO: WHAT DOES THIS DO?)
     ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK( ret );
-	
-	setLEDBinary(8);
-//	vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-
+	//hid gap init
     ESP_LOGI(TAG, "setting hid gap, mode:%d", HID_DEV_MODE);
     ret = esp_hid_gap_init(HID_DEV_MODE);
     ESP_ERROR_CHECK( ret );
-	
-	setLEDBinary(9);
-//	vTaskDelay(1000 / portTICK_PERIOD_MS);
-
 
 #if CONFIG_BT_HID_DEVICE_ENABLED
 
     ESP_LOGI(TAG, "setting device name");
     esp_bt_gap_set_device_name(bt_hid_config.device_name);
-	
-	setLEDBinary(10);
-//	vTaskDelay(1000 / portTICK_PERIOD_MS);
 
     ESP_LOGI(TAG, "setting cod major, peripheral");
     esp_bt_cod_t cod = {0};
@@ -1814,7 +1585,7 @@ void app_main(void)
     ESP_LOGI(TAG, "setting bt device");
     ESP_ERROR_CHECK( esp_hidd_dev_init(&bt_hid_config, ESP_HID_TRANSPORT_BT, bt_hidd_event_callback, &s_bt_hid_param.hid_dev));
 	
-	setLEDBinary(11);
+	setLEDBinary(8);
 	
 	xTaskCreate(continuous_adc, "adc_async_buttons_task", 2 * 1024, NULL, configMAX_PRIORITIES - 4, &adc_task_hdl);
 		
