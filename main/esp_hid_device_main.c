@@ -37,8 +37,10 @@
 #include "esp_random.h"
 #include "driver/gpio.h"
 #include "esp_mac.h"
-#include "lsm6ds3.h"
 #include "driver/uart.h"
+
+#include "lsm6ds3.h"
+#include "pixart_ir.h"
 
 #include "esp_adc/adc_continuous.h"
 
@@ -65,13 +67,6 @@ typedef struct //came with bt example
     uint8_t protocol_mode;
     uint8_t *buffer;
 } local_param_t;
-
-typedef struct
-{
-	uint16_t x;
-	uint16_t y;
-	uint8_t size;
-} ir_data_t;
 
 ir_data_t IR_DATA[4] = {0};
 
@@ -1216,7 +1211,7 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 				continuousReporting = (param->output.data[0] & 0x04);
 				reportingMode = param->output.data[1];
 				if(reportingMode == 0x3f){
-					reportingMode = 0x3e; //for simplicity, lock both 3f and 3e behinnd 3e as they are the same.
+					reportingMode = 0x3e; //for simplicity, lock both 3f and 3e behind 3e as they are the same.
 				}
 				ESP_LOGI( TAGW, "Data Reporting: TT[%2x] MM[%x]", continuousReporting, reportingMode);
 					

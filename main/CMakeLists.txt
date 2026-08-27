@@ -4,5 +4,5 @@ set(include_dirs ".")
 
 idf_component_register(SRCS "${srcs}"
                        INCLUDE_DIRS "${include_dirs}"
-                       REQUIRES esp_hid esp_driver_gpio esp_driver_i2c lsm6ds3 esp_driver_uart esp_adc 
+                       REQUIRES esp_hid esp_driver_gpio esp_driver_i2c lsm6ds3 esp_driver_uart esp_adc pixart_ir
                        PRIV_REQUIRES nvs_flash)

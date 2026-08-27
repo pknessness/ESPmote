@@ -44,7 +44,7 @@ typedef struct {
 } lsm6ds3_calibration_t;
 
 typedef struct {
-	i2c_master_dev_handle_t i2c_handle; /*!< I2C device handle for MPU6050 */
+	i2c_master_dev_handle_t i2c_handle; /*!< I2C device handle for LSM6DS3 */
     uint8_t address;
     lsm6ds3_ctx_t ctx;
     lsm6ds3_calibration_t calibration;
