@@ -44,7 +44,7 @@
 
 #include "esp_adc/adc_continuous.h"
 
-static const char *TAG = "HID_DEV_DEMO";
+static const char *TAG = "HID_DEVICE";
 static const char *TAGSEND = "WIIMOTE_OUTPUT";
 static const char *TAGW = "WII_OUTPUT";
 
@@ -168,6 +168,12 @@ const uint16_t EXTENSION_A6_TAG = 0x20A6; //in reverse because memcpy
 
 #define BUTTON_MATRIX_TIME_ON 20
 
+#define SPEAKER_GPIO GPIO_NUM_25
+#define RUMBLE_GPIO GPIO_NUM_23
+#define IR_CLK_GPIO GPIO_NUM_26
+#define IR_RESET_GPIO GPIO_NUM_17
+#define EXT_SENSE_GPIO GPIO_NUM_4
+
 TaskHandle_t adc_task_hdl;
 
 //My own IDS for buttons, relevant for button_array and button_array_adc
@@ -216,6 +222,8 @@ int8_t button_matrix_input = 0;
 #define I2C_MASTER_NUM       I2C_NUM_0
 #define ESP_INTR_FLAG_DEFAULT 0
 lsm6ds3_handle_t imu_handle;
+pixart_ir_handle_t ir_handle;
+
 
 #if CONFIG_BT_HID_DEVICE_ENABLED
 static local_param_t s_bt_hid_param = {0};
@@ -474,16 +482,32 @@ void init_register_chunks(){ //TODO: THIS IS FOR INITIALIZING THE A60000 REGISTE
 }
 
 void init_GPIO(){
+	
+	//RESET I2C, seems to be important for some reason, i guess the i2c init code doesn't do this?
+	gpio_reset_pin(I2C_MASTER_SCL_IO);
+	gpio_reset_pin(I2C_MASTER_SDA_IO);
+	
+	//these are flipped because input to the keyboard array is output on ESP32 GPIO and vice versa
 	gpio_reset_pin(BUTTON_I1);
 	gpio_reset_pin(BUTTON_I2);
 	gpio_reset_pin(BUTTON_I3);
-	
-	//these are flipped because input to the keyboard array is output on ESP32 GPIO and vice versa
 	gpio_set_direction(BUTTON_I1, GPIO_MODE_OUTPUT);
 	gpio_set_direction(BUTTON_I2, GPIO_MODE_OUTPUT);
 	gpio_set_direction(BUTTON_I3, GPIO_MODE_OUTPUT);
 	
 	//No GPIO for O1,O2,O3,O4 as they are handled by the ADC, not GPIO.
+
+	//Other inits
+	gpio_reset_pin(SPEAKER_GPIO);
+	gpio_reset_pin(RUMBLE_GPIO);
+	gpio_reset_pin(IR_CLK_GPIO);
+	gpio_reset_pin(IR_RESET_GPIO);
+	gpio_reset_pin(EXT_SENSE_GPIO);
+	gpio_set_direction(SPEAKER_GPIO, GPIO_MODE_OUTPUT); //might not be necessary as this is handled by DAC
+	gpio_set_direction(RUMBLE_GPIO, GPIO_MODE_OUTPUT);
+	gpio_set_direction(IR_CLK_GPIO, GPIO_MODE_OUTPUT); //TODO: replace with relevant output report
+	gpio_set_direction(IR_RESET_GPIO, GPIO_MODE_OUTPUT); //TODO: replace with relevant output report
+	gpio_set_direction(EXT_SENSE_GPIO, GPIO_MODE_INPUT);
 
 	//LED SETUP
 	gpio_reset_pin(LED1);
@@ -618,9 +642,9 @@ static void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc
         adc_pattern[i].unit = EXAMPLE_ADC_UNIT;
         adc_pattern[i].bit_width = ADC_BITWIDTH_12;
 
-        ESP_LOGI(TAG, "adc_pattern[%d].atten is :%"PRIx8, i, adc_pattern[i].atten);
-        ESP_LOGI(TAG, "adc_pattern[%d].channel is :%"PRIx8, i, adc_pattern[i].channel);
-        ESP_LOGI(TAG, "adc_pattern[%d].unit is :%"PRIx8, i, adc_pattern[i].unit);
+//        ESP_LOGI(TAG, "adc_pattern[%d].atten is :%"PRIx8, i, adc_pattern[i].atten);
+//        ESP_LOGI(TAG, "adc_pattern[%d].channel is :%"PRIx8, i, adc_pattern[i].channel);
+//        ESP_LOGI(TAG, "adc_pattern[%d].unit is :%"PRIx8, i, adc_pattern[i].unit);
     }
     dig_cfg.adc_pattern = adc_pattern;
     ESP_ERROR_CHECK(adc_continuous_config(handle, &dig_cfg));
@@ -1114,7 +1138,7 @@ void mote_hid_main_task(void *pvParameters)
 //		    button_array_adc[BTN_POWER]
 //		);  
 		
-		gpio_set_level(LED1, !gpio_get_level(LED1));
+//		gpio_set_level(LED1, !gpio_get_level(LED1));
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
@@ -1189,7 +1213,7 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 		        //ignore this because actually bit 0 of any report is for rumble, this report is for *only* rumble
 				break;
 		        
-		    case O_PLAYER_LEDS:
+		    case O_PLAYER_LEDS: //TODO: UPDATE TO REAL LEDS
 		        // 1 byte - bits 4-7 control LEDs 1-4
 				ESP_LOGI(TAGW, "LEDS %c %c %c %c", 
 					(param->output.data[0] & 0x10) ? '+' : '_', 
@@ -1501,6 +1525,10 @@ void app_main(void)
 	init_GPIO();
 	init_register_chunks();
 	
+	//TODO: REMOVE AND ATTACH THIS TO THE ACTUAL OUTPUT REPORTS, BUT FOR NOW
+	gpio_set_level(IR_RESET_GPIO, 1);
+	gpio_set_level(IR_CLK_GPIO, 1);
+	
 	//UART
 	const uart_port_t uart_num = UART_NUM_2;
 	uart_config_t uart_config = {
@@ -1531,7 +1559,7 @@ void app_main(void)
 	    .clk_source = I2C_CLK_SRC_DEFAULT,  // I2C clock source, just use the default
 	    .glitch_ignore_cnt = 7,             // glitch filter, again, just use the default
 	    .flags = {
-	        .enable_internal_pullup = true, // enable internal pullup resistors (oled screen does not have one)
+	        .enable_internal_pullup = false, // enable internal pullup resistors (oled screen does not have one)
 	    },
 	};
 	
@@ -1543,12 +1571,23 @@ void app_main(void)
 	if (ret != ESP_OK) {
 	    ESP_LOGE("LSM6DS3", "Creation failed");
 	    return;
+	}else{
+		ESP_LOGI("LSM6DS3", "Successful Creation");
 	}
 	
 	lsm6ds3_set_accel_odr(&imu_handle, LSM6DS3_XL_ODR_104Hz);
 	lsm6ds3_set_accel_full_scale(&imu_handle, LSM6DS3_4g);
 	lsm6ds3_set_gyro_odr(&imu_handle, LSM6DS3_GY_ODR_104Hz);
 	lsm6ds3_set_gyro_full_scale(&imu_handle, LSM6DS3_2000dps);
+	
+	//pixart_ir config
+	ret = pixart_ir_init(i2c_bus_handle, &ir_handle);
+	if (ret != ESP_OK) {
+	    ESP_LOGE("PIXART_IR", "Creation failed");
+	    return;
+	}else{
+		ESP_LOGI("PIXART_IR", "Successful Creation");
+	}
 	
 	//nvs flash init (TODO: WHAT DOES THIS DO?)
     ret = nvs_flash_init();
@@ -1594,4 +1633,5 @@ void app_main(void)
 	int16_t x, y, z;
 	read_from_accelerometer(&x, &y, &z);
 	ESP_LOGI("IMU_DATA","%d %d %d", x, y, z);
+	pixart_ir_get_data(&ir_handle);
 }

@@ -321,3 +321,9 @@ BTA_SdpCreateRecordByUser {btc_sdp_api.c}
 Parts:
 Battery Lead -/+ : https://www.digikey.com/en/products/detail/keystone-electronics/108-2/315163
 https://mm.digikey.com/Volume0/opasdata/d220001/medias/docus/8913/SG-210STF_X1G0041710031_en.pdf
+
+http://www.kako.com/neta/index.html
+
+http://www.kako.com/neta/2008-009/2008-009.html
+
+raw data from un-initialized IR camera: 0xcc 0x34 0xfb 0x3f 0xcc 0x34 0xfb 0x3f 0x0d 0x1b 0x5b 0x33 0x39 0x43 0xfb 0x3f

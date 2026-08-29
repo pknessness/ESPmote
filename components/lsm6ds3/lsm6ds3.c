@@ -112,7 +112,7 @@ esp_err_t lsm6ds3_init(i2c_master_bus_handle_t bus_handle, lsm6ds3_handle_t *han
 //        return ESP_ERR_NOT_FOUND;
 //    }
 	
-	//Changing this to 6A, because for some reason even though I can't get the device id unless i set it to 0x6A, internally it shows 0x6B
+	//Changing this to 6B, because for some reason even though I can't get the device id unless i set it to 0x6A, internally it shows 0x6B
 	if (whoamI != 0x6B) {
 	    ESP_LOGE(TAG, "Invalid device ID: 0x%02X (expected 0x%02X)", whoamI, 0x6B);
 	    return ESP_ERR_NOT_FOUND;
