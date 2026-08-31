@@ -38,7 +38,8 @@ typedef struct {
     uint8_t address;
 } pixart_ir_handle_t;
 
-esp_err_t reg_write_i2c(pixart_ir_handle_t *device, uint8_t reg, const uint8_t *bufp, uint16_t len);
+esp_err_t pixart_reg_write(pixart_ir_handle_t *handle, uint8_t reg, const uint8_t *bufp, uint16_t len);
+esp_err_t pixart_reg_read(pixart_ir_handle_t *handle, uint8_t reg, uint8_t *data, uint16_t len);
 
 esp_err_t pixart_ir_init(i2c_master_bus_handle_t bus_handle, pixart_ir_handle_t *handle);
 esp_err_t pixart_ir_get_data(pixart_ir_handle_t *handle, ir_points_data *points_data);

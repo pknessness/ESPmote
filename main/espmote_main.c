@@ -169,7 +169,7 @@ const uint16_t EXTENSION_A6_TAG = 0x20A6; //in reverse because memcpy
 #define SPEAKER_GPIO GPIO_NUM_25
 #define RUMBLE_GPIO GPIO_NUM_23
 #define IR_CLK_GPIO GPIO_NUM_26
-#define IR_RESET_GPIO GPIO_NUM_17
+#define IR_ENABLE_GPIO GPIO_NUM_17
 #define EXT_SENSE_GPIO GPIO_NUM_4
 
 TaskHandle_t adc_task_hdl;
@@ -361,10 +361,22 @@ static esp_hid_device_config_t bt_hid_config = {
 
 // Wiimote Operational Variables
 bool continuousReporting = false;
+
 uint8_t reportingMode = 0x30;
+
 bool rumbling = false;
 bool speaker_enable = false;
-uint8_t status_byte = 0;
+
+//bit   mask    meaning
+//0 	0x01 	Battery is nearly empty
+//1 	0x02 	An Extension Controller is connected
+//2 	0x04 	Speaker enabled
+//3 	0x08 	IR camera enabled
+//4 	0x10 	LED 1
+//5 	0x20 	LED 2
+//6 	0x40 	LED 3
+//7 	0x80 	LED 4 
+uint8_t status_byte = 0; 
 
 uint16_t active_extension = EXT_NONE;
 uint16_t plugged_in_extension = EXT_NONE;
@@ -499,12 +511,12 @@ void init_GPIO(){
 	gpio_reset_pin(SPEAKER_GPIO);
 	gpio_reset_pin(RUMBLE_GPIO);
 	gpio_reset_pin(IR_CLK_GPIO);
-	gpio_reset_pin(IR_RESET_GPIO);
+	gpio_reset_pin(IR_ENABLE_GPIO);
 	gpio_reset_pin(EXT_SENSE_GPIO);
 	gpio_set_direction(SPEAKER_GPIO, GPIO_MODE_OUTPUT); //might not be necessary as this is handled by DAC
 	gpio_set_direction(RUMBLE_GPIO, GPIO_MODE_OUTPUT);
 	gpio_set_direction(IR_CLK_GPIO, GPIO_MODE_OUTPUT); //TODO: replace with relevant output report
-	gpio_set_direction(IR_RESET_GPIO, GPIO_MODE_OUTPUT); //TODO: replace with relevant output report
+	gpio_set_direction(IR_ENABLE_GPIO, GPIO_MODE_OUTPUT); //TODO: replace with relevant output report
 	gpio_set_direction(EXT_SENSE_GPIO, GPIO_MODE_INPUT);
 
 	//LED SETUP
@@ -747,6 +759,9 @@ void continuous_adc(void *pvParameters){ //TODO: MUTEX THIS SAFELY
 }
 
 uint8_t get_IR_mode(){
+//	uint8_t mode;
+//	pixart_reg_read(&ir_handle, 0x33, &mode, 1);
+//	return mode;
 	return IR_camera_settings[0x33];
 }
 
@@ -1220,15 +1235,12 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 				
 		        break;
 		        
-		    case O_IR_CAMERA_ENABLE: //Based on my knowledge this enables the IR Pixel Clock. 
+		    case O_IR_CAMERA_ENABLE: //Enables the 25 MHz (or is it 24) IR Clock
 				// 1 byte - bit 2 = ON/OFF
-				//TODO: I am currently treating this as the main IR Camera Toggle (for status byte reasons), but this is not to be the case in final
-						        
-				if(param->output.data[0] & 0x04){
-					status_byte |= 0x04;
-				}
 				
-				ESP_LOGI( TAGW, "Written %2x to IR Camera 1", param->output.data[0]);
+				gpio_set_level(IR_CLK_GPIO, param->output.data[0] & 0x04);
+
+				ESP_LOGI( TAGW, "Written %2x to IR Camera 1", param->output.data[0] & 0x04);
 					
 				//bit 1 of any output report is requesting an acknowledgement input report
 				if(param->output.data[0] & 0x02){
@@ -1304,6 +1316,8 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 					}else if(param->output.data[1] == 0xB0){
 						ESP_LOGI( TAGW, "Attempting to write %d bytes to IR camera settings at 0x%06x [%04x]", size, offset, offset_16);
 						memcpy(IR_camera_settings + offset_16, param->output.data + 5, size);
+						pixart_reg_write(&ir_handle, offset_16, param->output.data + 5, size);
+						
 						ESP_LOG_BUFFER_HEX(TAGW, IR_camera_settings, 52);
 					}else {
 						ESP_LOGI( TAGW, "Attempting to write %d bytes to control registers at 0x%06x [%04x]", size, offset, offset_16);
@@ -1347,8 +1361,10 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 						mote_input_data_read(size, 0, offset_16, wii_motion_plus_settings_data);
 					}else if(param->output.data[1] == 0xB0){
 						ESP_LOGI( TAGW, "Attempting to read %d bytes from IR camera settings at 0x%06x [%04x]", size, offset, offset_16);
-						mote_input_data_read(size, 0, offset_16, IR_camera_settings);
-
+						//mote_input_data_read(size, 0, offset_16, IR_camera_settings);
+						pixart_reg_read(&ir_handle, offset_16, input_report + 5, size);
+						esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x21, input_report, 21);
+						ESP_LOG_BUFFER_HEX("Responding to read", input_report + 5, size);
 					}else {
 						ESP_LOGI( TAGW, "Attempting to read %d bytes from control registers at 0x%06x", size, offset);
 					}
@@ -1391,9 +1407,17 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 
 		        break;
 		        
-		    case O_IR_CAMERA_ENABLE_2: //Based on my knowledge this enables the IR logic
+		    case O_IR_CAMERA_ENABLE_2: //Enables the IR Camera itself
 		        // 1 byte - bit 2 = ON/OFF (alternate)
-				ESP_LOGI( TAGW, "Written %2x to IR Camera 2", param->output.data[0]);
+				
+				gpio_set_level(IR_ENABLE_GPIO, param->output.data[0] & 0x04);
+				
+				//TODO: I am currently treating this as the main IR Camera Toggle (status byte), this MAY be the case in final	        
+				if(param->output.data[0] & 0x04){
+					status_byte |= 0x04;
+				}
+				
+				ESP_LOGI( TAGW, "Written %2x to IR Camera 2", param->output.data[0] & 0x04);
 					
 				//bit 1 of any output report is requesting an acknowledgement input report
 				if(param->output.data[0] & 0x02){
@@ -1498,10 +1522,6 @@ void app_main(void)
 	
 	init_GPIO();
 	init_register_chunks();
-	
-	//TODO: REMOVE AND ATTACH THIS TO THE ACTUAL OUTPUT REPORTS, BUT FOR NOW
-	gpio_set_level(IR_RESET_GPIO, 1);
-	gpio_set_level(IR_CLK_GPIO, 1);
 
 	//i2c config
 	i2c_master_bus_config_t bus_config = {

@@ -17,9 +17,9 @@ static const char *TAG = "PIXART";
 
 #define PIXART_IR_MAX_REG_TRANSFER_LEN 16  // Maximum register transfer length (register + data) (This might be 8, 16 is random num)
 
-esp_err_t reg_write_i2c(pixart_ir_handle_t *device, uint8_t reg, const uint8_t *bufp, uint16_t len)
+esp_err_t pixart_reg_write(pixart_ir_handle_t *handle, uint8_t reg, const uint8_t *bufp, uint16_t len)
 {
-    
+	
     if (bufp == NULL && len > 0) {
         ESP_LOGE(TAG, "I2C write buffer pointer is NULL");
         return -1;
@@ -36,7 +36,36 @@ esp_err_t reg_write_i2c(pixart_ir_handle_t *device, uint8_t reg, const uint8_t *
         memcpy(&write_buf[1], bufp, len);
     }
     
-    return i2c_master_transmit(device->i2c_handle, write_buf, len + 1, -1);
+    return i2c_master_transmit(handle->i2c_handle, write_buf, len + 1, -1);
+}
+
+esp_err_t pixart_reg_read(pixart_ir_handle_t *handle, uint8_t reg, uint8_t *data, uint16_t len){
+	
+	if(len <= 0){
+		ESP_LOGE(TAG, "I2C invalid read length");
+	    return -1;
+	}
+	
+	if (data == NULL && len > 0) {
+	    ESP_LOGE(TAG, "I2C write buffer pointer is NULL");
+	    return -1;
+	}
+	
+	uint8_t register_to_read = reg;
+	esp_err_t transmit_err = i2c_master_transmit(handle->i2c_handle, &register_to_read, 1, -1);	
+	
+	if (transmit_err) {
+	    ESP_LOGE(TAG, "Invalid Write");
+	    return transmit_err;
+	}
+	
+	esp_err_t recv_err = i2c_master_receive(handle->i2c_handle, data, len, -1);
+	
+	if (recv_err) {
+	    ESP_LOGE(TAG, "Invalid Read");
+	    return recv_err;
+	}
+	return ESP_OK;
 }
 
 esp_err_t pixart_ir_init(i2c_master_bus_handle_t bus_handle, pixart_ir_handle_t *handle)
@@ -59,19 +88,19 @@ esp_err_t pixart_ir_init(i2c_master_bus_handle_t bus_handle, pixart_ir_handle_t 
 	
 	//TODO: MAKE THIS CLEANER CODE
 	//these are writes in format of register, data 
-	uint8_t init_packet_1[2] = {0x30, 0x01};
-	uint8_t init_packet_2[2] = {0x30, 0x08};
-	uint8_t init_packet_3[2] = {0x06, 0x90};
-	uint8_t init_packet_4[2] = {0x08, 0xC0};
-	uint8_t init_packet_5[2] = {0x1A, 0x40};
-	uint8_t init_packet_6[2] = {0x33, 0x33};
-
-	i2c_master_transmit(handle->i2c_handle, init_packet_1, 2, -1);
-	i2c_master_transmit(handle->i2c_handle, init_packet_2, 2, -1);
-	i2c_master_transmit(handle->i2c_handle, init_packet_3, 2, -1);
-	i2c_master_transmit(handle->i2c_handle, init_packet_4, 2, -1);
-	i2c_master_transmit(handle->i2c_handle, init_packet_5, 2, -1);
-	i2c_master_transmit(handle->i2c_handle, init_packet_6, 2, -1);
+//	uint8_t init_packet_1[2] = {0x30, 0x01};
+//	uint8_t init_packet_2[2] = {0x30, 0x08};
+//	uint8_t init_packet_3[2] = {0x06, 0x90};
+//	uint8_t init_packet_4[2] = {0x08, 0xC0};
+//	uint8_t init_packet_5[2] = {0x1A, 0x40};
+//	uint8_t init_packet_6[2] = {0x33, 0x33};
+//
+//	i2c_master_transmit(handle->i2c_handle, init_packet_1, 2, -1);
+//	i2c_master_transmit(handle->i2c_handle, init_packet_2, 2, -1);
+//	i2c_master_transmit(handle->i2c_handle, init_packet_3, 2, -1);
+//	i2c_master_transmit(handle->i2c_handle, init_packet_4, 2, -1);
+//	i2c_master_transmit(handle->i2c_handle, init_packet_5, 2, -1);
+//	i2c_master_transmit(handle->i2c_handle, init_packet_6, 2, -1);
 	
     return ESP_OK;
 }
