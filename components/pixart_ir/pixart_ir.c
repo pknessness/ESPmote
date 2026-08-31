@@ -17,7 +17,7 @@ static const char *TAG = "PIXART";
 
 #define PIXART_IR_MAX_REG_TRANSFER_LEN 16  // Maximum register transfer length (register + data) (This might be 8, 16 is random num)
 
-static esp_err_t reg_write_i2c(pixart_ir_handle_t *device, uint8_t reg, const uint8_t *bufp, uint16_t len)
+esp_err_t reg_write_i2c(pixart_ir_handle_t *device, uint8_t reg, const uint8_t *bufp, uint16_t len)
 {
     
     if (bufp == NULL && len > 0) {
@@ -39,11 +39,6 @@ static esp_err_t reg_write_i2c(pixart_ir_handle_t *device, uint8_t reg, const ui
     return i2c_master_transmit(device->i2c_handle, write_buf, len + 1, -1);
 }
 
-static esp_err_t reg_read_i2c(pixart_ir_handle_t *device, uint8_t reg, uint8_t *readbuf, uint16_t len)
-{
-    return i2c_master_transmit_receive(device->i2c_handle, &reg, 1, readbuf, len, -1);
-}
-
 esp_err_t pixart_ir_init(i2c_master_bus_handle_t bus_handle, pixart_ir_handle_t *handle)
 {
     if (handle == NULL) {
@@ -60,18 +55,7 @@ esp_err_t pixart_ir_init(i2c_master_bus_handle_t bus_handle, pixart_ir_handle_t 
     
 	i2c_master_bus_add_device(bus_handle, &dev_cfg, &handle->i2c_handle);
     
-    uint8_t whoamI = 0;
-//    if (pixart_ir_get_id(handle, &whoamI) != 0) {
-//        ESP_LOGE(TAG, "Failed to read device ID");
-//        return ESP_ERR_NOT_FOUND;
-//    }
-    
-//	if (whoamI != 0x6B) {
-//	    ESP_LOGE(TAG, "PIXART_IR invalid device ID: 0x%02X (expected 0x%02X)", whoamI, 0x6B);
-//	    return ESP_ERR_NOT_FOUND;
-//	}
-    
-    ESP_LOGI(TAG, "PIXART_IR initialized successfully (ID: 0x%02X)", whoamI);
+    ESP_LOGI(TAG, "PIXART_IR initialized successfully");
 	
 	//TODO: MAKE THIS CLEANER CODE
 	//these are writes in format of register, data 
@@ -83,24 +67,48 @@ esp_err_t pixart_ir_init(i2c_master_bus_handle_t bus_handle, pixart_ir_handle_t 
 	uint8_t init_packet_6[2] = {0x33, 0x33};
 
 	i2c_master_transmit(handle->i2c_handle, init_packet_1, 2, -1);
-	ESP_LOGI(TAG, "Init1", whoamI);
 	i2c_master_transmit(handle->i2c_handle, init_packet_2, 2, -1);
-	ESP_LOGI(TAG, "Init2", whoamI);
 	i2c_master_transmit(handle->i2c_handle, init_packet_3, 2, -1);
-	ESP_LOGI(TAG, "Init3", whoamI);
 	i2c_master_transmit(handle->i2c_handle, init_packet_4, 2, -1);
-	ESP_LOGI(TAG, "Init4", whoamI);
 	i2c_master_transmit(handle->i2c_handle, init_packet_5, 2, -1);
-	ESP_LOGI(TAG, "Init5", whoamI);
 	i2c_master_transmit(handle->i2c_handle, init_packet_6, 2, -1);
-	ESP_LOGI(TAG, "Init6", whoamI);
 	
     return ESP_OK;
 }
 
-esp_err_t pixart_ir_get_data(pixart_ir_handle_t *handle){
+esp_err_t pixart_ir_get_data(pixart_ir_handle_t *handle, ir_points_data *points_data){
 	uint8_t data[16] = {0};
-	reg_read_i2c(handle, 0x36, data, 16);
+//	reg_read_i2c(handle, 0x36, data, 16);
+	uint8_t send = 0x36;
+	i2c_master_transmit(handle->i2c_handle, &send, 1, -1);	
+	i2c_master_receive(handle->i2c_handle, data, 16, -1);
+	
+	points_data->point1.x = data[1] | ((data[3] & 0x30) << 4);
+	points_data->point1.y = data[2] | ((data[3] & 0xC0) << 2);
+	points_data->point1.size = data[3] & 0xF;
+	
+	points_data->point1.x = data[4] | ((data[6] & 0x30) << 4);
+	points_data->point1.y = data[5] | ((data[6] & 0xC0) << 2);
+	points_data->point1.size = data[6] & 0xF;
+	
+	points_data->point1.x = data[7] | ((data[9] & 0x30) << 4);
+	points_data->point1.y = data[8] | ((data[9] & 0xC0) << 2);
+	points_data->point1.size = data[9] & 0xF;
+	
+	points_data->point1.x = data[10] | ((data[12] & 0x30) << 4);
+	points_data->point1.y = data[11] | ((data[12] & 0xC0) << 2);
+	points_data->point1.size = data[12] & 0xF;
+	
+	//ESP_LOGI(TAG, "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
+	return ESP_OK;
+}
+
+esp_err_t pixart_ir_get_raw_data(pixart_ir_handle_t *handle, uint8_t *data){
+//	uint8_t raw_data[16] = {0};
+//	reg_read_i2c(handle, 0x36, data, 16);
+	uint8_t send = 0x36;
+	i2c_master_transmit(handle->i2c_handle, &send, 1, -1);	
+	i2c_master_receive(handle->i2c_handle, data, 16, -1);
 	
 	ESP_LOGI(TAG, "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
 	return ESP_OK;
@@ -109,9 +117,4 @@ esp_err_t pixart_ir_get_data(pixart_ir_handle_t *handle){
 esp_err_t pixart_ir_set_sensitivity(pixart_ir_handle_t *handle){
 	return ESP_OK;
 }
-
-esp_err_t pixart_ir_get_id(pixart_ir_handle_t *handle, uint8_t* whoami){
-	return reg_read_i2c(handle, PIXART_IR_WHO_AM_I, whoami, 1);
-}
-
 

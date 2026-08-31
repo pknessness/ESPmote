@@ -24,21 +24,30 @@ typedef struct
 	uint16_t x;
 	uint16_t y;
 	uint8_t size;
-} ir_data_t;
+} ir_point;
+
+typedef struct {
+	ir_point point1;
+	ir_point point2;
+	ir_point point3;
+	ir_point point4;
+} ir_points_data;
 
 typedef struct {
 	i2c_master_dev_handle_t i2c_handle; /*!< I2C device handle for PIXART_IR */
     uint8_t address;
 } pixart_ir_handle_t;
 
+esp_err_t reg_write_i2c(pixart_ir_handle_t *device, uint8_t reg, const uint8_t *bufp, uint16_t len);
+
 esp_err_t pixart_ir_init(i2c_master_bus_handle_t bus_handle, pixart_ir_handle_t *handle);
-esp_err_t pixart_ir_get_data(pixart_ir_handle_t *handle);
+esp_err_t pixart_ir_get_data(pixart_ir_handle_t *handle, ir_points_data *points_data);
+esp_err_t pixart_ir_get_raw_data(pixart_ir_handle_t *handle, uint8_t *data);
 esp_err_t pixart_ir_set_sensitivity(pixart_ir_handle_t *handle);
-esp_err_t pixart_ir_get_id(pixart_ir_handle_t *handle, uint8_t* whoami);
 
 
 /*
-http://www.kako.com/neta/2008-009/2008-009.html
+Excerpt from http://www.kako.com/neta/2008-009/2008-009.html
 
 How to use the infrared sensor on a Wii Remote
 

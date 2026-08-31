@@ -68,8 +68,6 @@ typedef struct //came with bt example
     uint8_t *buffer;
 } local_param_t;
 
-ir_data_t IR_DATA[4] = {0};
-
 // From https://wiibrew.org/wiki/Wiimote
 // HID input and output report IDs
 typedef enum { 
@@ -372,7 +370,7 @@ uint16_t active_extension = EXT_NONE;
 uint16_t plugged_in_extension = EXT_NONE;
 
 //IR CAMERA
-uint8_t ir_raw_buffer[12];
+uint8_t ir_raw_buffer[16];
 
 //IMU
 //In the image in README, the raw accel shows the relevant value when it is facing up. For example in the image in README, the face buttons are facing upwards, and we get a +Z value on the accelerometer.
@@ -753,46 +751,22 @@ uint8_t get_IR_mode(){
 }
 
 void read_IR(){
-	// Read data from UART.
-	const uart_port_t uart_num = UART_NUM_2;
-	uint8_t data[129];
-	size_t length = 0;
-	ESP_ERROR_CHECK(uart_get_buffered_data_len(uart_num, &length));
-	
-	//ESP_LOGI("PICO read", "READ %d", length);
-	
-	if(length > 0){
-		length = uart_read_bytes(uart_num, data, length, 100);
-		
-		for(int i = 0; i < length; i += 14){
-			if(data[i] == 0x55 && data[i+13] == 0xa5){ //TODO: DO ACTUAL CHECKSUM TO VERIFY DATA
-				memcpy(ir_raw_buffer, (data+i+1), 12); //DONT BE STUPID AND COPY LIKE 20 BUFFERS IN A ROW IF THE LAST ONE IS KNOWN TO BE MOST RECENT (FUTURE NOTE, WHAT DOES THIS MEAN????)
-				ESP_LOGI("IR DIRECT", "%u,%u[%u] %u,%u[%u] %u,%u[%u] %u,%u[%u]", 
-					data[i+1] | ((data[i+3] & 0x30) << 4), data[i+2] | ((data[i+3] & 0xC0) << 2), data[i+3] & 0xF, 
-					data[i+4] | ((data[i+6] & 0x30) << 4), data[i+5] | ((data[i+6] & 0xC0) << 2), data[i+6] & 0xF, 
-					data[i+7] | ((data[i+9] & 0x30) << 4), data[i+8] | ((data[i+9] & 0xC0) << 2), data[i+9] & 0xF, 
-					data[i+10] | ((data[i+12] & 0x30) << 4), data[i+11] | ((data[i+12] & 0xC0) << 2), data[i+12] & 0xF);
-			}
-		}
-		
-		uart_flush(uart_num);
-	}
-	
-	//ESP_LOG_BUFFER_HEX("PICO read", data, length);
+	pixart_ir_get_raw_data(&ir_handle, ir_raw_buffer);	
+	//ESP_LOG_BUFFER_HEX("PIXART_IR read", data, length);
 }
 
 void load_IR_basic_buffer(uint8_t* destination){
-	memcpy(destination, ir_raw_buffer, 2);
-	memset(destination+2, (ir_raw_buffer[2] & 0xF0) | ((ir_raw_buffer[5] & 0xF0) >> 4), 1);
-	memcpy(destination+3, ir_raw_buffer+3, 2);
+	memcpy(destination, ir_raw_buffer, 3);
+	memset(destination+2, (ir_raw_buffer[3] & 0xF0) | ((ir_raw_buffer[6] & 0xF0) >> 4), 1);
+	memcpy(destination+3, ir_raw_buffer+4, 2);
 	
-	memcpy(destination+5, ir_raw_buffer+6, 2);
-	memset(destination+7, (ir_raw_buffer[8] & 0xF0) | ((ir_raw_buffer[11] & 0xF0) >> 4), 1);
-	memcpy(destination+8, ir_raw_buffer+9, 2);
+	memcpy(destination+5, ir_raw_buffer+7, 2);
+	memset(destination+7, (ir_raw_buffer[9] & 0xF0) | ((ir_raw_buffer[12] & 0xF0) >> 4), 1);
+	memcpy(destination+8, ir_raw_buffer+10, 2);
 }
 
 void load_IR_extended_buffer(uint8_t* destination){
-	memcpy(destination, ir_raw_buffer, 12);
+	memcpy(destination, ir_raw_buffer+1, 12);
 }
 
 void load_IR_full_buffer(uint8_t* destination){
@@ -1528,29 +1502,7 @@ void app_main(void)
 	//TODO: REMOVE AND ATTACH THIS TO THE ACTUAL OUTPUT REPORTS, BUT FOR NOW
 	gpio_set_level(IR_RESET_GPIO, 1);
 	gpio_set_level(IR_CLK_GPIO, 1);
-	
-	//UART
-	const uart_port_t uart_num = UART_NUM_2;
-	uart_config_t uart_config = {
-	    .baud_rate = 115200,
-	    .data_bits = UART_DATA_8_BITS,
-	    .parity = UART_PARITY_DISABLE,
-	    .stop_bits = UART_STOP_BITS_1,
-	    .flow_ctrl = UART_HW_FLOWCTRL_CTS_RTS,
-	    .rx_flow_ctrl_thresh = 122,
-	};
-	// Configure UART parameters
-	ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config));
 
-	// Setup UART buffered IO with event queue
-	const int uart_buffer_size = (129); //in theory i want exactly enough for two bytes, which is 28, but i have to go up to 128 because that is the minimum UART_HW_FIFO_LEN(uart_num)
-	QueueHandle_t uart_queue;
-	// Install UART driver using an event queue here
-	ESP_ERROR_CHECK(uart_driver_install(UART_NUM_2, uart_buffer_size, uart_buffer_size, 10, &uart_queue, 0));
-	
-	// Set UART pins(TX: IO17, RX: IO16, RTS: UNUSED, CTS: UNUSED, DTR: UNUSED, DSR: UNUSED)
-	ESP_ERROR_CHECK(uart_set_pin(UART_NUM_2, 17, 16, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
-	
 	//i2c config
 	i2c_master_bus_config_t bus_config = {
 	    .i2c_port = I2C_MODE_MASTER,               // I2C port number
@@ -1633,5 +1585,7 @@ void app_main(void)
 	int16_t x, y, z;
 	read_from_accelerometer(&x, &y, &z);
 	ESP_LOGI("IMU_DATA","%d %d %d", x, y, z);
-	pixart_ir_get_data(&ir_handle);
+	ir_points_data irpd = {0};
+	pixart_ir_get_data(&ir_handle, &irpd);
+	ESP_LOGI("IR DATA", "%d,%d[%d] %d,%d[%d] %d,%d[%d] %d,%d[%d]", irpd.point1.x, irpd.point1.y,irpd.point1.size, irpd.point2.x, irpd.point2.y,irpd.point2.size, irpd.point3.x, irpd.point3.y,irpd.point3.size, irpd.point4.x, irpd.point4.y,irpd.point4.size);
 }
