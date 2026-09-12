@@ -1,0 +1,330 @@
+ets Jul 29 2019 12:21:46
+
+rst:0x3 (SW_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,len:15848
+load:0x40080400,len:3920
+--- 0x40080400: _invalid_pc_placeholder at /home/anshalaj/.espressif/v6.0/esp-idf/components/xtensa/xtensa_vectors.S:2235
+entry 0x40080644
+I (27) boot: ESP-IDF v6.0-dirty 2nd stage bootloader
+I (27) boot: compile time Aug 12 2026 18:53:37
+I (27) boot: Multicore bootloader
+I (29) boot: chip revision: v3.1
+I (31) boot.esp32: SPI Speed      : 40MHz
+I (35) boot.esp32: SPI Mode       : DIO
+I (39) boot.esp32: SPI Flash Size : 2MB
+I (42) boot: Enabling RNG early entropy source...
+I (47) boot: Partition Table:
+I (49) boot: ## Label            Usage          Type ST Offset   Length
+I (56) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (62) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (69) boot:  2 factory          factory app      00 00 00010000 00177000
+I (75) boot: End of partition table
+I (79) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=21b04h (137988) map
+I (135) esp_image: segment 1: paddr=00031b2c vaddr=3ffbdb60 size=05210h ( 21008) load
+I (144) esp_image: segment 2: paddr=00036d44 vaddr=40080000 size=092d4h ( 37588) load
+I (159) esp_image: segment 3: paddr=00040020 vaddr=400d0020 size=7017ch (459132) map
+ets Jul 29 2019 12:21:46
+
+rst:0x3 (SW_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x0ets Jul 29 2019 12:21:46
+
+rst:0x7 (TG0WDT_SYS_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,len:15848
+load:0x40080400,len:3920
+--- 0x40080400: _invalid_pc_placeholder at /home/anshalaj/.espressif/v6.0/esp-idf/components/xtensa/xtensa_vectors.S:2235
+entry 0x40080644
+I (54) boot: ESP-IDF v6.0-dirty 2nd stage bootloader
+I (54) boot: compile time Aug 12 2026 18:53:37
+I (54) boot: Multicore bootloader
+I (57) boot: chip revision: v3.1
+I (59) boot.esp32: SPI Speed      : 40MHz
+I (63) boot.esp32: SPI Mode       : DIO
+I (67) boot.esp32: SPI Flash Size : 2MB
+W (70) boot.esp32: PRO CPU has been reset by WDT
+W (74) boot.esp32: WDT rst info: PRO CPU PC=0x4000fdd0
+W (79) boot.esp32: WDT rst info: APP CPU PC=0xf0191aa0
+I (84) boot: Enabling RNG early entropy source...
+I (89) boot: Partition Table:
+I (91) boot: ## Label            Usage          Type ST Offset   Length
+I (98) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (104) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (111) boot:  2 factory          factory app      00 00 00010000 00177000
+I (117) boot: End of partition table
+I (121) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=21b04h (137988) map
+I (178) esp_image: segment 1: paddr=00031b2c vaddr=3ffbdb60 size=05210h ( 21008) load
+I (186) esp_image: segment 2: paddr=00036d44 vaddr=40080000 size=092d4h ( 37588) load
+I (201) esp_image: segment 3: paddr=00040020 vaddr=400d0020 size=7017ch (459132) map
+I (365) esp_image: segment 4: paddr=000b01a4 vaddr=400892d4 size=10050h ( 65616) load
+I (392) esp_image: segment 5: paddr=000c01fc vaddr=50000000 size=00028h (    40) load
+I (405) boot: Loaded app from partition at offset 0x10000
+I (405) boot: Disabling RNG early entropy source...
+I (416) cpu_start: Multicore app
+I (424) cpu_start: GPIO 3 and 1 are used as console UART I/O pins
+I (424) cpu_start: Pro cpu start user code
+I (424) cpu_start: cpu freq: 160000000 Hz
+I (426) app_init: Application information:
+I (430) app_init: Project name:     esp_hid_device
+I (434) app_init: App version:      6052fa4-dirty
+I (439) app_init: Compile time:     Sep  4 2026 19:53:44
+I (444) app_init: ELF file SHA256:  edb64d41f...
+I (448) app_init: ESP-IDF:          v6.0-dirty
+I (452) efuse_init: Min chip rev:     v0.0
+I (456) efuse_init: Max chip rev:     v3.99
+I (460) efuse_init: Chip rev:         v3.1
+I (464) heap_init: Initializing. RAM available for dynamic allocation:
+I (471) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (475) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (481) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (486) heap_init: At 3FFC79A8 len 00018658 (97 KiB): DRAM
+I (491) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (496) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (502) heap_init: At 40099324 len 00006CDC (27 KiB): IRAM
+I (509) spi_flash: detected chip: generic
+I (511) spi_flash: flash io: dio
+W (514) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (527) coexist: coex firmware version: 093e3d2
+I (531) main_task: Started on CPU0
+I (533) main_task: Calling app_main()
+I (539) LSM6DS3: LSM6DS3 initialized successfully (ID: 0x6B)
+I (541) LSM6DS3: Successful Creation
+I (547) PIXART: PIXART_IR initialized successfully
+I (549) PIXART_IR: Successful Creation
+I (561) HID_DEVICE: setting hid gap, mode:2
+I (563) BTDM_INIT: BT controller compile version [045a658]
+I (565) BTDM_INIT: Using main XTAL as clock source
+I (567) BTDM_INIT: Bluetooth MAC: cc:9e:00:7c:16:be
+I (575) phy_init: phy_version 4863,a3a4459,Oct 28 2025,14:30:06
+I (1129) BT_BTM: btm_sec_set_security_level : sec: 0x0
+
+I (1129) BT_BTM: BTM_SEC_REG[0]: id 0, is_orig 0, psm 0x0001, proto_id 0, chan_id 0
+
+I (1131) BT_BTM:                : sec: 0x80, service name [Service Discovery] (up to 21 chars saved)
+
+I (1139) BT_BTM: btm_sec_set_security_level : sec: 0x0
+
+I (1145) BT_BTM: BTM_SEC_REG[0]: id 0, is_orig 1, psm 0x0001, proto_id 0, chan_id 0
+
+I (1153) BT_BTM:                : sec: 0x80, service name [Service Discovery] (up to 21 chars saved)
+
+I (1207) BT_BTM: BTM_SetPinType: pin type 0 [variable-0, fixed-1], code , length 0
+
+I (1209) BT_BTM: BTM_SetInquiryMode
+
+I (1209) BT_BTM: BTM_SetPageScanType
+
+I (1211) BT_BTM: BTM_SetInquiryScanType
+
+I (1235) BT_BTM: BTM_SecAddDevice, link key type:0
+
+I (1237) BT_BTM: BTM_SecAddDevice, link key type:0
+
+I (1239) BT_BTM: Write Extended Inquiry Response to controller
+
+I (1247) BT_BTM: BTM_SetPinType: pin type 0 [variable-0, fixed-1], code x��?, length 0
+
+I (1249) ESP_HID_GAP: VARIABLE PIN SET: UNDEFINED
+I (1253) BT_BTM: BTM_ReadDiscoverability
+
+I (1257) BT_BTM: BTM_ReadConnectability
+
+I (1261) BT_BTM: BTM_SetDiscoverability
+
+I (1265) BT_BTM: BTM_SetDiscoverability: mode 0 [NonDisc-0, Lim-1, Gen-2], window 0x0012, interval 0x0800
+
+I (1275) BT_BTM: BTM_SetConnectability
+
+I (1277) BT_BTM: BTM_SetConnectability: mode 1 [NonConn-0, Conn-1], window 0x0012, interval 0x0800
+
+I (1287) HID_DEVICE: setting device name
+I (1293) BT_BTM: Write Extended Inquiry Response to controller
+
+I (1297) HID_DEVICE: setting cod major, peripheral
+I (2301) HID_DEVICE: setting bt device
+I (2305) BT_HIDD: HID_DevSetSecurityLevel
+I (2305) BT_BTM: btm_sec_set_security_level : sec: 0x36
+
+I (2305) BT_BTM: BTM_SEC_REG[1]: id 51, is_orig 0, psm 0x0011, proto_id 6, chan_id 3
+
+I (2311) BT_BTM:                : sec: 0x86, service name [] (up to 21 chars saved)
+
+I (2319) BT_BTM: btm_sec_set_security_level : sec: 0x36
+
+I (2325) BT_BTM: BTM_SEC_REG[1]: id 51, is_orig 1, psm 0x0011, proto_id 6, chan_id 3
+
+I (2331) BT_BTM:                : sec: 0xb6, service name [] (up to 21 chars saved)
+
+I (2339) BT_BTM: btm_sec_set_security_level : sec: 0x0
+
+I (2345) BT_BTM: BTM_SEC_REG[2]: id 52, is_orig 0, psm 0x0011, proto_id 6, chan_id 4
+
+I (2351) BT_BTM:                : sec: 0x80, service name [] (up to 21 chars saved)
+
+I (2359) BT_BTM: btm_sec_set_security_level : sec: 0x0
+
+I (2365) BT_BTM: BTM_SEC_REG[2]: id 52, is_orig 1, psm 0x0011, proto_id 6, chan_id 4
+
+I (2373) BT_BTM:                : sec: 0x80, service name [] (up to 21 chars saved)
+
+I (2379) BT_BTM: btm_sec_set_security_level : sec: 0x0
+
+I (2385) BT_BTM: BTM_SEC_REG[3]: id 53, is_orig 1, psm 0x0013, proto_id 6, chan_id 0
+
+I (2393) BT_BTM:                : sec: 0x80, service name [] (up to 21 chars saved)
+
+I (2399) BT_BTM: btm_sec_set_security_level : sec: 0x0
+
+I (2405) BT_BTM: BTM_SEC_REG[3]: id 53, is_orig 0, psm 0x0013, proto_id 6, chan_id 0
+
+I (2413) BT_BTM:                : sec: 0x80, service name [] (up to 21 chars saved)
+
+I (2421) BT_HIDD: HID_DevRegister
+I (2423) BT_HIDD: hidd_conn_reg
+I (2427) BT_HIDD: HID_DevAddRecord
+I (2431) BT_BTM: Write Extended Inquiry Response to controller
+
+I (2437) BT_HIDD: HID_DevSetIncomingQos
+I (2441) BT_HIDD: HID_DevSetOutgoingQos
+I (2443) BT_HIDD: HID_DevGetDevice
+I (2447) HID_DEV_BT: START OK
+I (2447) HID_DEV_BT: Setting to connectable, discoverable
+I (2449) ADC: ADC CONTINUOUS BEGIN
+I (2449) HID_DEVICE: ESP_SDP_INIT_EVT: status:0
+I (2461) BT_BTM: BTM_ReadDiscoverability
+
+I (2475) BT_BTM: BTM_ReadConnectability
+
+I (2475) BT_BTM: BTM_SetDiscoverability
+
+I (2475) BT_BTM: BTM_SetDiscoverability: mode 1 [NonDisc-0, Lim-1, Gen-2], window 0x0012, interval 0x0800
+
+I (2493) BT_BTM: BTM_SetConnectability
+
+I (2493) BT_BTM: BTM_SetConnectability: mode 1 [NonConn-0, Conn-1], window 0x0012, interval 0x0800
+
+I (2503) BT_BTM: Write Extended Inquiry Response to controller
+
+I (2505) HID_DEVICE: ESP_SDP_CREATE_RECORD_COMP_EVT: status:0, handle:0x10001
+I (2451) IMU_DATA: 610 512 521
+I (2519) IR DATA: 0,0[0] 0,0[0] 0,0[0] 0,0[0]
+ 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+27 E:da 36 0b 00 00 00 00 00 0e 04 05 13 0c 00
+28 C:41 40 0b 00 00 00 00 00 52 0c f1 01 06 09 45 53 50 33 32 01 03 01 05 01 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+29 E:9f 49 0b 00 00 00 00 00 0e 04 05 52 0c 00
+2a C:0c b7 0b 00 00 00 00 00 1e 0c 04 00 08 12 00
+2b E:4d c1 0b 00 00 00 00 00 0e 04 05 1e 0c 00
+2c C:24 c5 0b 00 00 00 00 00 1a 0c 01 00
+2d E:a5 cf 0b 00 00 00 00 00 0e 04 05 1a 0c 00
+2e C:be e7 0b 00 00 00 00 00 1a 0c 01 02
+2f E:ac f2 0b 00 00 00 00 00 0e 04 05 1a 0c 00
+30 C:02 fb 0b 00 00 00 00 00 13 0c f8 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+31 E:02 06 0c 00 00 00 00 00 0e 04 05 13 0c 00
+32 C:d4 0c 0c 00 00 00 00 00 52 0c f1 01 14 09 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 01 03 01 05 01 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+33 E:ef 16 0c 00 00 00 00 00 0e 04 05 52 0c 00
+34 C:ea 1e 0c 00 00 00 00 00 24 0c 03 04 05 00
+35 E:48 27 0c 00 00 00 00 00 0e 04 05 24 0c 00
+36 C:97 70 1d 00 00 00 00 00 52 0c f1 01 14 09 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 03 03 24 11 01 05 01 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+37 E:68 7d 1d 00 00 00 00 00 0e 04 05 52 0c 00
+38 C:99 3c 1e 00 00 00 00 00 3a 0c 07 02 00 8b 9e 33 8b 9e
+39 E:98 47 1e 00 00 00 00 00 0e 04 05 3a 0c 00
+3a C:9f 50 1e 00 00 00 00 00 24 0c 03 04 25 00
+3b E:92 59 1e 00 00 00 00 00 0e 04 05 24 0c 00
+3c C:da 5d 1e 00 00 00 00 00 1a 0c 01 03
+3d E:38 69 1e 00 00 00 00 00 0e 04 05 1a 0c 00
+3e C:93 6c 1e 00 00 00 00 00 1a 0c 01 03
+3f E:a1 6d 1e 00 00 00 00 00 0e 04 05 1a 0c 00
+40 C:3e 79 1e 00 00 00 00 00 52 0c f1 01 14 09 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 05 03 24 11 00 12 01 05 01 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+41 E:84 7b 1e 00 00 00 00 00 0e 04 05 52 0c 00
+42 E:8c 79 52 01 00 00 00 00 04 0a dc ea 34 a0 a2 78 48 04 00 01
+43 C:4b 85 52 01 00 00 00 00 09 04 07 dc ea 34 a0 a2 78 01
+44 E:93 87 52 01 00 00 00 00 0f 04 00 05 09 04
+W (22895) BT_HCI: hcif conn complete: hdl 0x80, st 0x0
+I (22897) BT_BTM: BTM_InqDbRead: bd addr [78a2a034eadc]
+
+I (22909) BT_BTM: BTM_SetPowerMode: pm_id 128 BDA: a034eadc mode:0x0
+I (22915) BT_L2CAP: L2CAP - Calling Connect_Ind_Cb(), CID: 0x0040
+I (22915) BT_L2CAP: L2CA_ErtmConnectRsp()  CID: 0x0040  Result: 0  Status: 0  BDA: 78a2a034eadc  p_ertm_info:0
+I (22923) BT_L2CAP: L2CA_ConfigReq()  CID 0x0040: fcr_present:0 (mode 0) mtu_present:1 (672)
+I (22933) BT_BTM: btm_sec_set_peer_sec_caps: sm4: 0x10, rmt_support_for_secure_connections 0
+
+I (22941) BT_BTM: btm_process_remote_ext_features: pend:0
+
+I (22951) BT_L2CAP: L2CA_ConfigRsp()  CID: 0x0040  Result: 0 MTU present:0 Flush TO:0 FCR:0 FCS:0
+I (22955) BT_L2CAP: L2CAP - Calling Config_Rsp_Cb(), CID: 0x0040
+I (22965) BT_L2CAP: L2CA_SetDesireRole() new:x1, disallow_switch:0
+45 E:ee 46 55 01 00 00 00 00 03 0b 00 80 00 dc ea 34 a0 a2 78 01 00
+46 E:a2 4b 55 01 00 00 00 00 1b 03 80 00 05
+47 C:36 53 55 01 00 00 00 00 1f 04 02 80 00
+48 E:d6 54 55 01 00 00 00 00 0f 04 00 05 1f 04
+49 E:69 56 55 01 00 00 00 00 1c 05 00 80 00 15 67
+4a C:90 5d 55 01 00 00 00 00 1d 04 02 80 00
+4b E:9b 5e 55 01 00 00 00 00 0f 04 00 05 1d 04
+4c E:0c 60 55 01 00 00 00 00 0c 08 00 80 00 03 0f 00 0e 43
+4d C:77 67 55 01 00 00 00 00 1b 04 02 80 00
+4e E:cd 68 55 01 00 00 00 00 0f 04 00 05 1b 04
+4f E:32 6a 55 01 00 00 00 00 0b 0b 00 80 00 ff ff 8d fe 9b f9 00 80
+50 C:78 71 55 01 00 00 00 00 19 04 0a dc ea 34 a0 a2 78 01 00 00 00
+51 E:ee 72 55 01 00 00 00 00 0f 04 00 05 19 04
+52 H:70 80 55 01 00 00 00 00 80 20 0a 00 06 00 01 00 0a 02 02 00 02 00
+53 C:b7 88 55 01 00 00 00 00 0d 08 04 80 00 05 00
+54 E:1c 8b 55 01 00 00 00 00 0e 06 05 0d 08 00 80 00
+55 E:b3 8c 55 01 00 00 00 00 13 05 01 80 00 01 00
+56 E:98 8d 55 01 00 00 00 00 07 ff 00 dc ea 34 a0 a2 78 57 69 69 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+57 D:d3 94 55 01 00 00 00 00 80 20 0c 00 08 00 01 00 02 01 04 00 01 00 46 00
+58 C:d5 98 55 01 00 00 00 00 35 0c 05 01 80 00 01 00
+59 D:98 99 55 01 00 00 00 00 80 20 0c 00 08 00 01 00 0b 02 04 00 02 00 01 00
+5a C:b5 9f 55 01 00 00 00 00 35 0c 05 01 80 00 01 00
+5b C:96 b8 55 01 00 00 00 00 1c 04 03 80 00 01
+5c E:25 ba 55 01 00 00 00 00 0f 04 00 05 1c 04
+5d E:f6 cf 55 01 00 00 00 00 23 0d 00 80 00 01 00 00 00 00 00 00 00 00 00
+5e H:d9 e3 55 01 00 00 00 00 80 20 10 00 0c 00 01 00 03 01 08 00 40 00 46 00 01 00 00 00
+5f E:c9 f1 55 01 00 00 00 00 13 05 01 80 00 01 00
+60 H:0c 09 56 01 00 00 00 00 80 20 10 00 0c 00 01 00 03 01 08 00 40 00 46 00 00 00 00 00
+61 E:b9 18 56 01 00 00 00 00 13 05 01 80 00 01 00
+62 D:4d 27 56 01 00 00 00 00 80 20 14 00 10 00 01 00 04 02 0c 00 40 00 00 00 01 02 00 01 02 02 ff ff
+63 C:80 2c 56 01 00 00 00 00 35 0c 05 01 80 00 01 00
+64 H:e0 2e 56 01 00 00 00 00 80 20 10 00 0c 00 01 00 04 03 08 00 46 00 00 00 01 02 a0 02
+65 E:f7 3a 56 01 00 00 00 00 13 05 01 80 00 01 00
+66 D:34 4e 56 01 00 00 00 00 80 20 0e 00 0a 00 01 00 05 03 06 00 40 00 00 00 00 00
+67 C:30 52 56 01 00 00 00 00 35 0c 05 01 80 00 01 00
+68 C:b0 64 56 01 00 00 00 00 0f 04 04 80 00 18 cc
+69 E:f1 66 56 01 00 00 00 00 0f 04 00 05 0f 04
+6a E:87 68 56 01 00 00 00 00 1d 05 00 80 00 18 cc
+6b C:b1 6f 56 01 00 00 00 00 0d 08 04 80 00 05 00
+6c E:4b 71 56 01 00 00 00 00 0e 06 05 0d 08 00 80 00
+6d H:1f 85 56 01 00 00 00 00 80 20 0e 00 0a 00 01 00 05 02 06 00 46 00 00 00 00 00
+I (23255) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 14
+I (23279) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 250
+I (23293) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 223
+I (23339) BT_BTM: BTM_SetPowerMode: pm_id 128 BDA: a034eadc mode:0x0
+I (23339) BT_L2CAP: L2CAP - Calling Disconnect_Ind_Cb(), CID: 0x0040  Conf Needed
+I (23345) BT_L2CAP: L2CA_DisconnectRsp()  CID: 0x0040
+6e E:e7 ea 56 01 00 00 00 00 13 05 01 80 00 01 00
+6f D:2c 00 5b 01 00 00 00 00 80 20 11 00 0d 00 40 00 02 00 00 00 08 35 03 19 11 24 00 15 00
+70 C:98 06 5b 01 00 00 00 00 35 0c 05 01 80 00 01 00
+71 H:09 49 5b 01 00 00 00 00 80 20 12 00 0e 00 46 00 03 00 00 00 09 00 01 00 01 00 01 00 00 00
+72 E:61 66 5b 01 00 00 00 00 13 05 01 80 00 01 00
+73 D:9c 74 5b 01 00 00 00 00 80 20 17 00 13 00 40 00 04 00 01 00 0e 00 01 00 00 00 f0 35 05 0a 00 00 ff ff 00
+74 C:75 79 5b 01 00 00 00 00 35 0c 05 01 80 00 01 00
+75 H:52 89 5b 01 00 00 00 00 80 20 fe 00 fa 00 46 00 05 00 01 00 f5 00 f0 36 01 c4 09 00 00 0a 00 01 00 00 09 00 01 35 03 19 11 24 09 00 04 35 0d 35 06 19 01 00 09 00 11 35 03 19 00 11 09 00 05 35 03 19 10 02 09 00 06 35 09 09 65 6e 09 00 6a 09 01 00 09 00 09 35 08 35 06 19 11 24 09 01 00 09 00 0d 35 0f 35 0d 35 06 19 01 00 09 00 13 35 03 19 00 11 09 01 00 25 14 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 00 09 01 01 25 14 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 00 09 01 02 25 09 4e 69 6e 74 65 6e 64 6f 00 09 02 00 09 01 00 09 02 01 09 01 11 09 02 02 08 08 09 02 03 08 21 09 02 04 28 01 09 02 05 28 01 09 02 06 35 df 35 dd 08 22 25 d9 05 01 09 05 a1 01 85 10 15 00 26 ff 00 75 08 95 01 06 00 ff 09 01 91 00 85 11 95 01 09 01 91 00 85 12 95 02 09 01 91 00 85 02 00 f0
+76 E:f8 9b 5b 01 00 00 00 00 13 05 01 80 00 01 00
+77 D:4b aa 5b 01 00 00 00 00 80 20 19 00 15 00 40 00 04 00 02 00 10 00 01 00 00 00 f0 35 05 0a 00 00 ff ff 02 00 f0
+78 C:e0 ad 5b 01 00 00 00 00 35 0c 05 01 80 00 01 00
+79 H:3a e4 5b 01 00 00 00 00 80 20 e3 00 df 00 46 00 05 00 02 00 da 00 d7 13 95 01 09 01 91 00 85 14 95 01 09 01 91 00 85 15 95 01 09 01 91 00 85 16 95 15 09 01 91 00 85 17 95 06 09 01 91 00 85 18 95 15 09 01 91 00 85 19 95 01 09 01 91 00 85 1a 95 01 09 01 91 00 85 20 95 06 09 01 81 00 85 21 95 15 09 01 81 00 85 22 95 04 09 01 81 00 85 30 95 02 09 01 81 00 85 31 95 05 09 01 81 00 85 32 95 0a 09 01 81 00 85 33 95 11 09 01 81 00 85 34 95 15 09 01 81 00 85 35 95 15 09 01 81 00 85 36 95 15 09 01 81 00 85 37 95 15 09 01 81 00 85 3d 95 15 09 01 81 00 85 3e 95 15 09 01 81 00 85 3f 95 15 09 01 81 00 c0 09 02 07 35 08 35 06 09 04 09 09 01 00 09 02 09 28 01 09 02 0a 28 00 09 02 0b 09 01 00 09 02 0d 28 01 09 02 0e 28 01 00
+7a D:59 41 5c 01 00 00 00 00 80 20 0c 00 08 00 01 00 06 03 04 00 40 00 46 00
+7b C:84 45 5c 01 00 00 00 00 35 0c 05 01 80 00 01 00
+7c E:a0 46 5c 01 00 00 00 00 13 05 01 80 00 01 00
+7d H:63 97 5c 01 00 00 00 00 80 20 0c 00 08 00 01 00 07 03 04 00 40 00 46 00
+7e E:ce a3 5c 01 00 00 00 00 13 05 01 80 00 01 00
+W (24721) BT_HCI: hcif disc complete: hdl 0x80, rsn 0x13 dev_find 1
+I (24721) BT_L2CAP: L2CA_SetDesireRole() new:x1, disallow_switch:0
+7f E:83 61 71 01 00 00 00 00 05 04 00 80 00 13
+

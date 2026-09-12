@@ -1,0 +1,981 @@
+I (95) boot:  2 factory          factory app      00 00 00010000 00177000
+I (102) boot: End of partition table
+I (105) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=1f2fch (127740) map
+I (158) esp_image: segment 1: paddr=0002f324 vaddr=3ffbdb60 size=00cf4h (  3316) load
+I (160) esp_image: segment 2: paddr=00030020 vaddr=400d0020 size=681d8h (426456) map
+I (314) esp_image: segment 3: paddr=00098200 vaddr=3ffbe854 size=04350h ( 17232) load
+I (321) esp_image: segment 4: paddr=0009c558 vaddr=40080000 size=18e64h (101988) load
+I (363) esp_image: segment 5: paddr=000b53c4 vaddr=50000000 size=00028h (    40) load
+I (375) boot: Loaded app from partition at offset 0x10000
+I (376) boot: Disabling RNG early entropy source...
+I (386) cpu_start: Multicore app
+I (394) cpu_start: GPIO 3 and 1 are used as console UART I/O pins
+I (395) cpu_start: Pro cpu start user code
+I (395) cpu_start: cpu freq: 160000000 Hz
+I (396) app_init: Application information:
+I (400) app_init: Project name:     esp_hid_device
+I (405) app_init: App version:      6052fa4-dirty
+I (409) app_init: Compile time:     Sep  4 2026 19:53:44
+I (414) app_init: ELF file SHA256:  390d8cb0f...
+I (419) app_init: ESP-IDF:          v6.0-dirty
+I (423) efuse_init: Min chip rev:     v0.0
+I (427) efuse_init: Max chip rev:     v3.99
+I (431) efuse_init: Chip rev:         v3.1
+I (435) heap_init: Initializing. RAM available for dynamic allocation:
+I (441) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (446) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (451) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (456) heap_init: At 3FFC9028 len 00016FD8 (91 KiB): DRAM
+I (461) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (467) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (472) heap_init: At 40098E64 len 0000719C (28 KiB): IRAM
+I (479) spi_flash: detected chip: generic
+I (481) spi_flash: flash io: dio
+W (484) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (497) coexist: coex firmware version: 093e3d2
+I (501) main_task: Started on CPU0
+I (503) main_task: Calling app_main()
+I (505) app_main: === Wii Remote emulation boot ===
+I (511) app_main: Target identity: name='Nintendo RVL-CNT-01', VID=0x057E, PID=0x0306
+I (519) wiimote_uart: UART button input active on UART0: press '+<key>', release '-<key>'; keys [W/A/S/D=DPAD, space=2, /=1, h=HOME]
+I (541) BTDM_INIT: BT controller compile version [045a658]
+I (541) BTDM_INIT: Using main XTAL as clock source
+I (543) BTDM_INIT: Bluetooth MAC: 70:4b:ca:7c:16:be
+I (549) phy_init: phy_version 4863,a3a4459,Oct 28 2025,14:30:06
+E BOD: Brownout detector was triggered
+
+
+ets Jul 29 2019 12:21:46
+
+rst:0x3 (SW_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,len:15848
+load:0x40080400,len:3920
+--- 0x40080400: _invalid_pc_placeholder at /home/anshalaj/.espressif/v6.0/esp-idf/components/xtensa/xtensa_vectors.S:2235
+entry 0x40080644
+I (53) boot: ESP-IDF v6.0-dirty 2nd stage bootloader
+I (53) boot: compile time Aug 12 2026 18:53:37
+I (53) boot: Multicore bootloader
+I (55) boot: chip revision: v3.1
+I (58) boot.esp32: SPI Speed      : 40MHz
+I (62) boot.esp32: SPI Mode       : DIO
+I (65) boot.esp32: SPI Flash Size : 2MB
+I (69) boot: Enabling RNG early entropy source...
+I (73) boot: Partition Table:
+I (76) boot: ## Label            Usage          Type ST Offset   Length
+I (82) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (89) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (95) boot:  2 factory          factory app      00 00 00010000 00177000
+I (102) boot: End of partition table
+I (105) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=1f2fch (127740) map
+I (158) esp_image: segment 1: paddr=0002f324 vaddr=3ffbdb60 size=00cf4h (  3316) load
+I (160) esp_image: segment 2: paddr=00030020 vaddr=400d0020 size=681d8h (426456) map
+I (314) esp_image: segment 3: paddr=00098200 vaddr=3ffbe854 size=04350h ( 17232) load
+I (321) esp_image: segment 4: paddr=0009c558 vaddr=40080000 size=18e64h (101988) load
+I (363) esp_image: segment 5: paddr=000b53c4 vaddr=50000000 size=00028h (    40) load
+I (375) boot: Loaded app from partition at offset 0x10000
+I (376) boot: Disabling RNG early entropy source...
+I (386) cpu_start: Multicore app
+I (394) cpu_start: GPIO 3 and 1 are used as console UART I/O pins
+I (395) cpu_start: Pro cpu start user code
+I (395) cpu_start: cpu freq: 160000000 Hz
+I (396) app_init: Application information:
+I (400) app_init: Project name:     esp_hid_device
+I (405) app_init: App version:      6052fa4-dirty
+I (409) app_init: Compile time:     Sep  4 2026 19:53:44
+I (414) app_init: ELF file SHA256:  390d8cb0f...
+I (419) app_init: ESP-IDF:          v6.0-dirty
+I (423) efuse_init: Min chip rev:     v0.0
+I (427) efuse_init: Max chip rev:     v3.99
+I (431) efuse_init: Chip rev:         v3.1
+I (435) heap_init: Initializing. RAM available for dynamic allocation:
+I (441) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (446) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (451) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (456) heap_init: At 3FFC9028 len 00016FD8 (91 KiB): DRAM
+I (461) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (467) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (472) heap_init: At 40098E64 len 0000719C (28 KiB): IRAM
+I (479) spi_flash: detected chip: generic
+I (481) spi_flash: flash io: dio
+W (484) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (497) coexist: coex firmware version: 093e3d2
+I (501) main_task: Started on CPU0
+I (503) maiE BOD: Brownout detector was triggered
+
+
+ets Jul 29 2019 12:21:46
+
+rst:0x3 (SW_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,len:15848
+load:0x40080400,len:3920
+--- 0x40080400: _invalid_pc_placeholder at /home/anshalaj/.espressif/v6.0/esp-idf/components/xtensa/xtensa_vectors.S:2235
+entry 0x40080644
+I (53) boot: ESP-IDF v6.0-dirty 2nd stage bootloader
+I (53) boot: compile time Aug 12 2026 18:53:37
+I (53) boot: Multicore bootloader
+I (55) boot: chip revision: v3.1
+I (58) boot.esp32: SPI Speed      : 40MHz
+I (62) boot.esp32: SPI Mode       : DIO
+I (65) boot.esp32: SPI Flash Size : 2MB
+I (69) boot: Enabling RNG early entropy source...
+I (73) boot: Partition Table:
+I (76) boot: ## Label            Usage          Type ST Offset   Length
+I (82) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (89) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (95) boot:  2 factory          factory app      00 00 00010000 00177000
+I (102) boot: End of partition table
+I (105) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=1f2fch (127740) map
+I (158) esp_image: segment 1: paddr=0002f324 vaddr=3ffbdb60 size=00cf4h (  3316) load
+I (160) esp_image: segment 2: paddr=00030020 vaddr=400d0020 size=681d8h (426456) map
+ets Jul 29 2019 12:21:46
+
+rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,len:15848
+load:0x40080400,len:3920
+--- 0x40080400: _invalid_pc_placeholder at /home/anshalaj/.espressif/v6.0/esp-idf/components/xtensa/xtensa_vectors.S:2235
+entry 0x40080644
+I (27) boot: ESP-IDF v6.0-dirty 2nd stage bootloader
+I (27) boot: compile time Aug 12 2026 18:53:37
+I (28) boot: Multicore bootloader
+I (29) boot: chip revision: v3.1
+I (32) boot.esp32: SPI Speed      : 40MHz
+I (36) boot.esp32: SPI Mode       : DIO
+I (39) boot.esp32: SPI Flash Size : 2MB
+I (43) boot: Enabling RNG early entropy source...
+I (47) boot: Partition Table:
+I (50) boot: ## Label            Usage          Type ST Offset   Length
+I (56) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (63) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (69) boot:  2 factory          factory app      00 00 00010000 00177000
+I (76) boot: End of partition table
+I (79) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=1f2fch (127740) map
+I (132) esp_image: segment 1: paddr=0002f324 vaddr=3ffbdb60 size=00cf4h (  3316) load
+I (134) esp_image: segment 2: paddr=00030020 vaddr=400d0020 size=681d8h (426456) map
+I (288) esp_image: segment 3: paddr=00098200 vaddr=3ffbe854 size=04350h ( 17232) load
+I (295) esp_image: segment 4: paddr=0009c558 vaddr=40080000 size=18e64h (101988) load
+I (336) esp_image: segment 5: paddr=000b53c4 vaddr=50000000 size=00028h (    40) load
+I (349) boot: Loaded app from partition at offset 0x10000
+I (349) boot: Disabling RNG early entropy source...
+I (360) cpu_start: Multicore app
+I (368) cpu_start: GPIO 3 and 1 are used as console UART I/O pins
+I (368) cpu_start: Pro cpu start user code
+I (368) cpu_start: cpu freq: 160000000 Hz
+I (370) app_init: Application information:
+I (374) app_init: Project name:     esp_hid_device
+I (379) app_init: App version:      6052fa4-dirty
+I (383) app_init: Compile time:     Sep  4 2026 19:53:44
+I (388) app_init: ELF file SHA256:  390d8cb0f...
+I (392) app_init: ESP-IDF:          v6.0-dirty
+I (397) efuse_init: Min chip rev:     v0.0
+I (400) efuse_init: Max chip rev:     v3.99
+I (404) efuse_init: Chip rev:         v3.1
+I (408) heap_init: Initializing. RAM available for dynamic allocation:
+I (415) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (420) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (425) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (430) heap_init: At 3FFC9028 len 00016FD8 (91 KiB): DRAM
+I (435) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (440) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (446) heap_init: At 40098E64 len 0000719C (28 KiB): IRAM
+I (453) spi_flash: detected chip: generic
+I (455) spi_flash: flash io: dio
+W (458) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (471) coexist: coex firmware version: 093e3d2
+I (475) main_task: Started on CPU0
+I (477) main_task: Calling app_main()
+I (479) app_main: === Wii Remote emulation boot ===
+I (485) app_main: Target identity: name='Nintendo RVL-CNT-01', VID=0x057E, PID=0x0306
+I (493) wiimote_uart: UART button input active on UART0: press '+<key>', release '-<key>'; keys [W/A/S/D=DPAD, space=2, /=1, h=HOME]
+I (515) BTDM_INIT: BT controller compile version [045a658]
+I (515) BTDM_INIT: Using main XTAL as clock source
+I (517) BTDM_INIT: Bluetooth MAC: 70:4b:ca:7c:16:be
+I (523) phy_init: phy_version 4863,a3a4459,Oct 28 2025,14:30:06
+E BOD: Brownout detector was triggered
+
+
+ets Jul 29 2019 12:21:46
+
+rst:0x3 (SW_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,len:15848
+load:0x40080400,len:3920
+--- 0x40080400: _invalid_pc_placeholder at /home/anshalaj/.espressif/v6.0/esp-idf/components/xtensa/xtensa_vectors.S:2235
+entry 0x40080644
+I (53) boot: ESP-IDF v6.0-dirty 2nd stage bootloader
+I (53) boot: compile time Aug 12 2026 18:53:37
+I (53) boot: Multicore bootloader
+I (55) boot: chip revision: v3.1
+I (58) boot.esp32: SPI Speed      : 40MHz
+I (62) boot.esp32: SPI Mode       : DIO
+I (65) boot.esp32: SPI Flash Size : 2MB
+I (69) boot: Enabling RNG early entropy source...
+I (73) boot: Partition Table:
+I (76) boot: ## Label            Usage          Type ST Offset   Length
+I (82) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (89) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (95) boot:  2 factory          factory app      00 00 00010000 00177000
+I (102) boot: End of partition table
+I (105) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=1f2fch (127740) map
+I (158) esp_image: segment 1: paddr=0002f324 vaddr=3ffbdb60 size=00cf4h (  3316) load
+I (160) esp_image: segment 2: paddr=00030020 vaddr=400d0020 size=681d8h (426456) map
+I (314) esp_image: segment 3: paddr=00098200 vaddr=3ffbe854 size=04350h ( 17232) load
+I (321) esp_image: segment 4: paddr=0009c558 vaddr=40080000 size=18e64h (101988) load
+I (363) esp_image: segment 5: paddr=000b53c4 vaddr=50000000 size=00028h (    40) load
+I (375) boot: Loaded app from partition at offset 0x10000
+I (375) boot: Disabling RNG early entropy source...
+I (386) cpu_start: Multicore app
+I (394) cpu_start: GPIO 3 and 1 are used as console UART I/O pins
+I (395) cpu_start: Pro cpu start user code
+I (395) cpu_start: cpu freq: 160000000 Hz
+I (396) app_init: Application information:
+I (400) app_init: Project name:     esp_hid_device
+I (405) app_init: App version:      6052fa4-dirty
+I (409) app_init: Compile time:     Sep  4 2026 19:53:44
+I (414) app_init: ELF file SHA256:  390d8cb0f...
+I (419) app_init: ESP-IDF:          v6.0-dirty
+I (423) efuse_init: Min chip rev:     v0.0
+I (427) efuse_init: Max chip rev:     v3.99
+I (431) efuse_init: Chip rev:         v3.1
+I (435) heap_init: Initializing. RAM available for dynamic allocation:
+I (441) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (446) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (451) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (456) heap_init: At 3FFC9028 len 00016FD8 (91 KiB): DRAM
+I (461) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (467) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (472) heap_init: At 40098E64 len 0000719C (28 KiB): IRAM
+I (479) spi_flash: detected chip: generic
+I (481) spi_flash: flash io: dio
+W (484) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (497) coexist: coex firmware version: 093e3d2
+I (501) main_task: Started on CPU0
+I (503) main_task: Calling app_main()
+I (505) app_main: === Wii Remote emulation boot ===
+I (511) app_main: Target identity: name='Nintendo RVL-CNT-01', VID=0x057E, PID=0x0306
+I (519) wiimote_uart: UART button input active on UART0: press '+<key>', release '-<key>'; keys [W/A/S/D=DPAD, space=2, /=1, h=HOME]
+I (541) BTDM_INIT: BT controller compile version [045a658]
+I (541) BTDM_INIT: Using main XTAL as clock source
+I (543) BTDM_INIT: Bluetooth MAC: 70:4b:ca:7c:16:be
+I (549) phy_init: phy_version 4863,a3a4459,Oct 28 2025,14:30:06
+E BOD: Brownout detector was triggered
+
+
+ets Jul 29 2019 12:21:46
+
+rst:0x3 (SW_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,len:15848
+load:0x40080400,len:3920
+--- 0x40080400: _invalid_pc_placeholder at /home/anshalaj/.espressif/v6.0/esp-idf/components/xtensa/xtensa_vectors.S:2235
+entry 0x40080644
+I (53) boot: ESP-IDF v6.0-dirty 2nd stage bootloader
+I (53) boot: compile time Aug 12 2026 18:53:37
+I (53) boot: Multicore bootloader
+I (55) boot: chip revision: v3.1
+I (58) boot.esp32: SPI Speed      : 40MHz
+I (62) boot.esp32: SPI Mode       : DIO
+I (65) boot.esp32: SPI Flash Size : 2MB
+I (69) boot: Enabling RNG early entropy source...
+I (73) boot: Partition Table:
+I (76) boot: ## Label            Usage          Type ST Offset   Length
+I (82) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (89) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (95) boot:  2 factory          factory app      00 00 00010000 00177000
+I (102) boot: End of partition table
+I (105) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=1f2fch (127740) map
+I (158) esp_image: segment 1: paddr=0002f324 vaddr=3ffbdb60 size=00cf4h (  3316) load
+I (160) esp_image: segment 2: paddr=00030020 vaddr=400d0020 size=681d8h (426456) map
+I (314) esp_image: segment 3: paddr=00098200 vaddr=3ffbe854 size=04350h ( 17232) load
+I (321) esp_image: segment 4: paddr=0009c558 vaddr=40080000 size=18e64h (101988) load
+I (363) esp_image: segment 5: paddr=000b53c4 vaddr=50000000 size=00028h (    40) load
+I (375) boot: Loaded app from partition at offset 0x10000
+I (376) boot: Disabling RNG early entropy source...
+I (386) cpu_start: Multicore app
+I (394) cpu_start: GPIO 3 and 1 are used as console UART I/O pins
+I (395) cpu_start: Pro cpu start user code
+I (395) cpu_start: cpu freq: 160000000 Hz
+I (396) app_init: Application information:
+I (400) app_init: Project name:     esp_hid_device
+I (405) app_init: App version:      6052fa4-dirty
+I (409) app_init: Compile time:     Sep  4 2026 19:53:44
+I (414) app_init: ELF file SHA256:  390d8cb0f...
+I (419) app_init: ESP-IDF:          v6.0-dirty
+I (423) efuse_init: Min chip rev:     v0.0
+I (427) efuse_init: Max chip rev:     v3.99
+I (431) efuse_init: Chip rev:         v3.1
+I (435) heap_init: Initializing. RAM available for dynamic allocation:
+I (441) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (446) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (451) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (456) heap_init: At 3FFC9028 len 00016FD8 (91 KiB): DRAM
+I (461) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (467) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (472) heap_init: At 40098E64 len 0000719C (28 KiB): IRAM
+I (479) spi_flash: detected chip: generic
+I (481) spi_flash: flash io: dio
+W (484) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (497) coexist: coex firmware version: 093e3d2
+I (501) main_task: Started on CPU0
+I (503) main_task: Calling app_main()
+I (505) app_main: === Wii Remote emulation boot ===
+I (511) app_main: Target identity: name='Nintendo RVL-CNT-01', VID=0x057E, PID=0x0306
+I (519) wiimote_uart: UART button input active on UART0: press '+<key>', release '-<key>'; keys [W/A/S/D=DPAD, space=2, /=1, h=HOME]
+I (541) BTDM_INIT: BT controller compile version [045a658]
+I (541) BTDM_INIT: Using main XTAL as clock source
+I (543) BTDM_INIT: Bluetooth MAC: 70:4b:ca:7c:16:be
+I (549) phy_init: phy_version 4863,a3a4459,Oct 28 2025,14:30:06
+E BOD: Brownout detector was triggered
+
+
+ets Jul 29 2019 12:21:46
+
+rst:0x3 (SW_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,len:15848
+load:0x40080400,len:3920
+--- 0x40080400: _invalid_pc_placeholder at /home/anshalaj/.espressif/v6.0/esp-idf/components/xtensa/xtensa_vectors.S:2235
+entry 0x40080644
+I (53) boot: ESP-IDF v6.0-dirty 2nd stage bootloader
+I (53) boot: compile time Aug 12 2026 18:53:37
+I (53) boot: Multicore bootloader
+I (55) boot: chip revision: v3.1
+I (58) boot.esp32: SPI Speed      : 40MHz
+I (62) boot.esp32: SPI Mode       : DIO
+I (65) boot.esp32: SPI Flash Size : 2MB
+I (69) boot: Enabling RNG early entropy source...
+I (73) boot: Partition Table:
+I (76) boot: ## Label            Usage          Type ST Offset   Length
+I (82) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (89) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (95) boot:  2 factory          factory app      00 00 00010000 00177000
+I (102) boot: End of partition table
+I (105) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=1f2fch (127740) map
+I (158) esp_image: segment 1: paddr=0002f324 vaddr=3ffbdb60 size=00cf4h (  3316) load
+I (160) esp_image: segment 2: paddr=00030020 vaddr=400d0020 size=681d8h (426456) map
+I (314) esp_image: segment 3: paddr=00098200 vaddr=3ffbe854 size=04350h ( 17232) load
+I (321) esp_image: segment 4: paddr=0009c558 vaddr=40080000 size=18e64h (101988) load
+I (363) esp_image: segment 5: paddr=000b53c4 vaddr=50000000 size=00028h (    40) load
+I (375) boot: Loaded app from partition at offset 0x10000
+I (376) boot: Disabling RNG early entropy source...
+I (386) cpu_start: Multicore app
+I (394) cpu_start: GPIO 3 and 1 are used as console UART I/O pins
+I (395) cpu_start: Pro cpu start user code
+I (395) cpu_start: cpu freq: 160000000 Hz
+I (396) app_init: Application information:
+I (400) app_init: Project name:     esp_hid_device
+I (405) app_init: App version:      6052fa4-dirty
+I (409) app_init: Compile time:     Sep  4 2026 19:53:44
+I (414) app_init: ELF file SHA256:  390d8cb0f...
+I (419) app_init: ESP-IDF:          v6.0-dirty
+I (423) efuse_init: Min chip rev:     v0.0
+I (427) efuse_init: Max chip rev:     v3.99
+I (431) efuse_init: Chip rev:         v3.1
+I (435) heap_init: Initializing. RAM available for dynamic allocation:
+I (441) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (446) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (451) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (456) heap_init: At 3FFC9028 len 00016FD8 (91 KiB): DRAM
+I (461) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (467) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (472) heap_init: At 40098E64 len 0000719C (28 KiB): IRAM
+I (479) spi_flash: detected chip: generic
+I (481) spi_flash: flash io: dio
+W (484) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (497) coexist: coex firmware version: 093e3d2
+I (501) main_task: Started on CPU0
+I (503) main_task: Calling app_main()
+I (505) app_main: === Wii Remote emulation boot ===
+I (511) app_main: Target identity: name='Nintendo RVL-CNT-01', VID=0x057E, PID=0x0306
+I (519) wiimote_uart: UART button input active on UART0: press '+<key>', release '-<key>'; keys [W/A/S/D=DPAD, space=2, /=1, h=HOME]
+I (541) BTDM_INIT: BT controller compile version [045a658]
+I (541) BTDM_INIT: Using main XTAL as clock source
+I (543) BTDM_INIT: Bluetooth MAC: 70:4b:ca:7c:16:be
+I (551) phy_init: phy_version 4863,a3a4459,Oct 28 2025,14:30:06
+E BOD: Brownout detector was triggered
+
+
+ets Jul 29 2019 12:21:46
+
+rst:0x3 (SW_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,len:15848
+load:0x40080400,len:3920
+--- 0x40080400: _invalid_pc_placeholder at /home/anshalaj/.espressif/v6.0/esp-idf/components/xtensa/xtensa_vectors.S:2235
+entry 0x40080644
+I (53) boot: ESP-IDF v6.0-dirty 2nd stage bootloader
+I (53) boot: compile time Aug 12 2026 18:53:37
+I (53) boot: Multicore bootloader
+I (55) boot: chip revision: v3.1
+I (58) boot.esp32: SPI Speed      : 40MHz
+I (62) boot.esp32: SPI Mode       : DIO
+I (65) boot.esp32: SPI Flash Size : 2MB
+I (69) boot: Enabling RNG early entropy source...
+I (73) boot: Partition Table:
+I (76) boot: ## Label            Usage          Type ST Offset   Length
+I (82) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (89) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (95) boot:  2 factory          factory app      00 00 00010000 00177000
+I (102) boot: End of partition table
+I (105) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=1f2fch (127740) map
+I (158) esp_image: segment 1: paddr=0002f324 vaddr=3ffbdb60 size=00cf4h (  3316) load
+I (160) esp_image: segment 2: paddr=00030020 vaddr=400d0020 size=681d8h (426456) map
+I (314) esp_image: segment 3: paddr=00098200 vaddr=3ffbe854 size=04350h ( 17232) load
+I (321) esp_image: segment 4: paddr=0009c558 vaddr=40080000 size=18e64h (101988) load
+I (363) esp_image: segment 5: paddr=000b53c4 vaddr=50000000 size=00028h (    40) load
+I (375) boot: Loaded app from partition at offset 0x10000
+I (375) boot: Disabling RNG early entropy source...
+I (386) cpu_start: Multicore app
+I (394) cpu_start: GPIO 3 and 1 are used as console UART I/O pins
+I (395) cpu_start: Pro cpu start user code
+I (395) cpu_start: cpu freq: 160000000 Hz
+I (396) app_init: Application information:
+I (400) app_init: Project name:     esp_hid_device
+I (405) app_init: App version:      6052fa4-dirty
+I (409) app_init: Compile time:     Sep  4 2026 19:53:44
+I (414) app_init: ELF file SHA256:  390d8cb0f...
+I (419) app_init: ESP-IDF:          v6.0-dirty
+I (423) efuse_init: Min chip rev:     v0.0
+I (427) efuse_init: Max chip rev:     v3.99
+I (431) efuse_init: Chip rev:         v3.1
+I (435) heap_init: Initializing. RAM available for dynamic allocation:
+I (441) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (446) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (451) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (456) heap_init: At 3FFC9028 len 00016FD8 (91 KiB): DRAM
+I (461) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (467) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (472) heap_init: At 40098E64 len 0000719C (28 KiB): IRAM
+I (479) spi_flash: detected chip: generic
+I (481) spi_flash: flash io: dio
+W (484) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (497) coexist: coex firmware version: 093e3d2
+I (501) main_task: Started on CPU0
+I (503) main_task: Calling app_main()
+I (505) app_main: === Wii Remote emulation boot ===
+I (511) app_main: Target identity: name='Nintendo RVL-CNT-01', VID=0x057E, PID=0x0306
+I (519) wiimote_uart: UART button input active on UART0: press '+<key>', release '-<key>'; keys [W/A/S/D=DPAD, space=2, /=1, h=HOME]
+I (541) BTDM_INIT: BT controller compile version [045a658]
+I (541) BTDM_INIT: Using main XTAL as clock source
+I (543) BTDM_INIT: Bluetooth MAC: 70:4b:ca:7c:16:be
+I (549) phy_init: phy_version 4863,a3a4459,Oct 28 2025,14:30:06
+E BOD: Brownout detector was triggered
+
+
+ets Jul 29 2019 12:21:46
+
+rst:0x3 (SW_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,len:15848
+load:0x40080400,len:3920
+--- 0x40080400: _invalid_pc_placeholder at /home/anshalaj/.espressif/v6.0/esp-idf/components/xtensa/xtensa_vectors.S:2235
+entry 0x40080644
+I (53) boot: ESP-IDF v6.0-dirty 2nd stage bootloader
+I (53) boot: compile time Aug 12 2026 18:53:37
+I (53) boot: Multicore bootloader
+I (55) boot: chip revision: v3.1
+I (58) boot.esp32: SPI Speed      : 40MHz
+I (62) boot.esp32: SPI Mode       : DIO
+I (65) boot.esp32: SPI Flash Size : 2MB
+I (69) boot: Enabling RNG early entropy source...
+I (73) boot: Partition Table:
+I (76) boot: ## Label            Usage          Type ST Offset   Length
+I (82) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (89) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (95) boot:  2 factory          factory app      00 00 00010000 00177000
+I (102) boot: End of partition table
+I (105) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=1f2fch (127740) map
+I (158) esp_image: segment 1: paddr=0002f324 vaddr=3ffbdb60 size=00cf4h (  3316) load
+I (160) esp_image: segment 2: paddr=00030020 vaddr=400d0020 size=681d8h (426456) map
+I (314) esp_image: segment 3: paddr=00098200 vaddr=3ffbe854 size=04350h ( 17232) load
+I (321) esp_image: segment 4: paddr=0009c558 vaddr=40080000 size=18e64h (101988) load
+I (363) esp_image: segment 5: paddr=000b53c4 vaddr=50000000 size=00028h (    40) load
+I (375) boot: Loaded app from partition at offset 0x10000
+I (376) boot: Disabling RNG early entropy source...
+I (386) cpu_start: Multicore app
+I (394) cpu_start: GPIO 3 and 1 are used as console UART I/O pins
+I (395) cpu_start: Pro cpu start user code
+I (395) cpu_start: cpu freq: 160000000 Hz
+I (396) app_init: Application information:
+I (400) app_init: Project name:     esp_hid_device
+I (405) app_init: App version:      6052fa4-dirty
+I (409) app_init: Compile time:     Sep  4 2026 19:53:44
+I (414) app_init: ELF file SHA256:  390d8cb0f...
+I (419) app_init: ESP-IDF:          v6.0-dirty
+I (423) efuse_init: Min chip rev:     v0.0
+I (427) efuse_init: Max chip rev:     v3.99
+I (431) efuse_init: Chip rev:         v3.1
+I (435) heap_init: Initializing. RAM available for dynamic allocation:
+I (441) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (446) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (451) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (456) heap_init: At 3FFC9028 len 00016FD8 (91 KiB): DRAM
+I (461) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (467) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (472) heap_init: At 40098E64 len 0000719C (28 KiB): IRAM
+I (479) spi_flash: detected chip: generic
+I (481) spi_flash: flash io: dio
+W (484) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (497) coexist: coex firmware version: 093e3d2
+I (501) main_task: Started on CPU0
+I (503) main_task: Calling app_main()
+I (505) app_main: === Wii Remote emulation boot ===
+I (511) app_main: Target identity: name='Nintendo RVL-CNT-01', VID=0x057E, PID=0x0306
+I (519) wiimote_uart: UART button input active on UART0: press '+<key>', release '-<key>'; keys [W/A/S/D=DPAD, space=2, /=1, h=HOME]
+I (541) BTDM_INIT: BT controller compile version [045a658]
+I (541) BTDM_INIT: Using main XTAL as clock source
+I (543) BTDM_INIT: Bluetooth MAC: 70:4b:ca:7c:16:be
+I (551) phy_init: phy_version 4863,a3a4459,Oct 28 2025,14:30:06
+I (627) phy_init: Saving new calibration data due to checksum failure or outdated calibration data, mode(0)
+I (1089) BT_BTM: btm_sec_set_security_level : sec: 0x0
+
+I (1089) BT_BTM: BTM_SEC_REG[0]: id 0, is_orig 0, psm 0x0001, proto_id 0, chan_id 0
+
+I (1091) BT_BTM:                : sec: 0x80, service name [Service Discovery] (up to 21 chars saved)
+
+I (1101) BT_BTM: btm_sec_set_security_level : sec: 0x0
+
+I (1105) BT_BTM: BTM_SEC_REG[0]: id 0, is_orig 1, psm 0x0001, proto_id 0, chan_id 0
+
+I (1113) BT_BTM:                : sec: 0x80, service name [Service Discovery] (up to 21 chars saved)
+
+I (1179) BT_BTM: BTM_SetPinType: pin type 0 [variable-0, fixed-1], code , length 0
+
+I (1181) BT_BTM: BTM_SetInquiryMode
+
+I (1181) BT_BTM: BTM_SetPageScanType
+
+I (1185) BT_BTM: BTM_SetInquiryScanType
+
+I (1211) BT_BTM: BTM_SecAddDevice, link key type:0
+
+I (1211) BT_BTM: BTM_SecAddDevice, link key type:0
+
+I (1213) BT_BTM: Write Extended Inquiry Response to controller
+
+I (1219) esp_sdp_cb: SDP initialized; creating Nintendo DI record
+I (1223) create_wiimote_di_record: DI record request submitted
+I (1227) BT_BTM: Write Extended Inquiry Response to controller
+
+I (1233) esp_bt_gap_cb: event: 10
+I (1237) esp_sdp_cb: DI record created (handle=65536, vid=0x057E pid=0x0306 ver=0x0100)
+I (1243) app_main: setting device name
+I (1247) BT_BTM: Write Extended Inquiry Response to controller
+
+I (1253) esp_bt_gap_cb: event: 10
+I (1257) app_main: setting Wii Remote class of device (0x002504)
+I (3261) app_main: register hid device callback
+I (3261) app_main: starting hid device
+I (3261) BT_HIDD: HID_DevSetSecurityLevel
+I (3261) BT_BTM: btm_sec_set_security_level : sec: 0x36
+
+I (3265) BT_BTM: BTM_SEC_REG[1]: id 51, is_orig 0, psm 0x0011, proto_id 6, chan_id 3
+
+I (3273) BT_BTM:                : sec: 0x86, service name [] (up to 21 chars saved)
+
+I (3281) BT_BTM: btm_sec_set_security_level : sec: 0x36
+
+I (3287) BT_BTM: BTM_SEC_REG[1]: id 51, is_orig 1, psm 0x0011, proto_id 6, chan_id 3
+
+I (3293) BT_BTM:                : sec: 0xb6, service name [] (up to 21 chars saved)
+
+I (3301) BT_BTM: btm_sec_set_security_level : sec: 0x0
+
+I (3307) BT_BTM: BTM_SEC_REG[2]: id 52, is_orig 0, psm 0x0011, proto_id 6, chan_id 4
+
+I (3315) BT_BTM:                : sec: 0x80, service name [] (up to 21 chars saved)
+
+I (3321) BT_BTM: btm_sec_set_security_level : sec: 0x0
+
+I (3327) BT_BTM: BTM_SEC_REG[2]: id 52, is_orig 1, psm 0x0011, proto_id 6, chan_id 4
+
+I (3335) BT_BTM:                : sec: 0x80, service name [] (up to 21 chars saved)
+
+I (3341) BT_BTM: btm_sec_set_security_level : sec: 0x0
+
+I (3347) BT_BTM: BTM_SEC_REG[3]: id 53, is_orig 1, psm 0x0013, proto_id 6, chan_id 0
+
+I (3355) BT_BTM:                : sec: 0x80, service name [] (up to 21 chars saved)
+
+I (3363) BT_BTM: btm_sec_set_security_level : sec: 0x0
+
+I (3367) BT_BTM: BTM_SEC_REG[3]: id 53, is_orig 0, psm 0x0013, proto_id 6, chan_id 0
+
+I (3375) BT_BTM:                : sec: 0x80, service name [] (up to 21 chars saved)
+
+I (3383) BT_HIDD: HID_DevRegister
+I (3385) BT_HIDD: hidd_conn_reg
+I (3389) esp_bt_hidd_cb: setting hid parameters
+I (3393) BT_HIDD: HID_DevAddRecord
+I (3397) BT_BTM: Write Extended Inquiry Response to controller
+
+I (3403) BT_HIDD: HID_DevSetIncomingQos
+I (3407) BT_HIDD: HID_DevSetOutgoingQos
+I (3409) BT_HIDD: HID_DevGetDevice
+I (3411) esp_bt_gap_cb: event: 10
+I (3415) esp_bt_hidd_cb: HID register success; opening sync-style pairing window
+I (3421) pairing_window: [PAIR][1/4] Entering 20s sync-style discoverable window
+I (3429) pairing_window: [PAIR][2/4] Waiting for host inquiry/authentication
+I (3435) BT_BTM: BTM_ReadDiscoverability
+
+I (3439) BT_BTM: BTM_ReadConnectability
+
+I (3443) BT_BTM: BTM_SetDiscoverability
+
+I (3447) BT_BTM: BTM_SetDiscoverability: mode 1 [NonDisc-0, Lim-1, Gen-2], window 0x0012, interval 0x0800
+
+I (3457) BT_BTM: BTM_SetConnectability
+
+I (3461) BT_BTM: BTM_SetConnectability: mode 1 [NonConn-0, Conn-1], window 0x0012, interval 0x0800
+
+I (3473) BT_BTM: BTM_SetPinType: pin type 0 [variable-0, fixed-1], code @�N@, length 0
+
+I (3477) app_main: Own address:[70:4b:ca:7c:16:be]
+I (3481) app_main: Pairing behavior: sync-style window opens after HID register success
+I (3489) app_main: Use reset/reboot to simulate pressing red sync on a physical Wiimote
+ 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+27 E:13 49 0b 00 00 00 00 00 0e 04 05 13 0c 00
+28 C:b2 52 0b 00 00 00 00 00 52 0c f1 01 06 09 45 53 50 33 32 01 03 01 05 01 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+29 E:00 5e 0b 00 00 00 00 00 0e 04 05 52 0c 00
+2a C:11 89 0b 00 00 00 00 00 52 0c f1 01 06 09 45 53 50 33 32 03 03 00 12 01 05 01 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2b E:a0 94 0b 00 00 00 00 00 0e 04 05 52 0c 00
+2c C:f3 c1 0b 00 00 00 00 00 13 0c f8 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2d E:32 cc 0b 00 00 00 00 00 0e 04 05 13 0c 00
+2e C:b6 d6 0b 00 00 00 00 00 52 0c f1 01 14 09 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 03 03 00 12 01 05 01 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2f E:a8 e1 0b 00 00 00 00 00 0e 04 05 52 0c 00
+30 C:9c f9 0b 00 00 00 00 00 24 0c 03 04 05 00
+31 E:a1 03 0c 00 00 00 00 00 0e 04 05 24 0c 00
+32 C:37 a4 2c 00 00 00 00 00 52 0c f1 01 14 09 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 05 03 24 11 00 12 01 05 01 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+33 E:01 af 2c 00 00 00 00 00 0e 04 05 52 0c 00
+34 C:07 7b 2d 00 00 00 00 00 3a 0c 07 02 00 8b 9e 33 8b 9e
+35 E:0a 85 2d 00 00 00 00 00 0e 04 05 3a 0c 00
+36 C:20 89 2d 00 00 00 00 00 1e 0c 04 00 08 12 00
+37 E:78 92 2d 00 00 00 00 00 0e 04 05 1e 0c 00
+38 C:90 97 2d 00 00 00 00 00 24 0c 03 04 25 00
+39 E:88 a0 2d 00 00 00 00 00 0e 04 05 24 0c 00
+3a C:91 a3 2d 00 00 00 00 00 1a 0c 01 01
+3b E:32 ab 2d 00 00 00 00 00 0e 04 05 1a 0c 00
+3c C:80 b3 2d 00 00 00 00 00 1a 0c 01 03
+3d E:d2 b4 2d 00 00 00 00 00 0e 04 05 1a 0c 00
+3e E:33 b7 a4 00 00 00 00 00 04 0a dc ea 34 a0 a2 78 48 04 00 01
+3f C:33 c1 a4 00 00 00 00 00 09 04 07 dc ea 34 a0 a2 78 01
+40 E:b7 c2 a4 00 00 00 00 00 0f 04 00 05 09 04
+W (11471) BT_HCI: hcif conn complete: hdl 0x81, st 0x0
+I (11473) BT_BTM: BTM_InqDbRead: bd addr [78a2a034eadc]
+
+I (11477) esp_bt_gap_cb: event: 16
+I (11493) BT_BTM: btm_sec_set_peer_sec_caps: sm4: 0x10, rmt_support_for_secure_connections 0
+
+I (11493) BT_BTM: btm_process_remote_ext_features: pend:0
+
+I (11501) BT_L2CAP: L2CA_SetDesireRole() new:x1, disallow_switch:0
+I (11515) BT_BTM: BTM_SetPowerMode: pm_id 128 BDA: a034eadc mode:0x0
+I (11517) BT_L2CAP: L2CAP - Calling Connect_Ind_Cb(), CID: 0x0040
+I (11517) BT_L2CAP: L2CA_ErtmConnectRsp()  CID: 0x0040  Result: 0  Status: 0  BDA: 78a2a034eadc  p_ertm_info:0
+I (11529) BT_L2CAP: L2CA_ConfigReq()  CID 0x0040: fcr_present:0 (mode 0) mtu_present:1 (672)
+41 E:e1 7f a7 00 00 00 00 00 03 0b 00 81 00 dc ea 34 a0 a2 78 01 00
+42 E:38 85 a7 00 00 00 00 00 1b 03 81 00 05
+43 C:66 8b a7 00 00 00 00 00 1f 04 02 81 00
+44 E:5b 8c a7 00 00 00 00 00 0f 04 00 05 1f 04
+45 E:91 8d a7 00 00 00 00 00 1c 05 00 81 00 db 28
+46 C:f8 93 a7 00 00 00 00 00 1d 04 02 81 00
+47 E:39 95 a7 00 00 00 00 00 0f 04 00 05 1d 04
+48 E:1c 96 a7 00 00 00 00 00 0c 08 00 81 00 03 0f 00 0e 43
+49 C:8c 9d a7 00 00 00 00 00 1b 04 02 81 00
+4a E:ae 9e a7 00 00 00 00 00 0f 04 00 05 1b 04
+4b E:9e 9f a7 00 00 00 00 00 0b 0b 00 81 00 ff ff 8d fe 9b f9 00 80
+4c C:d5 a6 a7 00 00 00 00 00 19 04 0a dc ea 34 a0 a2 78 01 00 00 00
+4d E:91 a8 a7 00 00 00 00 00 0f 04 00 05 19 04
+4e H:d9 b3 a7 00 00 00 00 00 81 20 0a 00 06 00 01 00 0a 02 02 00 02 00
+4f E:48 bb a7 00 00 00 00 00 07 ff 00 dc ea 34 a0 a2 78 57 69 69 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+50 E:ff be a7 00 00 00 00 00 13 05 01 81 00 01 00
+51 C:ad c0 a7 00 00 00 00 00 0d 08 04 81 00 05 00
+52 E:d3 c1 a7 00 00 00 00 00 0e 06 05 0d 08 00 81 00
+53 C:18 d1 a7 00 00 00 00 00 1c 04 03 81 00 01
+54 E:57 d3 a7 00 00 00 00 00 0f 04 00 05 1c 04
+55 D:18 0e a8 00 00 00 00 00 81 20 0c 00 08 00 01 00 0b 02 04 00 02 00 01 00
+56 C:65 14 a8 00 00 00 00 00 35 0c 05 01 81 00 01 00
+57 E:6b 17 a8 00 00 00 00 00 23 0d 00 81 00 01 00 00 00 00 00 00 00 00 00
+58 C:51 29 a8 00 00 00 00 00 0f 04 04 81 00 18 cc
+59 E:93 2a a8 00 00 00 00 00 0f 04 00 05 0f 04
+5a E:dc 2b a8 00 00 00 00 00 1d 05 00 81 00 18 cc
+5b C:47 31 a8 00 00 00 00 00 0d 08 04 81 00 05 00
+5c E:4a 32 a8 00 00 00 00 00 0e 06 05 0d 08 00 81 00
+5d D:37 65 a8 00 00 00 00 00 81 20 0c 00 08 00 01 00 02 01 04 00 01 00 42 00
+5e C:69 6a a8 00 00 00 00 00 35 0c 05 01 81 00 01 00
+5f H:c5 a2 a8 00 00 00 00 00 81 20 10 00 0c 00 01 00 03 01 08 00 40 00 42 00 00 00 00 00
+60 H:63 c2 a8 00 00 00 00 00 81 20 10 00 0c 00 01 00 04 03 08 00 42 00 00 00 01 02 a0 02
+I (11769) BT_L2CAP: L2CA_ConfigRsp()  CID: 0x0040  Result: 0 MTU present:0 Flush TO:0 FCR:0 FCS:0
+I (11775) BT_L2CAP: L2CAP - Calling Config_Rsp_Cb(), CID: 0x0040
+I (11785) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 14
+I (11795) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 250
+I (11807) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 213
+I (11819) BT_BTM: BTM_SetPowerMode: pm_id 128 BDA: a034eadc mode:0x0
+I (11819) BT_L2CAP: L2CAP - Calling Disconnect_Ind_Cb(), CID: 0x0040  Conf Needed
+I (11821) BT_L2CAP: L2CA_DisconnectRsp()  CID: 0x0040
+I (11837) BT_BTM: BTM_SetPowerMode: pm_id 128 BDA: a034eadc mode:0x0
+I (11839) BT_L2CAP: L2CAP - Calling Connect_Ind_Cb(), CID: 0x0041
+I (11841) BT_L2CAP: L2CA_ErtmConnectRsp()  CID: 0x0041  Result: 0  Status: 0  BDA: 78a2a034eadc  p_ertm_info:0
+I (11851) BT_L2CAP: L2CA_ConfigReq()  CID 0x0041: fcr_present:0 (mode 0) mtu_present:1 (64)
+61 E:f4 fd a8 00 00 00 00 00 13 05 01 81 00 01 00
+62 E:e0 41 ac 00 00 00 00 00 13 05 01 81 00 01 00
+63 D:c6 42 ac 00 00 00 00 00 81 20 14 00 10 00 01 00 04 02 0c 00 40 00 00 00 01 02 00 01 02 02 ff ff
+64 D:a5 43 ac 00 00 00 00 00 81 20 0e 00 0a 00 01 00 05 03 06 00 40 00 00 00 00 00
+65 C:9d 49 ac 00 00 00 00 00 35 0c 05 01 81 00 01 00
+66 C:2f 4c ac 00 00 00 00 00 35 0c 05 01 81 00 01 00
+67 H:ec 65 ac 00 00 00 00 00 81 20 0e 00 0a 00 01 00 05 02 06 00 42 00 00 00 00 00
+68 E:56 75 ac 00 00 00 00 00 13 05 01 81 00 01 00
+69 D:cf 83 ac 00 00 00 00 00 81 20 11 00 0d 00 40 00 02 00 00 00 08 35 03 19 11 24 00 15 00
+6a C:97 88 ac 00 00 00 00 00 35 0c 05 01 81 00 01 00
+6b H:b5 94 ac 00 00 00 00 00 81 20 12 00 0e 00 42 00 03 00 00 00 09 00 01 00 01 00 01 00 01 00
+6c E:4c a1 ac 00 00 00 00 00 13 05 01 81 00 01 00
+6d D:bc aa ac 00 00 00 00 00 81 20 17 00 13 00 40 00 04 00 01 00 0e 00 01 00 01 00 f0 35 05 0a 00 00 ff ff 00
+6e C:34 ae ac 00 00 00 00 00 35 0c 05 01 81 00 01 00
+6f H:e9 bb ac 00 00 00 00 00 81 20 fe 00 fa 00 42 00 05 00 01 00 f5 00 f0 36 01 ba 09 00 00 0a 00 01 00 01 09 00 01 35 03 19 11 24 09 00 04 35 0d 35 06 19 01 00 09 00 11 35 03 19 00 11 09 00 05 35 03 19 10 02 09 00 06 35 09 09 65 6e 09 00 6a 09 01 00 09 00 09 35 08 35 06 19 11 24 09 01 00 09 00 0d 35 0f 35 0d 35 06 19 01 00 09 00 13 35 03 19 00 11 09 01 00 25 14 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 00 09 01 01 25 14 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 00 09 01 02 25 09 4e 69 6e 74 65 6e 64 6f 00 09 02 00 09 01 00 09 02 01 09 01 11 09 02 02 08 04 09 02 03 08 21 09 02 04 28 01 09 02 05 28 01 09 02 06 35 d5 35 d3 08 22 25 cf 05 01 09 05 a1 01 85 10 75 08 95 01 91 00 85 11 75 08 95 01 91 00 85 12 75 08 95 02 91 00 85 13 75 08 95 01 91 00 85 14 75 02 00 f0
+70 E:3d cd ac 00 00 00 00 00 13 05 01 81 00 01 00
+71 D:89 db ac 00 00 00 00 00 81 20 19 00 15 00 40 00 04 00 02 00 10 00 01 00 01 00 f0 35 05 0a 00 00 ff ff 02 00 f0
+72 C:f8 de ac 00 00 00 00 00 35 0c 05 01 81 00 01 00
+73 H:05 eb ac 00 00 00 00 00 81 20 d9 00 d5 00 42 00 05 00 02 00 d0 00 cd 08 95 01 91 00 85 15 75 08 95 01 91 00 85 16 75 08 95 15 91 00 85 17 75 08 95 06 91 00 85 18 75 08 95 15 91 00 85 19 75 08 95 01 91 00 85 1a 75 08 95 01 91 00 85 20 75 08 95 06 81 00 85 21 75 08 95 15 81 00 85 22 75 08 95 04 81 00 85 30 75 08 95 02 81 00 85 31 75 08 95 05 81 00 85 32 75 08 95 0a 81 00 85 33 75 08 95 11 81 00 85 34 75 08 95 15 81 00 85 35 75 08 95 15 81 00 85 36 75 08 95 15 81 00 85 37 75 08 95 15 81 00 85 3d 75 08 95 15 81 00 85 3e 75 08 95 15 81 00 85 3f 75 08 95 15 81 00 c0 09 02 07 35 08 35 06 09 04 09 09 01 00 09 02 09 28 01 09 02 0a 28 00 09 02 0b 09 01 00 09 02 0d 28 01 09 02 0e 28 01 00
+74 E:09 fe ac 00 00 00 00 00 13 05 01 81 00 01 00
+75 D:5d 0c ad 00 00 00 00 00 81 20 0c 00 08 00 01 00 06 03 04 00 40 00 42 00
+76 C:c4 0f ad 00 00 00 00 00 35 0c 05 01 81 00 01 00
+77 H:a6 33 ad 00 00 00 00 00 81 20 0c 00 08 00 01 00 07 03 04 00 40 00 42 00
+78 E:75 42 ad 00 00 00 00 00 13 05 01 81 00 01 00
+79 D:c1 50 ad 00 00 00 00 00 81 20 0c 00 08 00 01 00 02 04 04 00 11 00 41 00
+7a C:4a 54 ad 00 00 00 00 00 35 0c 05 01 81 00 01 00
+7b H:a6 90 ad 00 00 00 00 00 81 20 10 00 0c 00 01 00 03 04 08 00 41 00 41 00 00 00 00 00
+7c H:87 b0 ad 00 00 00 00 00 81 20 10 00 0c 00 01 00 04 04 08 00 41 00 00 00 01 02 40 00
+7d E:c0 e9 ad 00 00 00 00 00 13 05 01 81 00 01 00
+7e E:e7 ec ad 00 00 00 00 00 13 05 01 81 00 01 00
+I (12175) BT_L2CAP: L2CA_ConfigRsp()  CID: 0x0041  Result: 0 MTU present:0 Flush TO:0 FCR:0 FCS:0
+I (12183) BT_L2CAP: L2CAP - Calling Config_Rsp_Cb(), CID: 0x0041
+I (12187) esp_bt_gap_cb: [PAIR] Legacy PIN request received (Wii-style binary PIN), min_16_digit=0
+I (12193) esp_bt_gap_cb: [PAIR] Using sync PIN source: reverse host BD_ADDR
+I (12201) esp_bt_gap_cb: dc ea 34 a0 a2 78
+I (12259) BT_BTM: BTM_SetPowerMode: pm_id 128 BDA: a034eadc mode:0x0
+I (12261) BT_L2CAP: L2CAP - Calling Connect_Ind_Cb(), CID: 0x0040
+I (12261) BT_L2CAP: L2CA_ErtmConnectRsp()  CID: 0x0040  Result: 0  Status: 0  BDA: 78a2a034eadc  p_ertm_info:0
+I (12273) BT_L2CAP: L2CA_ConfigReq()  CID 0x0040: fcr_present:0 (mode 0) mtu_present:1 (64)
+I (12287) esp_bt_gap_cb: [PAIR] Authentication complete (legacy mode), device: Wii
+I (12287) esp_bt_gap_cb: 78 a2 a0 34 ea dc
+I (12301) BT_L2CAP: L2CA_ConfigRsp()  CID: 0x0040  Result: 0 MTU present:0 Flush TO:0 FCR:0 FCS:0
+I (12305) BT_L2CAP: L2CAP - Calling Config_Rsp_Cb(), CID: 0x0040
+I (12307) BT_L2CAP: L2CA_SetDesireRole() new:x1, disallow_switch:0
+W (12313) BT_APPL: new conn_srvc id:20, app_id:1
+I (12319) esp_bt_hidd_cb: connected to 78:a2:a0:34:ea:dc
+I (12323) esp_bt_hidd_cb: [PAIR] HID #FEAT# ATTE2 status:0
+connected; disabling discoverability/connectability
+W (12329) BT_HCI: hcif mode change: hdl 0x81, mode 2, intv 8, status 0x0
+I (12339) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12347) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 8
+I (12351) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12357) esp_bt_gap_cb: ESP_BT_GAP_MODE_CHG_EVT mode:2
+I (12357) BT_BTM: BTM_ReadDiscoverability
+
+I (12361) BT_BTM: BTM_ReadConnectability
+
+I (12365) BT_BTM: BTM_SetDiscoverability
+
+I (12369) BT_BTM: BTM_SetDiscoverability: mode 0 [NonDisc-0, Lim-1, Gen-2], window 0x0012, interval 0x0800
+
+I (12383) BT_BTM: BTM_SetConnectability
+
+I (12383) BT_BTM: BTM_SetConnectability: mode 0 [NonConn-0, Conn-1], window 0x0012, interval 0x0800
+
+I (12395) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (12399) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12403) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x20, type:1
+I (12409) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12417) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (12421) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12429) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 6
+I (12433) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12439) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12441) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12449) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x22, type:1
+I (12453) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12459) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12467) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12471) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12479) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12483) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12487) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 6
+I (12493) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12499) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12503) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12513) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12515) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12521) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x22, type:1
+I (12523) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12531) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12537) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12541) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12549) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12553) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12561) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12567) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12569) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12577) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12579) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 6
+I (12587) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12593) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12597) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12603) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12609) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12615) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12617) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12625) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x22, type:1
+I (12629) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12635) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12643) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12647) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12651) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12659) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12661) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12669) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12673) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12681) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12683) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12693) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12695) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (12703) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (12707) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (12713) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (12719) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12723) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12727) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12735) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12737) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12747) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12749) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12757) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12759) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12769) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12773) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (12775) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (12781) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12789) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (12793) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (12799) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12807) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12809) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12819) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12821) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12829) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12833) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12839) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12843) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12851) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12853) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12861) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12867) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12873) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12875) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12883) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12889) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12891) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12899) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12903) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12911) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12915) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (12923) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (12927) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (12933) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (12937) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12943) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12947) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12953) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12957) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12967) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12971) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12973) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12979) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12987) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (12991) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (12995) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13001) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13009) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13011) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13019) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13023) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13031) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13035) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (13039) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (13045) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13053) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (13055) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (13061) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13067) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13075) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13081) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13085) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13093) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13095) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13101) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13109) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13113) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13117) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13123) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13131) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13137) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13141) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13147) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13151) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13159) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13161) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13169) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13173) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13181) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13187) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13189) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13197) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13201) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13205) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13211) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13219) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13221) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13229) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (13237) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (13241) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (13247) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13251) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13253) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13261) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13265) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13273) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13275) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13283) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13287) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13293) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13297) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13305) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13309) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (13317) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (13319) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+

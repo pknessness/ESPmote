@@ -1,0 +1,245 @@
+I (409) app_init: Compile time:     Sep  3 2026 21:45:40
+I (414) app_init: ELF file SHA256:  23a706879...
+I (419) app_init: ESP-IDF:          v6.0-dirty
+I (423) efuse_init: Min chip rev:     v0.0
+I (427) efuse_init: Max chip rev:     v3.99
+I (431) efuse_init: Chip rev:         v3.1
+I (435) heap_init: Initializing. RAM available for dynamic allocation:
+I (441) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (446) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (451) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (456) heap_init: At 3FFC9018 len 00016FE8 (91 KiB): DRAM
+I (461) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (467) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (472) heap_init: At 40098E64 len 0000719C (28 KiB): IRAM
+I (479) spi_flash: detected chip: generic
+I (481) spi_flash: flash io: dio
+W (484) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (498) coexist: coex firmware version: 093e3d2
+I (501) main_task: Started on CPU0
+I (503) main_task: Calling app_main()
+I (505) app_main: === Wii Remote emulation boot ===
+I (511) app_main: Target identity: name='Nintendo RVL-CNT-01', VID=0x057E, PID=0x0306
+I (519) wiimote_uart: UART button input active on UART0: press '+<key>', release '-<key>'; keys [W/A/S/D=DPAD, space=2, /=1, h=HOME]
+I (541) BTDM_INIT: BT controller compile version [045a658]
+I (541) BTDM_INIT: Using main XTAL as clock source
+I (543) BTDM_INIT: Bluetooth MAC: 70:4b:ca:7c:16:be
+I (549) phy_init: phy_version 4863,a3a4459,Oct 28 2025,14:30:06
+I (637) phy_init: Saving new calibration data due to checksum failure or outdated calibration data, mode(0)
+I (1127) BT_BTM: btm_sec_set_security_level : sec: 0x0
+
+I (1127) BT_BTM: BTM_SEC_REG[0]: id 0, is_orig 0, psm 0x0001, proto_id 0, chan_id 0
+
+I (1129) BT_BTM:                : sec: 0x80, service name [Service Discovery] (up to 21 chars saved)
+
+I (1139) BT_BTM: btm_sec_set_security_level : sec: 0x0
+
+I (1143) BT_BTM: BTM_SEC_REG[0]: id 0, is_orig 1, psm 0x0001, proto_id 0, chan_id 0
+
+I (1151) BT_BTM:                : sec: 0x80, service name [Service Discovery] (up to 21 chars saved)
+
+I (1207) BT_BTM: BTM_SetPinType: pin type 0 [variable-0, fixed-1], code , length 0
+
+I (1209) BT_BTM: BTM_SetInquiryMode
+
+I (1209) BT_BTM: BTM_SetPageScanType
+
+I (1213) BT_BTM: BTM_SetInquiryScanType
+
+I (1235) BT_BTM: BTM_SecAddDevice, link key type:0
+
+I (1237) BT_BTM: BTM_SecAddDevice, link key type:0
+
+I (1239) BT_BTM: Write Extended Inquiry Response to controller
+
+I (1247) esp_sdp_cb: SDP initialized; creating Nintendo DI record
+I (1247) create_wiimote_di_record: DI record request submitted
+I (1253) BT_BTM: Write Extended Inquiry Response to controller
+
+I (1259) esp_bt_gap_cb: event: 10
+I (1263) esp_sdp_cb: DI record created (handle=65536, vid=0x057E pid=0x0306 ver=0x0100)
+I (1267) app_main: setting device name
+I (1273) BT_BTM: Write Extended Inquiry Response to controller
+
+I (1279) esp_bt_gap_cb: event: 10
+I (1281) app_main: setting Wii Remote class of device (0x002504)
+I (3287) app_main: register hid device callback
+I (3287) app_main: starting hid device
+I (3287) BT_HIDD: HID_DevSetSecurityLevel
+I (3287) BT_BTM: btm_sec_set_security_level : sec: 0x36
+
+I (3291) BT_BTM: BTM_SEC_REG[1]: id 51, is_orig 0, psm 0x0011, proto_id 6, chan_id 3
+
+I (3299) BT_BTM:                : sec: 0x86, service name [] (up to 21 chars saved)
+
+I (3307) BT_BTM: btm_sec_set_security_level : sec: 0x36
+
+I (3313) BT_BTM: BTM_SEC_REG[1]: id 51, is_orig 1, psm 0x0011, proto_id 6, chan_id 3
+
+I (3319) BT_BTM:                : sec: 0xb6, service name [] (up to 21 chars saved)
+
+I (3327) BT_BTM: btm_sec_set_security_level : sec: 0x0
+
+I (3333) BT_BTM: BTM_SEC_REG[2]: id 52, is_orig 0, psm 0x0011, proto_id 6, chan_id 4
+
+I (3341) BT_BTM:                : sec: 0x80, service name [] (up to 21 chars saved)
+
+I (3347) BT_BTM: btm_sec_set_security_level : sec: 0x0
+
+I (3353) BT_BTM: BTM_SEC_REG[2]: id 52, is_orig 1, psm 0x0011, proto_id 6, chan_id 4
+
+I (3361) BT_BTM:                : sec: 0x80, service name [] (up to 21 chars saved)
+
+I (3367) BT_BTM: btm_sec_set_security_level : sec: 0x0
+
+I (3373) BT_BTM: BTM_SEC_REG[3]: id 53, is_orig 1, psm 0x0013, proto_id 6, chan_id 0
+
+I (3381) BT_BTM:                : sec: 0x80, service name [] (up to 21 chars saved)
+
+I (3389) BT_BTM: btm_sec_set_security_level : sec: 0x0
+
+I (3393) BT_BTM: BTM_SEC_REG[3]: id 53, is_orig 0, psm 0x0013, proto_id 6, chan_id 0
+
+I (3401) BT_BTM:                : sec: 0x80, service name [] (up to 21 chars saved)
+
+I (3409) BT_HIDD: HID_DevRegister
+I (3411) BT_HIDD: hidd_conn_reg
+I (3415) esp_bt_hidd_cb: setting hid parameters
+I (3419) BT_HIDD: HID_DevAddRecord
+I (3423) BT_BTM: Write Extended Inquiry Response to controller
+
+I (3429) BT_HIDD: HID_DevSetIncomingQos
+I (3433) BT_HIDD: HID_DevSetOutgoingQos
+I (3435) BT_HIDD: HID_DevGetDevice
+I (3437) esp_bt_gap_cb: event: 10
+I (3441) esp_bt_hidd_cb: HID register success; opening sync-style pairing window
+I (3447) pairing_window: [PAIR][1/4] Entering 20s sync-style discoverable window
+I (3455) pairing_window: [PAIR][2/4] Waiting for host inquiry/authentication
+I (3461) BT_BTM: BTM_ReadDiscoverability
+
+I (3465) BT_BTM: BTM_ReadConnectability
+
+I (3469) BT_BTM: BTM_SetDiscoverability
+
+I (3473) BT_BTM: BTM_SetDiscoverability: mode 1 [NonDisc-0, Lim-1, Gen-2], window 0x0012, interval 0x0800
+
+I (3483) BT_BTM: BTM_SetConnectability
+
+I (3487) BT_BTM: BTM_SetConnectability: mode 1 [NonConn-0, Conn-1], window 0x0012, interval 0x0800
+
+I (3497) BT_BTM: BTM_SetPinType: pin type 0 [variable-0, fixed-1], code @�M@, length 0
+
+I (3503) app_main: Own address:[70:4b:ca:7c:16:be]
+I (3507) app_main: Pairing behavior: sync-style window opens after HID register success
+I (3515) app_main: Use reset/reboot to simulate pressing red sync on a physical Wiimote
+I (3523) main_task: Returned from app_main()
+W (20531) BT_HCI: hcif conn complete: hdl 0x81, st 0x0
+I (20531) BT_BTM: BTM_InqDbRead: bd addr [78a2a034eadc]
+
+I (20541) BT_BTM: btm_sec_set_peer_sec_caps: sm4: 0x10, rmt_support_for_secure_connections 0
+
+I (20541) BT_BTM: btm_process_remote_ext_features: pend:0
+
+I (20551) BT_L2CAP: L2CA_SetDesireRole() new:x1, disallow_switch:0
+I (20537) esp_bt_gap_cb: event: 16
+I (20581) BT_BTM: BTM_SetPowerMode: pm_id 128 BDA: a034eadc mode:0x0
+I (20583) BT_L2CAP: L2CAP - Calling Connect_Ind_Cb(), CID: 0x0040
+I (20583) BT_L2CAP: L2CA_ErtmConnectRsp()  CID: 0x0040  Result: 0  Status: 0  BDA: 78a2a034eadc  p_ertm_info:0
+I (20593) BT_L2CAP: L2CA_ConfigReq()  CID 0x0040: fcr_present:0 (mode 0) mtu_present:1 (672)
+I (20625) BT_L2CAP: L2CA_ConfigRsp()  CID: 0x0040  Result: 0 MTU present:0 Flush TO:0 FCR:0 FCS:0
+I (20627) BT_L2CAP: L2CAP - Calling Config_Rsp_Cb(), CID: 0x0040
+I (20635) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 14
+I (20647) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 250
+I (20659) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 213
+I (20671) BT_BTM: BTM_SetPowerMode: pm_id 128 BDA: a034eadc mode:0x0
+I (20673) BT_L2CAP: L2CAP - Calling Disconnect_Ind_Cb(), CID: 0x0040  Conf Needed
+I (20673) BT_L2CAP: L2CA_DisconnectRsp()  CID: 0x0040
+I (20687) BT_BTM: BTM_SetPowerMode: pm_id 128 BDA: a034eadc mode:0x0
+I (20689) BT_L2CAP: L2CAP - Calling Connect_Ind_Cb(), CID: 0x0041
+I (20691) BT_L2CAP: L2CA_ErtmConnectRsp()  CID: 0x0041  Result: 0  Status: 0  BDA: 78a2a034eadc  p_ertm_info:0
+I (20703) BT_L2CAP: L2CA_ConfigReq()  CID 0x0041: fcr_present:0 (mode 0) mtu_present:1 (64)
+I (20729) BT_L2CAP: L2CA_ConfigRsp()  CID: 0x0041  Result: 0 MTU present:0 Flush TO:0 FCR:0 FCS:0
+I (20735) BT_L2CAP: L2CAP - Calling Config_Rsp_Cb(), CID: 0x0041
+I (20745) esp_bt_gap_cb: [PAIR] Legacy PIN request received (Wii-style binary PIN), min_16_digit=0
+I (20747) esp_bt_gap_cb: [PAIR] Using sync PIN source: reverse host BD_ADDR
+I (20751) esp_bt_gap_cb: dc ea 34 a0 a2 78
+I (20815) BT_BTM: BTM_SetPowerMode: pm_id 128 BDA: a034eadc mode:0x0
+I (20817) BT_L2CAP: L2CAP - Calling Connect_Ind_Cb(), CID: 0x0040
+I (20817) BT_L2CAP: L2CA_ErtmConnectRsp()  CID: 0x0040  Result: 0  Status: 0  BDA: 78a2a034eadc  p_ertm_info:0
+I (20829) BT_L2CAP: L2CA_ConfigReq()  CID 0x0040: fcr_present:0 (mode 0) mtu_present:1 (64)
+I (20841) esp_bt_gap_cb: [PAIR] Authentication complete (legacy mode), device: Wii
+I (20843) esp_bt_gap_cb: 78 a2 a0 34 ea dc
+I (20857) BT_L2CAP: L2CA_ConfigRsp()  CID: 0x0040  Result: 0 MTU present:0 Flush TO:0 FCR:0 FCS:0
+I (20861) BT_L2CAP: L2CAP - Calling Config_Rsp_Cb(), CID: 0x0040
+I (20863) BT_L2CAP: L2CA_SetDesireRole() new:x1, disallow_switch:0
+W (20867) BT_APPL: new conn_srvc id:20, app_id:1
+#FEAT# ATTE2 status:0
+W (20877) BT_HCI: hcif mode change: hdl 0x81, mode 2, intv 8, status 0x0
+I (20881) esp_bt_hidd_cb: connected to 78:a2:a0:34:ea:dc
+I (20887) esp_bt_hidd_cb: [PAIR] HID connected; disabling discoverability/connectability
+I (20893) esp_bt_gap_cb: ESP_BT_GAP_MODE_CHG_EVT mode:2
+I (20899) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (20907) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 8
+I (20911) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (20917) BT_BTM: BTM_ReadDiscoverability
+
+I (20919) BT_BTM: BTM_ReadConnectability
+
+I (20921) BT_BTM: BTM_SetDiscoverability
+
+I (20925) BT_BTM: BTM_SetDiscoverability: mode 0 [NonDisc-0, Lim-1, Gen-2], window 0x0012, interval 0x0800
+
+I (20939) BT_BTM: BTM_SetConnectability
+
+I (20939) BT_BTM: BTM_SetConnectability: mode 0 [NonConn-0, Conn-1], window 0x0012, interval 0x0800
+
+I (20951) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (20955) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (20959) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x20, type:1
+I (20965) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (20971) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (20977) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (20985) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 6
+I (20989) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (20993) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (21001) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x22, type:1
+I (21005) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (21011) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (21015) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (21023) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (21025) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 6
+I (21033) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (21039) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (21043) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (21053) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x22, type:1
+I (21053) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (21061) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (21063) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (21071) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (21075) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (21083) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (21085) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (21093) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (21097) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 6
+I (21105) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (21109) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (21113) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (21123) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (21125) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (21131) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x22, type:1
+I (21135) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (21143) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (21147) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (21155) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (21159) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (21165) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (21169) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (21175) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (21179) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (21189) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (21191) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (21199) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (21203) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (21209) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (21215) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (21219) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1

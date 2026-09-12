@@ -79,6 +79,8 @@ esp_err_t esp_hid_gap_deinit(void);
 esp_err_t esp_hid_ble_gap_adv_init(uint16_t appearance, const char *device_name);
 esp_err_t esp_hid_ble_gap_adv_start(void);
 
+void bt_gap_event_handler(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param);
+
 #ifdef __cplusplus
 }
 #endif

@@ -43,6 +43,7 @@ types:
     seq:
       - id: data_element_header
         type: data_header
+        #if: data_element_header.type_descriptor == data_element_type::data_element_sequence
       - id: data
         size: data_element_header.data_length
         type:
@@ -51,7 +52,58 @@ types:
             'data_element_type::text_string': name
             'data_element_type::data_element_sequence': data_element_sequence
             'data_element_type::data_element_alternative': data_element_sequence
-            
+            'data_element_type::unsigned_integer': uint_type
+            'data_element_type::signed_integer': sint_type
+            'data_element_type::uuid': uuid_type
+            'data_element_type::boolean': bool_type
+            'data_element_type::uniform_resource_locator': url_type
+
+    instances:
+      ins_attribute_type:
+        value: data_element_header.type_descriptor
+      # ins_value:
+      #   value: data.value
+      #   if: data_element_type.type_descriptor == data_element_type::unsigned_integer
+
+  uint_type:
+    seq:
+      - id: value
+        type:
+          switch-on: _parent.data_element_header.data_length
+          cases:
+            1: u1
+            2: u2
+            4: u4
+            8: u8  # or use b8 for raw bytes
+
+  sint_type:
+    seq:
+      - id: value
+        type:
+          switch-on: _parent.data_element_header.data_length
+          cases:
+            1: s1
+            2: s2
+            4: s4
+            8: s8
+
+  uuid_type:
+    seq:
+      - id: value
+        size: _parent.data_element_header.data_length
+
+  bool_type:
+    seq:
+      - id: value
+        type: u1
+
+  url_type:
+    seq:
+      - id: value
+        type: str
+        encoding: UTF-8
+        size-eos: true
+  
   data_element_sequence:
     seq:
       - id: elements

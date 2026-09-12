@@ -1,0 +1,108 @@
+rst:0x3 (SW_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,len:15848
+load:0x40080400,len:3920
+--- 0x40080400: _invalid_pc_placeholder at /home/anshalaj/.espressif/v6.0/esp-idf/components/xtensa/xtensa_vectors.S:2235
+entry 0x40080644
+I (27) boot: ESP-IDF v6.0-dirty 2nd stage bootloader
+I (27) boot: compile time Aug 12 2026 18:53:37
+I (27) boot: Multicore bootloader
+I (29) boot: chip revision: v3.1
+I (31) boot.esp32: SPI Speed      : 40MHz
+I (35) boot.esp32: SPI Mode       : DIO
+I (39) boot.esp32: SPI Flash Size : 2MB
+I (42) boot: Enabling RNG early entropy source...
+I (47) boot: Partition Table:
+I (49) boot: ## Label            Usage          Type ST Offset   Length
+I (56) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (62) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (69) boot:  2 factory          factory app      00 00 00010000 00177000
+I (75) boot: End of partition table
+I (79) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=1e1a4h (123300) map
+I (130) esp_image: segment 1: paddr=0002e1cc vaddr=3ffbdb60 size=01e4ch (  7756) load
+I (133) esp_image: segment 2: paddr=00030020 vaddr=400d0020 size=6d264h (447076) map
+I (293) esp_image: segment 3: paddr=0009d28c vaddr=3ffbf9ac size=033c4h ( 13252) load
+I (299) esp_image: segment 4: paddr=000a0658 vaddr=40080000 size=19324h (103204) load
+I (341) esp_image: segment 5: paddr=000b9984 vaddr=50000000 size=00028h (    40) load
+I (354) boot: Loaded app from partition at offset 0x10000
+I (354) boot: Disabling RNG early entropy source...
+I (364) cpu_start: Multicore app
+I (373) cpu_start: GPIO 3 and 1 are used as console UART I/O pins
+I (373) cpu_start: Pro cpu start user code
+I (373) cpu_start: cpu freq: 160000000 Hz
+I (375) app_init: Application information:
+I (379) app_init: Project name:     esp_hid_device
+I (383) app_init: App version:      6052fa4-dirty
+I (387) app_init: Compile time:     Sep  3 2026 20:54:15
+I (392) app_init: ELF file SHA256:  049d93937...
+I (397) app_init: ESP-IDF:          v6.0-dirty
+I (401) efuse_init: Min chip rev:     v0.0
+I (405) efuse_init: Max chip rev:     v3.99
+I (409) efuse_init: Chip rev:         v3.1
+I (413) heap_init: Initializing. RAM available for dynamic allocation:
+I (419) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (424) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (429) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (434) heap_init: At 3FFC79A0 len 00018660 (97 KiB): DRAM
+I (440) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (445) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (450) heap_init: At 40099324 len 00006CDC (27 KiB): IRAM
+I (457) spi_flash: detected chip: generic
+I (459) spi_flash: flash io: dio
+W (462) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (476) coexist: coex firmware version: 093e3d2
+I (480) main_task: Started on CPU0
+I (482) main_task: Calling app_main()
+I (488) LSM6DS3: LSM6DS3 initialized successfully (ID: 0x6B)
+I (490) LSM6DS3: Successful Creation
+I (496) PIXART: PIXART_IR initialized successfully
+I (498) PIXART_IR: Successful Creation
+I (512) HID_DEVICE: setting hid gap, mode:2
+I (514) BTDM_INIT: BT controller compile version [045a658]
+I (514) BTDM_INIT: Using main XTAL as clock source
+I (516) BTDM_INIT: Bluetooth MAC: cc:9e:00:7c:16:be
+I (524) phy_init: phy_version 4863,a3a4459,Oct 28 2025,14:30:06
+I (1162) ESP_HID_GAP: VARIABLE PIN SET: UNDEFINED
+I (1166) HID_DEVICE: setting device name
+I (1172) HID_DEVICE: setting cod major, peripheral
+I (2176) HID_DEVICE: setting bt device
+I (2188) HID_DEV_BT: START OK
+I (2188) HID_DEV_BT: Setting to connectable, discoverable
+I (2190) ADC: ADC CONTINUOUS BEGIN
+I (2208) HID_DEVICE: ESP_SDP_INIT_EVT: status:0
+I (2216) HID_DEVICE: ESP_SDP_CREATE_RECORD_COMP_EVT: status:0, handle:0x10001
+I (2228) IMU_DATA: 611 513 520
+I (2242) IR DATA: 0,0[0] 0,0[0] 0,0[0] 0,0[0]
+I (2242) main_task: Returned from app_main()
+W (107520) BT_HCI: hcif conn complete: hdl 0x80, st 0x0
+I (107532) BT_L2CAP: L2CA_SetDesireRole() new:x1, disallow_switch:0
+I (107580) BT_L2CAP: L2CAP - Calling Connect_Ind_Cb(), CID: 0x0040
+I (107580) BT_L2CAP: L2CA_ErtmConnectRsp()  CID: 0x0040  Result: 0  Status: 0  BDA: 78a2a034eadc  p_ertm_info:0
+I (107586) BT_L2CAP: L2CA_ConfigReq()  CID 0x0040: fcr_present:0 (mode 0) mtu_present:1 (672)
+I (107620) BT_L2CAP: L2CA_ConfigRsp()  CID: 0x0040  Result: 0 MTU present:0 Flush TO:0 FCR:0 FCS:0
+I (107624) BT_L2CAP: L2CAP - Calling Config_Rsp_Cb(), CID: 0x0040
+I (107640) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 14
+I (107656) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 250
+I (107674) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 223
+I (107692) BT_L2CAP: L2CAP - Calling Disconnect_Ind_Cb(), CID: 0x0040  Conf Needed
+I (107692) BT_L2CAP: L2CA_DisconnectRsp()  CID: 0x0040
+W (108910) BT_HCI: hcif disc complete: hdl 0x80, rsn 0x13 dev_find 1
+I (108910) BT_L2CAP: L2CA_SetDesireRole() new:x1, disallow_switch:0
+W (128224) BT_HCI: hcif conn complete: hdl 0x80, st 0x0
+I (128226) BT_L2CAP: L2CA_SetDesireRole() new:x1, disallow_switch:0
+I (128240) BT_L2CAP: L2CAP - Calling Connect_Ind_Cb(), CID: 0x0041
+I (128242) BT_L2CAP: L2CA_ErtmConnectRsp()  CID: 0x0041  Result: 0  Status: 0  BDA: 78a2a034eadc  p_ertm_info:0
+I (128260) BT_L2CAP: L2CA_ConfigReq()  CID 0x0041: fcr_present:0 (mode 0) mtu_present:1 (672)
+I (128264) BT_L2CAP: L2CA_ConfigRsp()  CID: 0x0041  Result: 0 MTU present:0 Flush TO:0 FCR:0 FCS:0
+I (128280) BT_L2CAP: L2CAP - Calling Config_Rsp_Cb(), CID: 0x0041
+I (128282) BT_L2CAP: L2CA_DataWrite()  CID: 0x0041  Len: 14
+I (128300) BT_L2CAP: L2CA_DataWrite()  CID: 0x0041  Len: 250
+I (128314) BT_L2CAP: L2CA_DataWrite()  CID: 0x0041  Len: 223
+I (128330) BT_L2CAP: L2CAP - Calling Disconnect_Ind_Cb(), CID: 0x0041  Conf Needed
+I (128330) BT_L2CAP: L2CA_DisconnectRsp()  CID: 0x0041
+W (129940) BT_HCI: hcif disc complete: hdl 0x80, rsn 0x13 dev_find 1
+I (129940) BT_L2CAP: L2CA_SetDesireRole() new:x1, disallow_switch:0
+

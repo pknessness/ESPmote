@@ -10,6 +10,7 @@
 #include <string.h>
 #include <inttypes.h>
 
+#include "esp_gap_bt_api.h"
 #include "esp_rom_crc.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -20,15 +21,14 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "esp_bt.h"
+#include "esp_hidd_api.h"
 
 
 #include "esp_bt_defs.h"
 #include "esp_bt_main.h"
 #include "esp_bt_device.h"
 #include "portmacro.h"
-#if CONFIG_BT_SDP_COMMON_ENABLED
 #include "esp_sdp_api.h"
-#endif /* CONFIG_BT_SDP_COMMON_ENABLED */
 
 #include "esp_hidd.h"
 #include "esp_hid_gap.h"
@@ -42,7 +42,11 @@
 #include "lsm6ds3.h"
 #include "pixart_ir.h"
 
-#include "esp_adc/adc_continuous.h"
+#include "esp_adc/adc_oneshot.h"
+
+#define GENERAL_DISCOVERY
+
+//#define HCI_DEBUG
 
 static const char *TAG = "HID_DEVICE";
 static const char *TAGSEND = "WIIMOTE_OUTPUT";
@@ -60,8 +64,12 @@ static const char *TAGW = "WII_OUTPUT";
 #define EXAMPLE_ADC_GET_CHANNEL(p_data)     ((p_data)->type1.channel)
 #define EXAMPLE_ADC_GET_DATA(p_data)        ((p_data)->type1.data)
 
+constexpr int WIIMOTE_OUTPUT_DT = 100;
+
 typedef struct //came with bt example
 {
+	esp_hidd_app_param_t app_param;
+    esp_hidd_qos_param_t both_qos;
     TaskHandle_t task_hdl;
     esp_hidd_dev_t *hid_dev;
     uint8_t protocol_mode;
@@ -109,10 +117,10 @@ typedef enum {
     // Output Reports (O_) - Wii to Wii Remote
     ACK_SUCCESS                         = 0x00,
     ACK_ERROR                           = 0x03,
-    ACK_UNKNOWN1                        = 0x04,
-    ACK_UNKNOWN2                        = 0x05,
+    ACK_UNKNOWN1                        = 0x04, //possibly returned by report 0x16, 0x17 or 0x18
+    ACK_UNKNOWN2                        = 0x05, //possibly returned by report 0x12
 	ACK_INACTIVE_EXTENSION              = 0x07, //for when writing to an unconnected extension like deactive motion plus
-    ACK_UNKNOWN3                        = 0x08,
+    ACK_UNKNOWN3                        = 0x08, //possibly returned by report 0x16 (according to loren ashfield this is the invalid address error)
 } ack_error_code_t;
 
 //From https://wiibrew.org/wiki/Wiimote#0x21:_Read_Memory_Data
@@ -135,42 +143,43 @@ typedef enum {
 
 // EXTENSION IDS
 // Decrypted last 2 bytes (lowest 16 bits) for each device
-const uint16_t EXT_NONE                        = 0x0000;  // None
-const uint16_t EXT_NUNCHUK                     = 0x0000;  // Nunchuk
-const uint16_t EXT_CLASSIC_CONTROLLER          = 0x0101;  // Classic Controller 
-const uint16_t EXT_WII_MOTION_PLUS_INACTIVE    = 0x0005;  // Inactive Wii Motion Plus (Built-in)
-const uint16_t EXT_WII_MOTION_PLUS_ACTIVE      = 0x0405;  // Activated Wii Motion Plus
-const uint16_t EXT_WII_MOTION_PLUS_NUNCHUK_PASSTHROUGH = 0x0505;  // Activated Wii Motion Plus in Nunchuck passthrough mode
-const uint16_t EXT_WII_MOTION_PLUS_CLASSIC_PASSTHROUGH = 0x0705;  // Activated Wii Motion Plus in Classic Controller passthrough mode
+constexpr uint16_t EXT_NONE                        = 0x0000;  // None
+//constexpr uint16_t EXT_NUNCHUK                     = 0x0000;  // Nunchuk
+//constexpr uint16_t EXT_CLASSIC_CONTROLLER          = 0x0101;  // Classic Controller 
+//constexpr uint16_t EXT_WII_MOTION_PLUS_INACTIVE    = 0x0005;  // Inactive Wii Motion Plus (Built-in)
+constexpr uint16_t EXT_WII_MOTION_PLUS_ACTIVE      = 0x0405;  // Activated Wii Motion Plus
+//constexpr uint16_t EXT_WII_MOTION_PLUS_NUNCHUK_PASSTHROUGH = 0x0505;  // Activated Wii Motion Plus in Nunchuck passthrough mode
+//constexpr uint16_t EXT_WII_MOTION_PLUS_CLASSIC_PASSTHROUGH = 0x0705;  // Activated Wii Motion Plus in Classic Controller passthrough mode
 
-const uint16_t EXTENSION_A4_TAG = 0x20A4; //in reverse because memcpy
-const uint16_t EXTENSION_A6_TAG = 0x20A6; //in reverse because memcpy
+constexpr uint16_t EXTENSION_A4_TAG = 0x20A4; //in reverse because memcpy
+//constexpr uint16_t EXTENSION_A6_TAG = 0x20A6; //in reverse because memcpy
 
 // LED GPIO
-#define LED1 GPIO_NUM_12
-#define LED2 GPIO_NUM_13
-#define LED3 GPIO_NUM_14
-#define LED4 GPIO_NUM_15
+constexpr gpio_num_t LED1 = GPIO_NUM_12;
+constexpr gpio_num_t LED2 = GPIO_NUM_13;
+constexpr gpio_num_t LED3 = GPIO_NUM_14;
+constexpr gpio_num_t LED4 = GPIO_NUM_15;
 
 // Button Matrix GPIO
-#define BUTTON_I1 GPIO_NUM_19
-#define BUTTON_I2 GPIO_NUM_18
-#define BUTTON_I3 GPIO_NUM_27
+constexpr gpio_num_t BUTTON_I1 = GPIO_NUM_19;
+constexpr gpio_num_t BUTTON_I2 = GPIO_NUM_18;
+constexpr gpio_num_t BUTTON_I3 = GPIO_NUM_27;
 
-#define BUTTON_O1 GPIO_NUM_36
-#define BUTTON_O2 GPIO_NUM_39
-#define BUTTON_O3 GPIO_NUM_34
-#define BUTTON_O4 GPIO_NUM_35
+// Commented out because we don't use GPIO, we use ADC
+//constexpr gpio_num_t BUTTON_O1 = GPIO_NUM_36;
+//constexpr gpio_num_t BUTTON_O2 = GPIO_NUM_39;
+//constexpr gpio_num_t BUTTON_O3 = GPIO_NUM_34;
+//constexpr gpio_num_t BUTTON_O4 = GPIO_NUM_35;
+//
+//constexpr gpio_num_t BUTTON_A = GPIO_NUM_33;
 
-#define BUTTON_A GPIO_NUM_33
+constexpr unsigned int BUTTON_MATRIX_TIME_ON = 20;
 
-#define BUTTON_MATRIX_TIME_ON 20
-
-#define SPEAKER_GPIO GPIO_NUM_25
-#define RUMBLE_GPIO GPIO_NUM_23
-#define IR_CLK_GPIO GPIO_NUM_26
-#define IR_ENABLE_GPIO GPIO_NUM_17
-#define EXT_SENSE_GPIO GPIO_NUM_4
+constexpr gpio_num_t SPEAKER_GPIO = GPIO_NUM_25;
+constexpr gpio_num_t RUMBLE_GPIO = GPIO_NUM_23;
+constexpr gpio_num_t IR_CLK_GPIO = GPIO_NUM_26;
+constexpr gpio_num_t IR_ENABLE_GPIO = GPIO_NUM_17;
+constexpr gpio_num_t EXT_SENSE_GPIO = GPIO_NUM_4;
 
 TaskHandle_t adc_task_hdl;
 
@@ -195,150 +204,177 @@ typedef enum {
 //boolean value of each button, indexed by button_ids enum
 bool button_array[13] = {0};
 //adc value of each button, indexed by button_ids enum
-int32_t button_array_adc[13] = {0};
+int button_array_adc[13] = {0};
 
 //ADC thresholds for buttons to be considered active
-int32_t button_thresholds[13] = {100,100,100,100,100,100,100,100,100,100,100,100,100};
+int button_thresholds[13] = {100,100,100,100,100,100,100,100,100,100,100,100,100};
 
 //Array of which channels the ADC is looking at during continuous mode
 static adc_channel_t button_adc_channels[5] = {ADC_CHANNEL_0, ADC_CHANNEL_3, ADC_CHANNEL_6, ADC_CHANNEL_7, ADC_CHANNEL_5};
+uint8_t channels_num = sizeof(button_adc_channels) / sizeof(adc_channel_t);
+adc_oneshot_unit_handle_t adc1_handle;
 //O1,2,3,4 = ADC1_ 0, 3, 6, 7
 //A button = ADC1_5
-//TODO: ADD BATTERY READ WHICH IS IO32
+//TODO: ADD BATTERY READ WHICH IS IO32 (CH4)
 
 //ADC channel most recent read
 //Some slots are empty but this is easier to index
-int32_t adc1_channels[10] = {0};
+int adc1_channels[10] = {0};
 
 //which input (1, 2, or 3) is the button matrix currently holding high.
 int8_t button_matrix_input = 0;
 
 //IMU (I2C) config bits
-#define I2C_MASTER_SCL_IO    22 // SCL pin
-#define I2C_MASTER_SDA_IO    21 // SDA pin
-#define I2C_MASTER_FREQ_HZ   400000
-#define I2C_MASTER_NUM       I2C_NUM_0
-#define ESP_INTR_FLAG_DEFAULT 0
+constexpr gpio_num_t I2C_MASTER_SCL_IO = 22; // SCL pin
+constexpr gpio_num_t I2C_MASTER_SDA_IO = 21; // SDA pin
+//#define I2C_MASTER_FREQ_HZ   400000
+//#define I2C_MASTER_NUM       I2C_NUM_0
+//#define ESP_INTR_FLAG_DEFAULT 0
 lsm6ds3_handle_t imu_handle;
 pixart_ir_handle_t ir_handle;
 
-
-#if CONFIG_BT_HID_DEVICE_ENABLED
 static local_param_t s_bt_hid_param = {0};
+//uint8_t WiiMoteHIDDescriptor[] = {
+//    /*
+//    |-----------------------------|
+//    |           Wiimote           |
+//    |-----------------------------|
+//    */  
+//    0x05, 0x01,        // Usage Page (Generic Desktop Ctrls)
+//    0x09, 0x05,        // Usage (Game Pad)
+//    0xA1, 0x01,        // Collection (Application)
+//    0x85, 0x10,        //   Report ID (16) //Rumble
+//    0x15, 0x00,        //   Logical Minimum (0)
+//    0x26, 0xFF, 0x00,  //   Logical Maximum (255)
+//    0x75, 0x08,        //   Report Size (8)
+//    0x95, 0x01,        //   Report Count (1)
+//    0x06, 0x00, 0xFF,  //   Usage Page (Vendor Defined 0xFF00)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+//    0x85, 0x11,        //   Report ID (17) //Player LEDs
+//    0x95, 0x01,        //   Report Count (1)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+//    0x85, 0x12,        //   Report ID (18) //Data Reporting Mode
+//    0x95, 0x02,        //   Report Count (2)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+//    0x85, 0x13,        //   Report ID (19) //IR Camera Enable
+//    0x95, 0x01,        //   Report Count (1)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+//    0x85, 0x14,        //   Report ID (20) //Speaker Enable
+//    0x95, 0x01,        //   Report Count (1)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+//    0x85, 0x15,        //   Report ID (21) //Status Information Request
+//    0x95, 0x01,        //   Report Count (1)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+//    0x85, 0x16,        //   Report ID (22) //Write Memory and Registers
+//    0x95, 0x15,        //   Report Count (21)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+//    0x85, 0x17,        //   Report ID (23) //Read Memory and Registers
+//    0x95, 0x06,        //   Report Count (6)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+//    0x85, 0x18,        //   Report ID (24) //Speaker Data
+//    0x95, 0x15,        //   Report Count (21)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+//    0x85, 0x19,        //   Report ID (25) //Speaker Mute
+//    0x95, 0x01,        //   Report Count (1)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+//    0x85, 0x1A,        //   Report ID (26) IR Camera Enable 2
+//    0x95, 0x01,        //   Report Count (1)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
+//    0x85, 0x20,        //   Report ID (32) //Status Information
+//    0x95, 0x06,        //   Report Count (6)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+//    0x85, 0x21,        //   Report ID (33) //Read Memory and Registers Data
+//    0x95, 0x15,        //   Report Count (21)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+//    0x85, 0x22,        //   Report ID (34) //Acknowledge output report, return function result
+//    0x95, 0x04,        //   Report Count (4)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+//    0x85, 0x30,        //   Report ID (48) //Data Report: Core Buttons
+//    0x95, 0x02,        //   Report Count (2)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+//    0x85, 0x31,        //   Report ID (49) //Data Report: Core Buttons and Accelerometer
+//    0x95, 0x05,        //   Report Count (5)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+//    0x85, 0x32,        //   Report ID (50) //Data Report: Core Buttons with 8 Extension Bytes
+//    0x95, 0x0A,        //   Report Count (10)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+//    0x85, 0x33,        //   Report ID (51) //Data Report: Core Buttons with 12 IR Bytes
+//    0x95, 0x11,        //   Report Count (17)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+//    0x85, 0x34,        //   Report ID (52) //Data Report: Core Buttons with 19 Extension Bytes
+//    0x95, 0x15,        //   Report Count (21)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+//    0x85, 0x35,        //   Report ID (53) //Data Report: Core Buttons and Accelerometer with 16 Extension Bytes
+//    0x95, 0x15,        //   Report Count (21)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+//    0x85, 0x36,        //   Report ID (54) //Data Report: Core Buttons with 10 IR bytes and 9 Extension Bytes
+//    0x95, 0x15,        //   Report Count (21)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+//    0x85, 0x37,        //   Report ID (55) //Data Report: Core Buttons and Accelerometer with 10 IR bytes and 6 Extension Bytes
+//    0x95, 0x15,        //   Report Count (21)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+//    0x85, 0x3D,        //   Report ID (61) //Data Report: 21 Extension Bytes
+//    0x95, 0x15,        //   Report Count (21)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+//    0x85, 0x3E,        //   Report ID (62) //Data Report: Interleaved Core Buttons and Accelerometer with 36 IR bytes
+//    0x95, 0x15,        //   Report Count (21)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+//    0x85, 0x3F,        //   Report ID (63) //Data Report: Interleaved Core Buttons and Accelerometer with 36 IR bytes
+//    0x95, 0x15,        //   Report Count (21)
+//    0x09, 0x01,        //   Usage (0x01)
+//    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
+//    0xC0,              // End Collection
+//};
+
+//lorenashfield's HID Descriptor
 uint8_t WiiMoteHIDDescriptor[] = {
-    /*
-    |-----------------------------|
-    |           Wiimote           |
-    |-----------------------------|
-    */  
-    0x05, 0x01,        // Usage Page (Generic Desktop Ctrls)
-    0x09, 0x05,        // Usage (Game Pad)
-    0xA1, 0x01,        // Collection (Application)
-    0x85, 0x10,        //   Report ID (16) //Rumble
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x26, 0xFF, 0x00,  //   Logical Maximum (255)
-    0x75, 0x08,        //   Report Size (8)
-    0x95, 0x01,        //   Report Count (1)
-    0x06, 0x00, 0xFF,  //   Usage Page (Vendor Defined 0xFF00)
-    0x09, 0x01,        //   Usage (0x01)
-    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
-    0x85, 0x11,        //   Report ID (17) //Player LEDs
-    0x95, 0x01,        //   Report Count (1)
-    0x09, 0x01,        //   Usage (0x01)
-    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
-    0x85, 0x12,        //   Report ID (18) //Data Reporting Mode
-    0x95, 0x02,        //   Report Count (2)
-    0x09, 0x01,        //   Usage (0x01)
-    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
-    0x85, 0x13,        //   Report ID (19) //IR Camera Enable
-    0x95, 0x01,        //   Report Count (1)
-    0x09, 0x01,        //   Usage (0x01)
-    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
-    0x85, 0x14,        //   Report ID (20) //Speaker Enable
-    0x95, 0x01,        //   Report Count (1)
-    0x09, 0x01,        //   Usage (0x01)
-    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
-    0x85, 0x15,        //   Report ID (21) //Status Information Request
-    0x95, 0x01,        //   Report Count (1)
-    0x09, 0x01,        //   Usage (0x01)
-    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
-    0x85, 0x16,        //   Report ID (22) //Write Memory and Registers
-    0x95, 0x15,        //   Report Count (21)
-    0x09, 0x01,        //   Usage (0x01)
-    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
-    0x85, 0x17,        //   Report ID (23) //Read Memory and Registers
-    0x95, 0x06,        //   Report Count (6)
-    0x09, 0x01,        //   Usage (0x01)
-    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
-    0x85, 0x18,        //   Report ID (24) //Speaker Data
-    0x95, 0x15,        //   Report Count (21)
-    0x09, 0x01,        //   Usage (0x01)
-    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
-    0x85, 0x19,        //   Report ID (25) //Speaker Mute
-    0x95, 0x01,        //   Report Count (1)
-    0x09, 0x01,        //   Usage (0x01)
-    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
-    0x85, 0x1A,        //   Report ID (26) IR Camera Enable 2
-    0x95, 0x01,        //   Report Count (1)
-    0x09, 0x01,        //   Usage (0x01)
-    0x91, 0x00,        //   Output (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
-    0x85, 0x20,        //   Report ID (32) //Status Information
-    0x95, 0x06,        //   Report Count (6)
-    0x09, 0x01,        //   Usage (0x01)
-    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x85, 0x21,        //   Report ID (33) //Read Memory and Registers Data
-    0x95, 0x15,        //   Report Count (21)
-    0x09, 0x01,        //   Usage (0x01)
-    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x85, 0x22,        //   Report ID (34) //Acknowledge output report, return function result
-    0x95, 0x04,        //   Report Count (4)
-    0x09, 0x01,        //   Usage (0x01)
-    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x85, 0x30,        //   Report ID (48) //Data Report: Core Buttons
-    0x95, 0x02,        //   Report Count (2)
-    0x09, 0x01,        //   Usage (0x01)
-    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x85, 0x31,        //   Report ID (49) //Data Report: Core Buttons and Accelerometer
-    0x95, 0x05,        //   Report Count (5)
-    0x09, 0x01,        //   Usage (0x01)
-    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x85, 0x32,        //   Report ID (50) //Data Report: Core Buttons with 8 Extension Bytes
-    0x95, 0x0A,        //   Report Count (10)
-    0x09, 0x01,        //   Usage (0x01)
-    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x85, 0x33,        //   Report ID (51) //Data Report: Core Buttons with 12 IR Bytes
-    0x95, 0x11,        //   Report Count (17)
-    0x09, 0x01,        //   Usage (0x01)
-    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x85, 0x34,        //   Report ID (52) //Data Report: Core Buttons with 19 Extension Bytes
-    0x95, 0x15,        //   Report Count (21)
-    0x09, 0x01,        //   Usage (0x01)
-    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x85, 0x35,        //   Report ID (53) //Data Report: Core Buttons and Accelerometer with 16 Extension Bytes
-    0x95, 0x15,        //   Report Count (21)
-    0x09, 0x01,        //   Usage (0x01)
-    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x85, 0x36,        //   Report ID (54) //Data Report: Core Buttons with 10 IR bytes and 9 Extension Bytes
-    0x95, 0x15,        //   Report Count (21)
-    0x09, 0x01,        //   Usage (0x01)
-    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x85, 0x37,        //   Report ID (55) //Data Report: Core Buttons and Accelerometer with 10 IR bytes and 6 Extension Bytes
-    0x95, 0x15,        //   Report Count (21)
-    0x09, 0x01,        //   Usage (0x01)
-    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x85, 0x3D,        //   Report ID (61) //Data Report: 21 Extension Bytes
-    0x95, 0x15,        //   Report Count (21)
-    0x09, 0x01,        //   Usage (0x01)
-    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x85, 0x3E,        //   Report ID (62) //Data Report: Interleaved Core Buttons and Accelerometer with 36 IR bytes
-    0x95, 0x15,        //   Report Count (21)
-    0x09, 0x01,        //   Usage (0x01)
-    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x85, 0x3F,        //   Report ID (63) //Data Report: Interleaved Core Buttons and Accelerometer with 36 IR bytes
-    0x95, 0x15,        //   Report Count (21)
-    0x09, 0x01,        //   Usage (0x01)
-    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0xC0,              // End Collection
+	0x05, 0x01, 0x09, 0x05, 0xA1, 0x01, 0x85, 0x10, 0x75, 
+	0x08, 0x95, 0x01, 0x91, 0x00, 0x85, 0x11, 0x75, 0x08, 
+	0x95, 0x01, 0x91, 0x00, 0x85, 0x12, 0x75, 0x08, 0x95, 
+	0x02, 0x91, 0x00, 0x85, 0x13, 0x75, 0x08, 0x95, 0x01, 
+	0x91, 0x00, 0x85, 0x14, 0x75, 0x08, 0x95, 0x01, 0x91, 
+	0x00, 0x85, 0x15, 0x75, 0x08, 0x95, 0x01, 0x91, 0x00, 
+	0x85, 0x16, 0x75, 0x08, 0x95, 0x15, 0x91, 0x00, 0x85, 
+	0x17, 0x75, 0x08, 0x95, 0x06, 0x91, 0x00, 0x85, 0x18, 
+	0x75, 0x08, 0x95, 0x15, 0x91, 0x00, 0x85, 0x19, 0x75, 
+	0x08, 0x95, 0x01, 0x91, 0x00, 0x85, 0x1A, 0x75, 0x08, 
+	0x95, 0x01, 0x91, 0x00, 0x85, 0x20, 0x75, 0x08, 0x95, 
+	0x06, 0x81, 0x00, 0x85, 0x21, 0x75, 0x08, 0x95, 0x15, 
+	0x81, 0x00, 0x85, 0x22, 0x75, 0x08, 0x95, 0x04, 0x81, 
+	0x00, 0x85, 0x30, 0x75, 0x08, 0x95, 0x02, 0x81, 0x00, 
+	0x85, 0x31, 0x75, 0x08, 0x95, 0x05, 0x81, 0x00, 0x85, 
+	0x32, 0x75, 0x08, 0x95, 0x0A, 0x81, 0x00, 0x85, 0x33, 
+	0x75, 0x08, 0x95, 0x11, 0x81, 0x00, 0x85, 0x34, 0x75, 
+	0x08, 0x95, 0x15, 0x81, 0x00, 0x85, 0x35, 0x75, 0x08, 
+	0x95, 0x15, 0x81, 0x00, 0x85, 0x36, 0x75, 0x08, 0x95, 
+	0x15, 0x81, 0x00, 0x85, 0x37, 0x75, 0x08, 0x95, 0x15, 
+	0x81, 0x00, 0x85, 0x3D, 0x75, 0x08, 0x95, 0x15, 0x81, 
+	0x00, 0x85, 0x3E, 0x75, 0x08, 0x95, 0x15, 0x81, 0x00, 
+	0x85, 0x3F, 0x75, 0x08, 0x95, 0x15, 0x81, 0x00, 0xC0
 };
 
 static esp_hid_raw_report_map_t bt_report_maps[] = {
@@ -384,39 +420,46 @@ uint16_t plugged_in_extension = EXT_NONE;
 //IR CAMERA
 uint8_t ir_raw_buffer[16];
 
+//Fake EEPROM for calibration stuff (TODO: REPLACE WITH NVS)
+uint8_t EEPROM_sim[0x1700] = {0};
+
+//IR/Accelerometer Calibration + Motor/Volume byte (0x000000 to 0x000029)
+uint8_t eeprom_calibration[0x2A] = { //length of 0x2A or 42
+	0xA1, 0xAA, 0x8B, 0x99, 0xAE, 0x9E, 0x78, 0x30, 0xA7, 0x74, 0xD3,
+	0xA1, 0xAA, 0x8B, 0x99, 0xAE, 0x9E, 0x78, 0x30, 0xA7, 0x74, 0xD3,
+	0x80, 0x80, 0x80, 0x00, 0x99, 0x99, 0x99, 0x00, 0x40, 0xE0,
+	0x80, 0x80, 0x80, 0x00, 0x99, 0x99, 0x99, 0x00, 0x40, 0xE0};
+
+	
+uint8_t eeprom_unknown_end[0x30] = { //length of 0x30 or 48
+	0x00, 0x00, 0x00, 0xFF, 0x11, 0xEE, 0x00, 0x00, 0x33, 0xCC, 0x44, 0xBB,
+	0x00, 0x00, 0x66, 0x99, 0x77, 0x88, 0x00, 0x00, 0x2B, 0x01, 0xE8, 0x13};
+	
 //IMU
 //In the image in README, the raw accel shows the relevant value when it is facing up. For example in the image in README, the face buttons are facing upwards, and we get a +Z value on the accelerometer.
 //Standard accelerometer values are ~100 when at normal earth gravity values (aka not moving)
 //When sending over bt, we add these values to 0x200 (512) to get a 10 bit positive number that is 512 +- G 
 float accel_mg[3];
 
-float accel_offset_mg[3] = {0, 0, 0}; //add these to values, before multing by scale
-const int16_t CALIBRATION_ACCEL_1G_OFFSET = 100;
-float accel_scale_mg = CALIBRATION_ACCEL_1G_OFFSET / (1000.0); //multiply values by this to get +-100 at +- 1G to match wiimote range
-const int16_t CALIBRATION_ACCEL_ZERO = 0x0200;
+constexpr float accel_offset_mg[3] = {0, 0, 0}; //add these to values, before multing by scale
+constexpr int16_t CALIBRATION_ACCEL_1G_OFFSET = 100;
+float accel_scale_mg = (CALIBRATION_ACCEL_1G_OFFSET / 1000.0); //multiply values by this to get +-100 at +- 1G to match wiimote range
+constexpr int16_t CALIBRATION_ACCEL_ZERO = 0x0200;
 
 float gyro_mdps[3];
 float gyro_dps[3];
-const uint16_t CALIBRATION_GYRO_ZERO = 0x8000; //CALIBRATION VALUES ARE BAKED INTO THE REGISTER THING, TODO IS TO NOT BAKE THEM IN? 
-const uint16_t CALIBRATION_GYRO_SCALE_OFFSET = 0x4400;
-const uint16_t CALIBRATION_GYRO_FAST_SCALE_DEGREES = 1200;
-const uint16_t CALIBRATION_GYRO_SLOW_SCALE_DEGREES = 270;
-const uint16_t VALUE_ZERO = 0x2000;
-const uint16_t VALUE_SCALE_OFFSET = 0x1100;
+//constexpr uint16_t CALIBRATION_GYRO_ZERO = 0x8000; //CALIBRATION VALUES ARE BAKED INTO THE REGISTER THING, TODO IS TO NOT BAKE THEM IN? 
+//constexpr uint16_t CALIBRATION_GYRO_SCALE_OFFSET = 0x4400;
+//constexpr uint16_t CALIBRATION_GYRO_FAST_SCALE_DEGREES = 1200;
+//constexpr uint16_t CALIBRATION_GYRO_SLOW_SCALE_DEGREES = 270;
+constexpr uint16_t VALUE_ZERO = 0x2000;
+constexpr uint16_t VALUE_SCALE_OFFSET = 0x1100;
 
 // Register chunks
 uint8_t speaker_settings[10]; //A20000 - A20009
 uint8_t extension_controller_settings_data[256]; //A40000 - A400FF
 //uint8_t wii_motion_plus_settings_data[256]; //A60000 - A600FF
 uint8_t IR_camera_settings[52]; //B00000 - B00033
-
-//Fake EEPROM for calibration stuff
-uint8_t eeprom_start[48] = {
-	0xA1, 0xAA, 0x8B, 0x99, 0xAE, 0x9E, 0x78, 0x30, 0xA7, 0x74, 0xD3,
-	0xA1, 0xAA, 0x8B, 0x99, 0xAE, 0x9E, 0x78, 0x30, 0xA7, 0x74, 0xD3,
-	0x80, 0x80, 0x80, 0x00, 0x99, 0x99, 0x99, 0x00, 0x40, 0xE0,
-	0x80, 0x80, 0x80, 0x00, 0x99, 0x99, 0x99, 0x00, 0x40, 0xE0, 
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 //A60000 - A600FF
 uint8_t wii_motion_plus_settings_data[256]  = { //TODO: HAVE CALIBRATION VALUES BETTER MATCH REAL MOTE STUFF
@@ -472,7 +515,8 @@ uint8_t wii_motion_plus_settings_data[256]  = { //TODO: HAVE CALIBRATION VALUES 
 // 0xF9 1 byte of passthrough_extension_id_5
 // 0xFA 6 bytes of identifier (for motion plus)
 
-void init_register_chunks(){ //TODO: THIS IS FOR INITIALIZING THE A60000 REGISTERS, CURRENTLY HARDCODED
+//TODO: THIS IS FOR INITIALIZING THE A60000 REGISTERS, CURRENTLY HARDCODED
+void init_memory_chunks(){ 
 //	uint8_t wii_motion_plus_identifier[6] = {0x01,0x00,0xa6,0x20,0x00,0x05};
 //	memcpy(wii_motion_plus_settings_data + 0xFA ,wii_motion_plus_identifier, 6);
 
@@ -489,6 +533,14 @@ void init_register_chunks(){ //TODO: THIS IS FOR INITIALIZING THE A60000 REGISTE
 //	printf("0x %04x %04x", crc_msb, crc_lsb);
 	
 //	memcpy(&wii_motion_plus_settings_data + 46, &crc_msb, 2);
+
+	memcpy(EEPROM_sim, eeprom_calibration, 0x2A);
+	memcpy(EEPROM_sim + 0x16D0, eeprom_unknown_end, 0x30);
+}
+
+void send_hid_report(uint8_t report_id, uint8_t* data, uint8_t report_len){
+//	esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, report_id, data, report_len);
+	esp_bt_hid_device_send_report(ESP_HIDD_REPORT_TYPE_INTRDATA, report_id, report_len, data);
 }
 
 void init_GPIO(){
@@ -538,6 +590,14 @@ void setLEDBinary(uint8_t bin){
 	gpio_set_level(LED1, bin & 0x08);
 }
 
+//set all four LEDs to the binary representation of a number.
+void setLEDStatus(uint8_t status){
+	gpio_set_level(LED4, status & 0x80);
+	gpio_set_level(LED3, status & 0x40);
+	gpio_set_level(LED2, status & 0x20);
+	gpio_set_level(LED1, status & 0x10);
+}
+
 //bit shifts for buttons buffer
 //first byte
 const uint8_t BUTTONS_SHIFT_DPAD_LEFT = 0;
@@ -553,6 +613,42 @@ const uint8_t BUTTONS_SHIFT_B = 2;
 const uint8_t BUTTONS_SHIFT_A = 3;
 const uint8_t BUTTONS_SHIFT_MINUS = 4;
 const uint8_t BUTTONS_SHIFT_HOME = 7;
+
+void adc_init(){
+	//-------------ADC1 Init---------------//
+//	adc_oneshot_unit_handle_t adc1_handle;
+	adc_oneshot_unit_init_cfg_t init_config1 = {
+	    .unit_id = ADC_UNIT_1,
+	};
+	ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config1, &adc1_handle));
+
+	//-------------ADC1 Config---------------//
+	adc_oneshot_chan_cfg_t config = {
+	    .atten = EXAMPLE_ADC_ATTEN,
+	    .bitwidth = ADC_BITWIDTH_DEFAULT,
+	};
+	for(int i = 0; i < channels_num; i ++){
+		ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, button_adc_channels[i], &config));
+	}
+}
+
+void adc_reads(){
+	for(int i = 0; i < channels_num; i ++){
+		ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, button_adc_channels[i], &(adc1_channels[ button_adc_channels[i] ]) ) );
+	}
+//	ESP_LOGI(TAG, "ADC: %d %d %d %d %d %d %d %d %d %d",
+//	    adc1_channels[0],
+//	    adc1_channels[1],
+//	    adc1_channels[2],
+//	    adc1_channels[3],
+//	    adc1_channels[4],
+//	    adc1_channels[5],
+//	    adc1_channels[6],
+//	    adc1_channels[7],
+//	    adc1_channels[8],
+//	    adc1_channels[9]
+//	); 
+}
 
 //Cycle through button matrix inputs
 void assign_buttons_adc(){
@@ -570,6 +666,50 @@ void assign_buttons_adc(){
 	button_matrix_input = 3;
 	vTaskDelay(BUTTON_MATRIX_TIME_ON / portTICK_PERIOD_MS);
 	button_matrix_input = 0;
+	gpio_set_level(BUTTON_I3, 0);
+
+	button_array[BTN_A] = adc1_channels[5] > button_thresholds[BTN_A];
+	button_array_adc[BTN_A] =  adc1_channels[5];
+}
+
+void load_button_array(){
+	gpio_set_level(BUTTON_I1, 1);
+	vTaskDelay(1);
+	adc_reads();
+	button_array[BTN_UP] = adc1_channels[0] > button_thresholds[BTN_UP];
+	button_array[BTN_DOWN] = adc1_channels[3] > button_thresholds[BTN_DOWN];
+	button_array[BTN_LEFT] = adc1_channels[6] > button_thresholds[BTN_LEFT];
+	button_array[BTN_RIGHT] = adc1_channels[7] > button_thresholds[BTN_RIGHT];
+	button_array_adc[BTN_UP] = adc1_channels[0];
+	button_array_adc[BTN_DOWN] = adc1_channels[3];
+	button_array_adc[BTN_LEFT] = adc1_channels[6];
+	button_array_adc[BTN_RIGHT] = adc1_channels[7];
+	gpio_set_level(BUTTON_I1, 0);
+	
+	gpio_set_level(BUTTON_I2, 1);
+	vTaskDelay(1);
+	adc_reads();
+	button_array[BTN_SYNC] = adc1_channels[0] > button_thresholds[BTN_SYNC];
+	button_array[BTN_HOME] = adc1_channels[3] > button_thresholds[BTN_HOME];
+	button_array[BTN_ONE] = adc1_channels[6] > button_thresholds[BTN_ONE];
+	button_array[BTN_TWO] = adc1_channels[7] > button_thresholds[BTN_TWO];
+	button_array_adc[BTN_SYNC] = adc1_channels[0];
+	button_array_adc[BTN_HOME] = adc1_channels[3];
+	button_array_adc[BTN_ONE] = adc1_channels[6];
+	button_array_adc[BTN_TWO] = adc1_channels[7];
+	gpio_set_level(BUTTON_I2, 0);
+	
+	gpio_set_level(BUTTON_I3, 1);
+	vTaskDelay(1);
+	adc_reads();
+	button_array[BTN_PLUS] = adc1_channels[0] > button_thresholds[BTN_PLUS];
+	button_array[BTN_MINUS] = adc1_channels[3] > button_thresholds[BTN_MINUS];
+	button_array[BTN_B] = adc1_channels[6] > button_thresholds[BTN_B];
+	button_array[BTN_POWER] = adc1_channels[7] > button_thresholds[BTN_POWER];
+	button_array_adc[BTN_PLUS] = adc1_channels[0];
+	button_array_adc[BTN_MINUS] = adc1_channels[3];
+	button_array_adc[BTN_B] = adc1_channels[6];
+	button_array_adc[BTN_POWER] = adc1_channels[7];
 	gpio_set_level(BUTTON_I3, 0);
 
 	button_array[BTN_A] = adc1_channels[5] > button_thresholds[BTN_A];
@@ -617,147 +757,6 @@ void load_buttons_buffer(uint8_t* destination)
 	}
 }
 
-//TODO: gain a better understanding of what this does and how this works, src: https://randomnerdtutorials.com/esp-idf-esp32-gpio-analog-adc/
-static TaskHandle_t s_task_handle;
-static bool IRAM_ATTR s_conv_done_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data)
-{
-    BaseType_t mustYield = pdFALSE;
-    // Notify that ADC continuous driver has done enough number of conversions
-    vTaskNotifyGiveFromISR(s_task_handle, &mustYield);
-
-    return (mustYield == pdTRUE);
-}
-
-static void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc_continuous_handle_t *out_handle)
-{
-    adc_continuous_handle_t handle = NULL;
-
-    adc_continuous_handle_cfg_t adc_config = {
-        .max_store_buf_size = 1024,
-        .conv_frame_size = ADC_READ_LEN,
-    };
-    ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &handle));
-
-    adc_continuous_config_t dig_cfg = {
-        .sample_freq_hz = 20 * 1000,
-        .conv_mode = EXAMPLE_ADC_CONV_MODE,
-        .format = EXAMPLE_ADC_OUTPUT_TYPE,
-    };
-
-    adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {0};
-    dig_cfg.pattern_num = channel_num;
-    for (int i = 0; i < channel_num; i++) {
-        adc_pattern[i].atten = ADC_ATTEN_DB_12;
-        adc_pattern[i].channel = channel[i] & 0x7;
-        adc_pattern[i].unit = EXAMPLE_ADC_UNIT;
-        adc_pattern[i].bit_width = ADC_BITWIDTH_12;
-
-//        ESP_LOGI(TAG, "adc_pattern[%d].atten is :%"PRIx8, i, adc_pattern[i].atten);
-//        ESP_LOGI(TAG, "adc_pattern[%d].channel is :%"PRIx8, i, adc_pattern[i].channel);
-//        ESP_LOGI(TAG, "adc_pattern[%d].unit is :%"PRIx8, i, adc_pattern[i].unit);
-    }
-    dig_cfg.adc_pattern = adc_pattern;
-    ESP_ERROR_CHECK(adc_continuous_config(handle, &dig_cfg));
-
-    *out_handle = handle;
-}
-
-void continuous_adc(void *pvParameters){ //TODO: MUTEX THIS SAFELY
-	esp_err_t ret;
-    uint32_t ret_num = 0;
-    uint8_t result[ADC_READ_LEN] = {0};
-    memset(result, 0xcc, ADC_READ_LEN);
-
-    s_task_handle = xTaskGetCurrentTaskHandle();
-
-    adc_continuous_handle_t handle = NULL;
-    continuous_adc_init(button_adc_channels, sizeof(button_adc_channels) / sizeof(adc_channel_t), &handle);
-
-    adc_continuous_evt_cbs_t cbs = {
-        .on_conv_done = s_conv_done_cb,
-    };
-    ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(handle, &cbs, NULL));
-    ESP_ERROR_CHECK(adc_continuous_start(handle));
-
-	ESP_LOGI("ADC", "ADC CONTINUOUS BEGIN");
-	
-    while (1) {
-
-         // This is to show you the way to use the ADC continuous mode driver event callback.
-         // This `ulTaskNotifyTake` will block when the data processing in the task is fast.
-         // However in this example, the data processing (print) is slow, so you barely block here.
-         // Without using this event callback (to notify this task), you can still just call
-         // adc_continuous_read() here in a loop, with/without a certain block timeout.
-         // ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
-        char unit[] = EXAMPLE_ADC_UNIT_STR(EXAMPLE_ADC_UNIT);
-
-        while (1) {
-            ret = adc_continuous_read(handle, result, ADC_READ_LEN, &ret_num, 0);
-            if (ret == ESP_OK) {
-                //ESP_LOGI("TASK", "ret is %x, ret_num is %"PRIu32" bytes", ret, ret_num);
-                for (int i = 0; i < ret_num; i += SOC_ADC_DIGI_RESULT_BYTES) {
-                    adc_digi_output_data_t *p = (adc_digi_output_data_t*)&result[i];
-                    uint32_t chan_num = EXAMPLE_ADC_GET_CHANNEL(p);
-                    uint32_t data = EXAMPLE_ADC_GET_DATA(p);
-		            // Check the channel number validation, the data is invalid if the channel num exceed the maximum channel 
-		            if (chan_num < SOC_ADC_CHANNEL_NUM(EXAMPLE_ADC_UNIT)) {
-		                //ESP_LOGI(TAG, "Unit: %s, Channel: %"PRIu32", Value: %"PRIx32, unit, chan_num, data);
-		                //ESP_LOGI(TAG, "Unit: %s, Channel: %"PRIu32", Value: %lu", unit, chan_num, data);
-						adc1_channels[chan_num] = data;
-		            } else {
-		                ESP_LOGW(TAG, "Invalid data [%s_%"PRIu32"_%"PRIx32"]", unit, chan_num, data);
-		            }
-		        }
-				
-				// ESP_LOGI(TAG, "O: [%d] [%d] [%d] [%d] {%d} %d", adc1_channels[0], adc1_channels[3], adc1_channels[6], adc1_channels[7], adc1_channels[5], keyboard_matrix_input);
-		        //  Because printing is slow, so every time you call `ulTaskNotifyTake`, it will immediately return.
-		        //  To avoid a task watchdog timeout, add a delay here. When you replace the way you process the data,
-		        //  usually you don't need this delay (as this task will block for a while).
-		        if(button_matrix_input == 1){
-					button_array[BTN_UP] = adc1_channels[0] > button_thresholds[BTN_UP];
-					button_array[BTN_DOWN] = adc1_channels[3] > button_thresholds[BTN_DOWN];
-					button_array[BTN_LEFT] = adc1_channels[6] > button_thresholds[BTN_LEFT];
-					button_array[BTN_RIGHT] = adc1_channels[7] > button_thresholds[BTN_RIGHT];
-					
-					button_array_adc[BTN_UP] = adc1_channels[0];
-					button_array_adc[BTN_DOWN] = adc1_channels[3];
-					button_array_adc[BTN_LEFT] = adc1_channels[6];
-					button_array_adc[BTN_RIGHT] = adc1_channels[7];
-				}else if (button_matrix_input == 2){
-					button_array[BTN_SYNC] = adc1_channels[0] > button_thresholds[BTN_SYNC];
-					button_array[BTN_HOME] = adc1_channels[3] > button_thresholds[BTN_HOME];
-					button_array[BTN_ONE] = adc1_channels[6] > button_thresholds[BTN_ONE];
-					button_array[BTN_TWO] = adc1_channels[7] > button_thresholds[BTN_TWO];
-					
-					button_array_adc[BTN_SYNC] = adc1_channels[0];
-					button_array_adc[BTN_HOME] = adc1_channels[3];
-					button_array_adc[BTN_ONE] = adc1_channels[6];
-					button_array_adc[BTN_TWO] = adc1_channels[7];
-				}else if (button_matrix_input == 3){
-					button_array[BTN_PLUS] = adc1_channels[0] > button_thresholds[BTN_PLUS];
-					button_array[BTN_MINUS] = adc1_channels[3] > button_thresholds[BTN_MINUS];
-					button_array[BTN_B] = adc1_channels[6] > button_thresholds[BTN_B];
-					button_array[BTN_POWER] = adc1_channels[7] > button_thresholds[BTN_POWER];
-					
-					button_array_adc[BTN_PLUS] = adc1_channels[0];
-					button_array_adc[BTN_MINUS] = adc1_channels[3];
-					button_array_adc[BTN_B] = adc1_channels[6];
-					button_array_adc[BTN_POWER] = adc1_channels[7];
-				}
-				
-		        vTaskDelay(1);
-		    } else if (ret == ESP_ERR_TIMEOUT) {
-		        // We try to read `EXAMPLE_READ_LEN` until API returns timeout, which means there's no available data
-		        break;
-		    }
-		}
-	}
-	
-	ESP_ERROR_CHECK(adc_continuous_stop(handle));
-	ESP_ERROR_CHECK(adc_continuous_deinit(handle));
-}
-
 uint8_t get_IR_mode(){
 //	uint8_t mode;
 //	pixart_reg_read(&ir_handle, 0x33, &mode, 1);
@@ -767,7 +766,6 @@ uint8_t get_IR_mode(){
 
 void read_IR(){
 	pixart_ir_get_raw_data(&ir_handle, ir_raw_buffer);	
-	//ESP_LOG_BUFFER_HEX("PIXART_IR read", data, length);
 }
 
 void load_IR_basic_buffer(uint8_t* destination){
@@ -909,35 +907,55 @@ void mote_input_data_status()
 	input_report[3] = 0;
 	input_report[4] = 0;
 	input_report[5] = 0xEF; //TODO: Battery value, replace with actual battery value
-	esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x20, input_report, 6);
+	send_hid_report(0x20, input_report, 6);
 }
 
 //21 BB BB SE AA AA DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD
 void mote_input_data_read(uint8_t size, uint8_t error, uint16_t address_low_16, uint8_t* buffer)
 {
-	//TODO: MAKE SURE DONT MEM OVERFLOW
 	load_buttons_buffer(input_report);
-	//	memcpy(input_report + 3, &address_low_16, 2);
-	int index = 0;
-	while(index < size){
-		uint8_t chunk = size - index;
-		uint16_t pointer = address_low_16 + index;
-		if(chunk >= 16){
-			input_report[2] = (0xF << 4) | (error & 0xF);
-		}else{
-			input_report[2] = (((chunk - 1) & 0xF) << 4) | (error & 0xF);
+	if(error){
+		uint8_t siz = size;
+		if(siz > 16){
+			siz = 16;
 		}
-		input_report[3] = (pointer & 0xFF00) >> 8;
-		input_report[4] = pointer & 0x00FF;
-	
-		memset(input_report + 5, 0, 16);
-		memcpy(input_report + 5, buffer + pointer, size);
-	
-		esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x21, input_report, 21);
-		ESP_LOG_BUFFER_HEX("Responding to read", input_report + 5, size);
+		input_report[2] = ((siz) << 4) | (error & 0xF);
+		input_report[3] = (address_low_16 & 0xFF00) >> 8;
+		input_report[4] = address_low_16 & 0x00FF;
 		
-		index += 16;
+		memset(input_report + 5, 0, 16);
+		
+		send_hid_report(0x21, input_report, 21);
+		ESP_LOGI(TAGSEND, "Responding to read with error 0x%02x", error);
+	}else{
+		//TODO: MAKE SURE DONT MEM OVERFLOW
+		//	memcpy(input_report + 3, &address_low_16, 2);
+		int index = 0;
+		while(index < size){
+			uint8_t chunk = size - index;
+			if(chunk > 16){
+				chunk = 16;
+			}
+			uint16_t pointer = address_low_16 + index;
+	//		if(chunk >= 16){
+	//			input_report[2] = (0xF << 4) | (error & 0xF);
+	//		}else{
+	//			input_report[2] = (((chunk - 1) & 0xF) << 4) | (error & 0xF);
+	//		}
+			input_report[2] = (((chunk - 1) & 0xF) << 4) | (error & 0xF);
+			input_report[3] = (pointer & 0xFF00) >> 8;
+			input_report[4] = pointer & 0x00FF;
+		
+			memset(input_report + 5, 0, 16);
+			memcpy(input_report + 5, buffer + pointer, chunk);
+		
+			send_hid_report(0x21, input_report, 21);
+			ESP_LOG_BUFFER_HEX("WIIMOTE_OUTPUT: Responding to read", input_report + 5, chunk);
+			
+			index += 16;
+		}
 	}
+	
 
 	
 	//TODO: WORK ON READS OVER 16 bytes
@@ -949,11 +967,11 @@ void mote_input_data_acknowledge(uint8_t report_number, uint8_t error)
 	load_buttons_buffer(input_report);
 	input_report[2] = report_number;
 	input_report[3] = error;
-	esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x22, input_report, 4);
+	send_hid_report(0x22, input_report, 4);
 }
 
 //central function for all hid input data (wiimote > wii)
-void mote_input_data_core()
+void mote_input_data_core(bool force)
 {
     static uint8_t old_buttons[2] = {0};
 	static int16_t old_accel[3] = {0};
@@ -969,17 +987,17 @@ void mote_input_data_core()
 		continuousReporting || 
 		(reportingMode != 0x3d && (old_buttons[0] != buttons[0] || old_buttons[1] != buttons[1])) || 
 		((reportingMode == 0x31 || reportingMode == 0x33 || reportingMode == 0x35 || reportingMode == 0x37 || reportingMode == 0x3e) && (old_accel[0] != accel_10b_x || old_accel[1] != accel_10b_y || old_accel[1] != accel_10b_z));
-	if(send_packet){
+	if(force || send_packet){
 		switch(reportingMode){
 			case 0x30:
 				//memcpy(input_report,buttons,2);
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x30, buttons, 2);
+				send_hid_report(0x30, buttons, 2);
 				ESP_LOG_BUFFER_HEX("SEND 0x30", buttons, 2);
 			    break;
 			case 0x31:
 				memcpy(input_report,buttons,2);
 				load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x31, input_report, 5);
+				send_hid_report(0x31, input_report, 5);
 				ESP_LOG_BUFFER_HEX("SEND 0x31", input_report, 5);
 			    break;
 			case 0x32:
@@ -990,7 +1008,7 @@ void mote_input_data_core()
 				}else{
 					memset(input_report+2,0xFF,8); //replace with 8 extension bytes
 				}
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x32, input_report, 10);
+				send_hid_report(0x32, input_report, 10);
 				ESP_LOG_BUFFER_HEX("SEND 0x32", input_report, 10);
 				
 			    break;
@@ -1003,7 +1021,7 @@ void mote_input_data_core()
 					memset(input_report+5,0xFF,12); //blank 12 IR bytes
 					ESP_LOGW("SEND 0x37", "WRONG IR MODE: %d instead of 3", get_IR_mode());
 				}
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x33, input_report, 17);
+				send_hid_report(0x33, input_report, 17);
 				ESP_LOG_BUFFER_HEX("SEND 0x33", input_report, 17);
 			    break;
 			case 0x34:
@@ -1014,7 +1032,7 @@ void mote_input_data_core()
 				}else{
 					memset(input_report+2,0xFF,19); //replace with 19 extension bytes
 				}
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x34, input_report, 21);
+				send_hid_report(0x34, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x34", input_report, 21);
 			    break;
 			case 0x35:
@@ -1026,7 +1044,7 @@ void mote_input_data_core()
 				}else{
 					memset(input_report+5,0xFF,16); //replace with 16 extension bytes
 				}
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x35, input_report, 21);
+				send_hid_report(0x35, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x35", input_report, 21);
 			    break;
 			case 0x36:
@@ -1043,7 +1061,7 @@ void mote_input_data_core()
 				}else{
 					memset(input_report+12,0xFF,9); //replace with 9 extension bytes
 				}
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x36, input_report, 21);
+				send_hid_report(0x36, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x36", input_report, 21);
 			    break;
 			case 0x37:
@@ -1060,7 +1078,7 @@ void mote_input_data_core()
 				}else{
 					memset(input_report+15,0xFF,6); //replace with 6 extension bytes
 				}
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x37, input_report, 21);
+				send_hid_report(0x37, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x37", input_report, 21);
 			    break;
 			case 0x3d:
@@ -1070,12 +1088,12 @@ void mote_input_data_core()
 				}else{
 					memset(input_report,0xFF,21); //replace with 21 extension bytes
 				}
-				esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x3d, input_report, 21);
+				send_hid_report(0x3d, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x3d", input_report, 21);
 			    break;
 			case 0x3e: //same as 3f, forced to 3e during output report handling
 				//TODO: SET UP LATER ITS A WHOLE THING
-				//esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x3e, buttons, 21);
+				//send_hid_report(0x3e, buttons, 21);
 				ESP_LOG_BUFFER_HEX("0x3e NOT SUPPORTED", input_report, 21);
 			    break;
 			default:
@@ -1093,8 +1111,8 @@ void mote_input_data_core()
 void mote_hid_main_task(void *pvParameters)
 {
     while (1) {
-		assign_buttons_adc();
-		mote_input_data_core();
+		load_button_array();
+		mote_input_data_core(false);
 		
 //		ESP_LOGI(TAG, "%c%c%c%c%c%c%c%c%c%c%c%c%c",
 //		    button_array[BTN_A] ? 'A' : ' ',
@@ -1128,12 +1146,21 @@ void mote_hid_main_task(void *pvParameters)
 //		);  
 		
 //		gpio_set_level(LED1, !gpio_get_level(LED1));
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+
+#ifdef HCI_DEBUG
+		extern void bt_hci_log_hci_data_show(void);
+		extern void bt_hci_log_hci_adv_show(void);
+		bt_hci_log_hci_data_show();  // Display HCI data logs
+		bt_hci_log_hci_adv_show();   // Display HCI advertisement logs
+#endif
+
+        vTaskDelay(WIIMOTE_OUTPUT_DT / portTICK_PERIOD_MS);
     }
 }
 
 void bt_hid_task_start_up(void)
 {
+	//TODO: RESET OPERATIONAL VARIABLES HERE
 	xTaskCreate(mote_hid_main_task, "mote_hid_main_task", 2 * 1024, NULL, configMAX_PRIORITIES - 3, &s_bt_hid_param.task_hdl);
 	return;
 }
@@ -1146,47 +1173,112 @@ void bt_hid_task_shut_down(void)
     }
 }
 
-static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, int32_t id, void *event_data)
-{
-    esp_hidd_event_t event = (esp_hidd_event_t)id;
-    esp_hidd_event_data_t *param = (esp_hidd_event_data_t *)event_data;
-    static const char *TAG = "HID_DEV_BT";
 
+void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
+{
+    static const char *TAG = "esp_bt_hidd_cb";
     switch (event) {
-    case ESP_HIDD_START_EVENT: {
-        if (param->start.status == ESP_OK) {
-            ESP_LOGI(TAG, "START OK");
-            ESP_LOGI(TAG, "Setting to connectable, discoverable");
-            esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+    case ESP_HIDD_INIT_EVT:
+        if (param->init.status == ESP_HIDD_SUCCESS) {
+            ESP_LOGI(TAG, "setting hid parameters");
+            esp_bt_hid_device_register_app(&s_bt_hid_param.app_param, &s_bt_hid_param.both_qos, &s_bt_hid_param.both_qos);
         } else {
-            ESP_LOGE(TAG, "START failed!");
+            ESP_LOGE(TAG, "init hidd failed!");
         }
         break;
-    }
-    case ESP_HIDD_CONNECT_EVENT: {
-        if (param->connect.status == ESP_OK) {
-            ESP_LOGI(TAG, "CONNECT OK");
-            ESP_LOGI(TAG, "Setting to non-connectable, non-discoverable");
-            esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
-            bt_hid_task_start_up();
+    case ESP_HIDD_DEINIT_EVT:
+        break;
+    case ESP_HIDD_REGISTER_APP_EVT:
+        if (param->register_app.status == ESP_HIDD_SUCCESS) {
+            ESP_LOGI(TAG, "HID register success; opening sync-style pairing window");
+			ESP_LOGI(TAG, "Setting to connectable, discoverable");
+			#ifdef GENERAL_DISCOVERY
+			esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+			#else
+			esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_LIMITED_DISCOVERABLE);
+			#endif
+            if (param->register_app.in_use) {
+                ESP_LOGI(TAG, "known virtual cable host found, attempting reconnect");
+                esp_bt_hid_device_connect(param->register_app.bd_addr);
+            }
         } else {
-            ESP_LOGE(TAG, "CONNECT failed!");
+            ESP_LOGE(TAG, "setting hid parameters failed!");
         }
         break;
-    }
-    case ESP_HIDD_PROTOCOL_MODE_EVENT: {
-        ESP_LOGI(TAG, "PROTOCOL MODE[%u]: %s", param->protocol_mode.map_index, param->protocol_mode.protocol_mode ? "REPORT" : "BOOT");
+    case ESP_HIDD_UNREGISTER_APP_EVT:
+        if (param->unregister_app.status == ESP_HIDD_SUCCESS) {
+            ESP_LOGI(TAG, "unregister app success!");
+        } else {
+            ESP_LOGE(TAG, "unregister app failed!");
+        }
         break;
-    }
-    case ESP_HIDD_OUTPUT_EVENT: {
-        //ESP_LOGI(TAGW, "DATA FROM WII[%u]: %8s ID: 0x%2x, Len: %d, Data:", param->output.map_index, esp_hid_usage_str(param->output.usage), param->output.report_id, param->output.length);
-        //ESP_LOG_BUFFER_HEX(TAGW, param->output.data, param->output.length);
+    case ESP_HIDD_OPEN_EVT:
+        if (param->open.status == ESP_HIDD_SUCCESS) {
+			ESP_LOGI(TAG, "OPEN OK");
+			ESP_LOGI(TAG, "Setting to non-connectable, non-discoverable");
+			esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
+			bt_hid_task_start_up();
+			mote_input_data_core(true);
+			mote_input_data_status();
+        } else {
+            ESP_LOGE(TAG, "OPEN failed!");
+        }
+        break;
+    case ESP_HIDD_CLOSE_EVT:
+        ESP_LOGI(TAG, "ESP_HIDD_CLOSE_EVT");
+        if (param->close.status == ESP_HIDD_SUCCESS) {
+            if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTING) {
+                ESP_LOGI(TAG, "DISCONNECT IN PROGRESS...");
+            } else if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTED) {
+				ESP_LOGI(TAG, "DISCONNECT OK");
+	            bt_hid_task_shut_down();
+	            ESP_LOGI(TAG, "Setting to connectable, discoverable again");
+				#ifdef GENERAL_DISCOVERY
+				esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+				#else
+				esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_LIMITED_DISCOVERABLE);
+				#endif
+				setLEDBinary(0);
+            } else {
+                ESP_LOGE(TAG, "DISCONNECT failed!");
+            }
+        } else {
+            ESP_LOGE(TAG, "close failed!");
+        }
+        break;
+    case ESP_HIDD_SEND_REPORT_EVT:
+//        if (param->send_report.status == ESP_HIDD_SUCCESS) {
+//            ESP_LOGI(TAG, "ESP_HIDD_SEND_REPORT_EVT id:0x%02x, type:%d", param->send_report.report_id,
+//                     param->send_report.report_type);
+//        } else {
+//            ESP_LOGE(TAG, "ESP_HIDD_SEND_REPORT_EVT id:0x%02x, type:%d, status:%d, reason:%d",
+//                     param->send_report.report_id, param->send_report.report_type, param->send_report.status,
+//                     param->send_report.reason);
+//        }
+        break; 
+    case ESP_HIDD_REPORT_ERR_EVT:
+        ESP_LOGI(TAG, "ESP_HIDD_REPORT_ERR_EVT");
+        break;
+    case ESP_HIDD_GET_REPORT_EVT:
+		ESP_LOGI(TAGSEND, "ESP_HIDD_GET_REPORT_EVT: 0x%2x", param->get_report.report_id, param->get_report.report_type, param->get_report.buffer_size);
+        break;
+    case ESP_HIDD_SET_REPORT_EVT:
+		ESP_LOGI(TAG, "ESP_HIDD_SET_REPORT_EVT: ID: 0x%2x, Len: %d, Data:", param->set_report.report_id, param->set_report.len);
+		ESP_LOG_BUFFER_HEX(TAG, param->set_report.data, param->set_report.len);
+        break;
+    case ESP_HIDD_SET_PROTOCOL_EVT:
+        ESP_LOGI(TAG, "ESP_HIDD_SET_PROTOCOL_EVT mode:%d (ignored for Wii profile)",
+                 param->set_protocol.protocol_mode);
+        break;
+    case ESP_HIDD_INTR_DATA_EVT:
+		ESP_LOGI(TAGW, "REPORT: ID: 0x%2x, Len: %d, Data:", param->intr_data.report_id, param->intr_data.len);
+        ESP_LOG_BUFFER_HEX(TAGW, param->intr_data.data, param->intr_data.len);
 		
 		//bit 0 of any output report is for rumble
-		if(param->output.data[0] & 0x01 && rumbling == false){
+		if(param->intr_data.data[0] & 0x01 && rumbling == false){
 			rumbling = true;
 			ESP_LOGI(TAGW, "RUMBLING ON");
-		}else if(!(param->output.data[0] & 0x01) && rumbling == true){
+		}else if(!(param->intr_data.data[0] & 0x01) && rumbling == true){
 			rumbling = false;
 			ESP_LOGI(TAGW, "RUMBLING OFF");
 		}
@@ -1195,7 +1287,7 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 		uint16_t offset_16;
 		uint16_t size;
 		
-		switch (param->feature.report_id) {
+		switch (param->intr_data.report_id) {
 		    case O_RUMBLE:
 		        // 1 byte - bit 0 controls rumble
 				//ESP_LOGI(TAG, "RUMBLING");
@@ -1205,32 +1297,34 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 		    case O_PLAYER_LEDS: //TODO: UPDATE TO REAL LEDS
 		        // 1 byte - bits 4-7 control LEDs 1-4
 				ESP_LOGI(TAGW, "LEDS %c %c %c %c", 
-					(param->output.data[0] & 0x10) ? '+' : '_', 
-					(param->output.data[0] & 0x20) ? '+' : '_', 
-					(param->output.data[0] & 0x40) ? '+' : '_', 
-					(param->output.data[0] & 0x80) ? '+' : '_');
+					(param->intr_data.data[0] & 0x10) ? '+' : '_', 
+					(param->intr_data.data[0] & 0x20) ? '+' : '_', 
+					(param->intr_data.data[0] & 0x40) ? '+' : '_', 
+					(param->intr_data.data[0] & 0x80) ? '+' : '_');
 					status_byte &= 0x0F;
-					status_byte |= (param->output.data[0] & 0xF0);
+					status_byte |= (param->intr_data.data[0] & 0xF0);
+
+				setLEDStatus(param->intr_data.data[0]);
 					
 				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->output.data[0] & 0x02){
-					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				if(param->intr_data.data[0] & 0x02){
+					mote_input_data_acknowledge(param->intr_data.report_id, ACK_SUCCESS);
 				}
 				
 		        break;
 		        
 		    case O_DATA_REPORTING_MODE:
 		        // 2 bytes - TT MM (TT bit2 = continuous, MM = mode 0x30-0x3f)
-				continuousReporting = (param->output.data[0] & 0x04);
-				reportingMode = param->output.data[1];
+				continuousReporting = (param->intr_data.data[0] & 0x04);
+				reportingMode = param->intr_data.data[1];
 				if(reportingMode == 0x3f){
 					reportingMode = 0x3e; //for simplicity, lock both 3f and 3e behind 3e as they are the same.
 				}
 				ESP_LOGI( TAGW, "Data Reporting: TT[%2x] MM[%x]", continuousReporting, reportingMode);
 					
 				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->output.data[0] & 0x02){
-					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				if(param->intr_data.data[0] & 0x02){
+					mote_input_data_acknowledge(param->intr_data.report_id, ACK_SUCCESS);
 				}
 				
 		        break;
@@ -1238,69 +1332,69 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 		    case O_IR_CAMERA_ENABLE: //Enables the 25 MHz (or is it 24) IR Clock
 				// 1 byte - bit 2 = ON/OFF
 				
-				gpio_set_level(IR_CLK_GPIO, param->output.data[0] & 0x04);
+				gpio_set_level(IR_CLK_GPIO, param->intr_data.data[0] & 0x04);
 
-				ESP_LOGI( TAGW, "Written %2x to IR Camera 1", param->output.data[0] & 0x04);
+				ESP_LOGI( TAGW, "Written %2x to IR Camera 1", param->intr_data.data[0] & 0x04);
 					
 				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->output.data[0] & 0x02){
-					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				if(param->intr_data.data[0] & 0x02){
+					mote_input_data_acknowledge(param->intr_data.report_id, ACK_SUCCESS);
 				}
 				
 		        break;
 		        
 		    case O_SPEAKER_ENABLE:
 		        // 1 byte - bit 2 = ON/OFF
-				if(param->output.data[0] & 0x04){
+				if(param->intr_data.data[0] & 0x04){
 					status_byte |= 0x04;
 				}
-				ESP_LOGI( TAGW, "Written %2x to Speaker Enable", param->output.data[0]);
+				ESP_LOGI( TAGW, "Written %2x to Speaker Enable", param->intr_data.data[0]);
 					
 				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->output.data[0] & 0x02){
-					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				if(param->intr_data.data[0] & 0x02){
+					mote_input_data_acknowledge(param->intr_data.report_id, ACK_SUCCESS);
 				}
 
 		        break;
 		        
 		    case O_STATUS_INFO_REQUEST:
 		        // 1 byte - request status report
-				ESP_LOGI( TAGW, "Requesting %02x to Status Info", param->output.data[0]);
+				ESP_LOGI( TAGW, "Requesting %02x to Status Info", param->intr_data.data[0]);
 				
 				mote_input_data_status();
 				
 				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->output.data[0] & 0x02){
-					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				if(param->intr_data.data[0] & 0x02){
+					mote_input_data_acknowledge(param->intr_data.report_id, ACK_SUCCESS);
 				}
 
 		        break;
 		        
 		    case O_WRITE_MEMORY_REGISTERS: //TODO: make sure doesnt buffer overflow
 		        // 21 bytes - write to memory/registers
-				offset = (param->output.data[1] << 16) | (param->output.data[2] << 8) | (param->output.data[3]);
-				offset_16 = (param->output.data[2] << 8) | (param->output.data[3]);
-				size = param->output.data[4];
+				offset = (param->intr_data.data[1] << 16) | (param->intr_data.data[2] << 8) | (param->intr_data.data[3]);
+				offset_16 = (param->intr_data.data[2] << 8) | (param->intr_data.data[3]);
+				size = param->intr_data.data[4];
 				
 				ack_error_code_t return_ack = ACK_SUCCESS;
 				
 				bool extension_activated = false;
 				
-				if((param->output.data[0] & 0x04)){
-					if(param->output.data[1] == 0xA2){
+				if((param->intr_data.data[0] & 0x04)){
+					if(param->intr_data.data[1] == 0xA2){
 						ESP_LOGI( TAGW, "Attempting to write %d bytes to speaker settings at %6x [%04x]", size, offset, offset_16);
-						memcpy(speaker_settings + offset_16, param->output.data + 5, size);
-					}else if(param->output.data[1] == 0xA4){
+						memcpy(speaker_settings + offset_16, param->intr_data.data + 5, size);
+					}else if(param->intr_data.data[1] == 0xA4){
 						ESP_LOGI( TAGW, "Attempting to write %d bytes to extension controller settings and data at %6x [%04x]", size, offset, offset_16);
 						if(active_extension != EXT_NONE){
-							memcpy(extension_controller_settings_data + offset_16, param->output.data + 5, size);
+							memcpy(extension_controller_settings_data + offset_16, param->intr_data.data + 5, size);
 						}else{
 							return_ack = ACK_INACTIVE_EXTENSION;
 						}
-					}else if(param->output.data[1] == 0xA6){
+					}else if(param->intr_data.data[1] == 0xA6){
 						ESP_LOGI( TAGW, "Attempting to write %d bytes to wii motion plus settings and data at %6x [%04x]", size, offset, offset_16);
-						memcpy(wii_motion_plus_settings_data + offset_16, param->output.data + 5, size);
-						if(offset_16 == 0x00FE && size == 1 && (param->output.data[5] == 0x04 || param->output.data[5] == 0x05 || param->output.data[5] == 0x07)){ //changing active extension to wii motion plus
+						memcpy(wii_motion_plus_settings_data + offset_16, param->intr_data.data + 5, size);
+						if(offset_16 == 0x00FE && size == 1 && (param->intr_data.data[5] == 0x04 || param->intr_data.data[5] == 0x05 || param->intr_data.data[5] == 0x07)){ //changing active extension to wii motion plus
 							active_extension = EXT_WII_MOTION_PLUS_ACTIVE;
 							status_byte |= 0x02;
 
@@ -1313,10 +1407,10 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 							
 							extension_activated = true;
 						}
-					}else if(param->output.data[1] == 0xB0){
+					}else if(param->intr_data.data[1] == 0xB0){
 						ESP_LOGI( TAGW, "Attempting to write %d bytes to IR camera settings at 0x%06x [%04x]", size, offset, offset_16);
-						memcpy(IR_camera_settings + offset_16, param->output.data + 5, size);
-						pixart_reg_write(&ir_handle, offset_16, param->output.data + 5, size);
+						memcpy(IR_camera_settings + offset_16, param->intr_data.data + 5, size);
+						pixart_reg_write(&ir_handle, offset_16, param->intr_data.data + 5, size);
 						
 						ESP_LOG_BUFFER_HEX(TAGW, IR_camera_settings, 52);
 					}else {
@@ -1324,31 +1418,38 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 					}
 				}else{
 					ESP_LOGI( TAGW, "Attempting to write %d bytes to EEPROM Memory at 0x%06x", size, offset);
-					return_ack = ACK_ERROR;
+					
+					if(size + offset_16 <= 0x16FF){
+						memcpy(EEPROM_sim + offset_16, param->intr_data.data + 5, size);
+					}else{
+						ESP_LOGI( TAGW, "WRITING OUT OF RANGE");
+						return_ack = ACK_ERROR; //TODO: check against real mote/dolphin if this is the correct error message for a read out of bounds
+					}
 				}
-				ESP_LOG_BUFFER_HEX(TAGW, param->output.data + 5, size); 
+				ESP_LOG_BUFFER_HEX(TAGW, param->intr_data.data + 5, size); 
 					
 				//apparently all writes request an ack automatically
-				mote_input_data_acknowledge(param->feature.report_id, return_ack);
+				mote_input_data_acknowledge(param->intr_data.report_id, return_ack);
 
 				if(extension_activated){
 					mote_input_data_status();
 				}
-				
+								
 				break;
 		        
 		    case O_READ_MEMORY_REGISTERS: //TODO: SET UP READS FOR GREATER THAN 16 BYTES TOTAL 
 				//TODO: MAKE SURE NO MEM OVERFLOW
 		        // 6 bytes - read from memory/registers
-				offset = (param->output.data[1] << 16) | (param->output.data[2] << 8) | (param->output.data[3]);
-				offset_16 = (param->output.data[2] << 8) | (param->output.data[3]);
-//				memset(&size, 0, 2);
-				size = (param->output.data[4] << 8) | (param->output.data[5]);
-				if((param->output.data[0] & 0x04)){
-					if(param->output.data[1] == 0xA2){
+				offset = (param->intr_data.data[1] << 16) | (param->intr_data.data[2] << 8) | (param->intr_data.data[3]);
+				offset_16 = (param->intr_data.data[2] << 8) | (param->intr_data.data[3]);
+				
+				read_error_code_t read_return = READ_SUCCESS;
+				size = (param->intr_data.data[4] << 8) | (param->intr_data.data[5]);
+				if((param->intr_data.data[0] & 0x04)){ //also 0x08 is for registers, but not both? wiibrew reading and writing
+					if(param->intr_data.data[1] == 0xA2){
 						ESP_LOGI( TAGW, "Attempting to read %d bytes from speaker settings at 0x%06x [%04x]", size, offset, offset_16);
 						mote_input_data_read(size, 0, offset_16, speaker_settings);
-					}else if(param->output.data[1] == 0xA4){
+					}else if(param->intr_data.data[1] == 0xA4){
 						ESP_LOGI( TAGW, "Attempting to read %d bytes from extension controller settings and data at 0x%06x [%04x]", size, offset, offset_16);
 						if(active_extension != EXT_NONE){
 							mote_input_data_read(size, 0, offset_16, extension_controller_settings_data);
@@ -1356,53 +1457,55 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 							uint8_t zero_buffer[16] = {0};
 							mote_input_data_read(16, READ_WRITE_ONLY, offset_16, zero_buffer - offset_16); //TODO: fix this, this is atrocious
 						}
-					}else if(param->output.data[1] == 0xA6){
+					}else if(param->intr_data.data[1] == 0xA6){
 						ESP_LOGI( TAGW, "Attempting to read %d bytes from wii motion plus settings and data at 0x%06x [%04x]", size, offset, offset_16);
 						mote_input_data_read(size, 0, offset_16, wii_motion_plus_settings_data);
-					}else if(param->output.data[1] == 0xB0){
+					}else if(param->intr_data.data[1] == 0xB0){
 						ESP_LOGI( TAGW, "Attempting to read %d bytes from IR camera settings at 0x%06x [%04x]", size, offset, offset_16);
 						//mote_input_data_read(size, 0, offset_16, IR_camera_settings);
 						pixart_reg_read(&ir_handle, offset_16, input_report + 5, size);
-						esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0x21, input_report, 21);
+						send_hid_report(0x21, input_report, 21);
 						ESP_LOG_BUFFER_HEX("Responding to read", input_report + 5, size);
 					}else {
 						ESP_LOGI( TAGW, "Attempting to read %d bytes from control registers at 0x%06x", size, offset);
 					}
 				}else{
 					ESP_LOGI( TAGW, "Attempting to read %d bytes from EEPROM Memory at 0x%06x", size, offset);
-					if(size + offset <= 48){
-						mote_input_data_read(size, 0, offset_16, eeprom_start);
+					if(size + offset_16 <= 0x16FF){
+						mote_input_data_read(size, 0, offset_16, EEPROM_sim);
 					}else{
-						printf("READING OUT OF RANGE");
+						ESP_LOGI( TAGW, "READING OUT OF RANGE");
+						uint8_t bfr[16] = {0};
+						mote_input_data_read(size, READ_WRITE_ONLY, offset_16, bfr);
 					}
 				}
 					
 				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->output.data[0] & 0x02){
-					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				if(param->intr_data.data[0] & 0x02){
+					mote_input_data_acknowledge(param->intr_data.report_id, read_return);
 				}
 
 		        break;
 		        
 		    case O_SPEAKER_DATA:
 		        // 21 bytes - audio data for speaker
-				ESP_LOGI( TAGW, "%d bytes of Speaker Data", param->output.data[0]);
-				ESP_LOG_BUFFER_HEX(TAGW, param->output.data + 1, param->output.data[0]); //TODO: make sure doesnt buffer overflow
+				ESP_LOGI( TAGW, "%d bytes of Speaker Data", param->intr_data.data[0]);
+				ESP_LOG_BUFFER_HEX(TAGW, param->intr_data.data + 1, param->intr_data.data[0]); //TODO: make sure doesnt buffer overflow
 					
 				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->output.data[0] & 0x02){
-					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				if(param->intr_data.data[0] & 0x02){
+					mote_input_data_acknowledge(param->intr_data.report_id, ACK_SUCCESS);
 				}
 
 		        break;
 		        
 		    case O_SPEAKER_MUTE:
 		        // 1 byte - bit 2 = mute when set
-				ESP_LOGI( TAGW, "Written %2x to Speaker Mute", param->output.data[0]);
+				ESP_LOGI( TAGW, "Written %2x to Speaker Mute", param->intr_data.data[0]);
 					
 				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->output.data[0] & 0x02){
-					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				if(param->intr_data.data[0] & 0x02){
+					mote_input_data_acknowledge(param->intr_data.report_id, ACK_SUCCESS);
 				}
 
 		        break;
@@ -1410,63 +1513,58 @@ static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, in
 		    case O_IR_CAMERA_ENABLE_2: //Enables the IR Camera itself
 		        // 1 byte - bit 2 = ON/OFF (alternate)
 				
-				gpio_set_level(IR_ENABLE_GPIO, param->output.data[0] & 0x04);
+				gpio_set_level(IR_ENABLE_GPIO, param->intr_data.data[0] & 0x04);
 				
 				//TODO: I am currently treating this as the main IR Camera Toggle (status byte), this MAY be the case in final	        
-				if(param->output.data[0] & 0x04){
+				if(param->intr_data.data[0] & 0x04){
 					status_byte |= 0x04;
 				}
 				
-				ESP_LOGI( TAGW, "Written %2x to IR Camera 2", param->output.data[0] & 0x04);
+				ESP_LOGI( TAGW, "Written %2x to IR Camera 2", param->intr_data.data[0] & 0x04);
 					
 				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->output.data[0] & 0x02){
-					mote_input_data_acknowledge(param->feature.report_id, ACK_SUCCESS);
+				if(param->intr_data.data[0] & 0x02){
+					mote_input_data_acknowledge(param->intr_data.report_id, ACK_SUCCESS);
 				}
 
 		        break;
 		        
 		    default:
 		        // Unknown output report ID
-				ESP_LOGW(TAGW, "UNKNOWN REPORT ID[%u]: %8s ID: 0x%2x, Len: %d, Data:", param->output.map_index, esp_hid_usage_str(param->output.usage), param->output.report_id, param->output.length);
-				ESP_LOG_BUFFER_HEX(TAGW, param->output.data, param->output.length);
+				//ESP_LOGW(TAGW, "UNKNOWN REPORT ID[%u]: %8s ID: 0x%2x, Len: %d, Data:", param->intr_data.map_index, esp_hid_usage_str(param->intr_data.usage), param->intr_data.report_id, param->output.length);
+				ESP_LOG_BUFFER_HEX(TAGW, param->intr_data.data, param->intr_data.len);
 					
 				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->output.data[0] & 0x02){
-					mote_input_data_acknowledge(param->feature.report_id, ACK_ERROR);
+				if(param->intr_data.data[0] & 0x02){
+					mote_input_data_acknowledge(param->intr_data.report_id, ACK_ERROR);
 				}
 
 		        break;
 		}
         break;
-    }
-    case ESP_HIDD_FEATURE_EVENT: {
-        ESP_LOGI(TAG, "FEATURE[%u]: %8s ID: %2u, Len: %d, Data:", param->feature.map_index, esp_hid_usage_str(param->feature.usage), param->feature.report_id, param->feature.length);
-        ESP_LOG_BUFFER_HEX(TAG, param->feature.data, param->feature.length);
-        break;
-    }
-    case ESP_HIDD_DISCONNECT_EVENT: {
-        if (param->disconnect.status == ESP_OK) {
-            ESP_LOGI(TAG, "DISCONNECT OK");
-            bt_hid_task_shut_down();
-            ESP_LOGI(TAG, "Setting to connectable, discoverable again");
-            esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+    case ESP_HIDD_VC_UNPLUG_EVT:
+        ESP_LOGI(TAG, "ESP_HIDD_VC_UNPLUG_EVT");
+        if (param->vc_unplug.status == ESP_HIDD_SUCCESS) {
+            if (param->vc_unplug.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTED) {
+                //s_hid_connected = false;
+                ESP_LOGI(TAG, "disconnected!");
+                bt_hid_task_shut_down();
+                ESP_LOGI(TAG, "[PAIR] Virtual cable unplug; staying connectable/non-discoverable");
+                esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
+            } else {
+                ESP_LOGE(TAG, "unknown connection status");
+            }
         } else {
-            ESP_LOGE(TAG, "DISCONNECT failed!");
+            ESP_LOGE(TAG, "close failed!");
         }
         break;
-    }
-    case ESP_HIDD_STOP_EVENT: {
-        ESP_LOGI(TAG, "STOP");
-        break;
-    }
     default:
+		ESP_LOGI(TAG, "ESP_HIDD_?_EVT:0x%02x",
+	                event);
         break;
     }
-    return;
 }
 
-#if CONFIG_BT_SDP_COMMON_ENABLED
 static void esp_sdp_cb(esp_sdp_cb_event_t event, esp_sdp_cb_param_t *param)
 {
     switch (event) {
@@ -1479,12 +1577,18 @@ static void esp_sdp_cb(esp_sdp_cb_event_t event, esp_sdp_cb_param_t *param)
                         .type = ESP_SDP_TYPE_DIP_SERVER,
                     },
                 .vendor           = bt_hid_config.vendor_id,
-                .vendor_id_source = ESP_SDP_VENDOR_ID_SRC_BT,
+                .vendor_id_source = ESP_SDP_VENDOR_ID_SRC_BT, //if this is SRC_USB, the attribute 0x205 becomes 0x0002 instead of 0x0001, doesn't seem like it matters
                 .product          = bt_hid_config.product_id,
                 .version          = bt_hid_config.version,
                 .primary_record   = true,
             };
-            esp_sdp_create_record((esp_bluetooth_sdp_record_t *)&dip_record);
+            esp_err_t ret = esp_sdp_create_record((esp_bluetooth_sdp_record_t *)&dip_record);
+		
+		    if (ret != ESP_OK) {
+		        ESP_LOGE(TAG, "esp_sdp_create_record failed: %s", esp_err_to_name(ret));
+		    } else {
+		        ESP_LOGI(TAG, "DI record request submitted");
+		    }
         }
         break;
     case ESP_SDP_DEINIT_EVT:
@@ -1504,14 +1608,10 @@ static void esp_sdp_cb(esp_sdp_cb_event_t event, esp_sdp_cb_param_t *param)
         break;
     }
 }
-#endif /* CONFIG_BT_SDP_COMMON_ENABLED */
 
-#endif
-
-void app_main(void)
-{
+void app_main(void){
 	esp_err_t ret;
-
+	
 	//Setting up Correct MAC Address TODO: REPLACE WITH A CONSISTENT RANDOM LOOKUP OF THE MAC TABLE
 	uint8_t baseMac[6];
 	esp_base_mac_addr_get(baseMac);
@@ -1521,8 +1621,8 @@ void app_main(void)
 	esp_base_mac_addr_set(baseMac);
 	
 	init_GPIO();
-	init_register_chunks();
-
+	init_memory_chunks();
+	
 	//i2c config
 	i2c_master_bus_config_t bus_config = {
 	    .i2c_port = I2C_MODE_MASTER,               // I2C port number
@@ -1531,7 +1631,7 @@ void app_main(void)
 	    .clk_source = I2C_CLK_SRC_DEFAULT,  // I2C clock source, just use the default
 	    .glitch_ignore_cnt = 7,             // glitch filter, again, just use the default
 	    .flags = {
-	        .enable_internal_pullup = false, // enable internal pullup resistors (oled screen does not have one)
+	        .enable_internal_pullup = false, // disable internal pullup resistors (board has)
 	    },
 	};
 	
@@ -1561,7 +1661,7 @@ void app_main(void)
 		ESP_LOGI("PIXART_IR", "Successful Creation");
 	}
 	
-	//nvs flash init (TODO: WHAT DOES THIS DO?)
+	//nvs flash init (non-volatile memory) [WHAT IS USING NVS?] [TODO: use for eeprom]
     ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -1569,43 +1669,121 @@ void app_main(void)
     }
     ESP_ERROR_CHECK( ret );
 
-	//hid gap init
-    ESP_LOGI(TAG, "setting hid gap, mode:%d", HID_DEV_MODE);
-    ret = esp_hid_gap_init(HID_DEV_MODE);
-    ESP_ERROR_CHECK( ret );
+    ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_BLE));
 
-#if CONFIG_BT_HID_DEVICE_ENABLED
+    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+    if ((ret = esp_bt_controller_init(&bt_cfg)) != ESP_OK) {
+        ESP_LOGE(TAG, "initialize controller failed: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    if ((ret = esp_bt_controller_enable(ESP_BT_MODE_BTDM)) != ESP_OK) {
+        ESP_LOGE(TAG, "enable controller failed: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    esp_bluedroid_config_t bluedroid_cfg = BT_BLUEDROID_INIT_CONFIG_DEFAULT();
+	
+    // Wii Remote protocol requires legacy pairing; SSP is not supported.
+    bluedroid_cfg.ssp_en = false;
+	
+    if ((ret = esp_bluedroid_init_with_cfg(&bluedroid_cfg)) != ESP_OK) {
+        ESP_LOGE(TAG, "%s initialize bluedroid failed: %s", __func__, esp_err_to_name(ret));
+        return;
+    }
+
+    if ((ret = esp_bluedroid_enable()) != ESP_OK) {
+        ESP_LOGE(TAG, "enable bluedroid failed: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    if ((ret = esp_bt_gap_register_callback(bt_gap_event_handler)) != ESP_OK) {
+        ESP_LOGE(TAG, "gap register failed: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    if ((ret = esp_sdp_register_callback(esp_sdp_cb)) != ESP_OK) {
+        ESP_LOGE(TAG, "sdp register failed: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    if ((ret = esp_sdp_init()) != ESP_OK) {
+        ESP_LOGE(TAG, "sdp init failed: %s", esp_err_to_name(ret));
+        return;
+    }
 
     ESP_LOGI(TAG, "setting device name");
     esp_bt_gap_set_device_name(bt_hid_config.device_name);
 
-    ESP_LOGI(TAG, "setting cod major, peripheral");
+    ESP_LOGI(TAG, "setting Wii Remote class of device (0x002504)");
     esp_bt_cod_t cod = {0};
     cod.major = ESP_BT_COD_MAJOR_DEV_PERIPHERAL;
     cod.minor = ESP_BT_COD_MINOR_PERIPHERAL_JOYSTICK;
-	cod.service = ESP_BT_COD_SRVC_LMTD_DISCOVER;
-    esp_bt_gap_set_cod(cod, ESP_BT_SET_COD_MAJOR_MINOR);
-	
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-	
-    ESP_LOGI(TAG, "setting bt device");
-    ESP_ERROR_CHECK( esp_hidd_dev_init(&bt_hid_config, ESP_HID_TRANSPORT_BT, bt_hidd_event_callback, &s_bt_hid_param.hid_dev));
-	
-	setLEDBinary(8);
-	
-	xTaskCreate(continuous_adc, "adc_async_buttons_task", 2 * 1024, NULL, configMAX_PRIORITIES - 4, &adc_task_hdl);
-		
-#if CONFIG_BT_SDP_COMMON_ENABLED
-    ESP_ERROR_CHECK(esp_sdp_register_callback(esp_sdp_cb));
-    ESP_ERROR_CHECK(esp_sdp_init());
-#endif /* CONFIG_BT_SDP_COMMON_ENABLED */
+    cod.service = ESP_BT_LIMITED_DISCOVERABLE; // limited discoverable service bit
+	#ifdef GENERAL_DISCOVERY
+	esp_bt_gap_set_cod(cod, ESP_BT_SET_COD_MAJOR_MINOR);	
+	#else
+	esp_bt_gap_set_cod(cod, ESP_BT_SET_COD_ALL);	
+	#endif
 
-#endif /* CONFIG_BT_HID_DEVICE_ENABLED */
+	vTaskDelay(1000 / portTICK_PERIOD_MS);
+	
+	// Initialize HID SDP information and L2CAP parameters.
+	// to be used in the call of `esp_bt_hid_device_register_app` after profile initialization finishes
+	do {
+	    s_bt_hid_param.app_param.name = bt_hid_config.device_name;
+	    s_bt_hid_param.app_param.description = bt_hid_config.device_name;
+	    s_bt_hid_param.app_param.provider = "Nintendo";
+	    s_bt_hid_param.app_param.subclass = ESP_HID_CLASS_JOS;
+	    s_bt_hid_param.app_param.desc_list = WiiMoteHIDDescriptor;
+	    s_bt_hid_param.app_param.desc_list_len = sizeof(WiiMoteHIDDescriptor);
+	
+	    memset(&s_bt_hid_param.both_qos, 0, sizeof(esp_hidd_qos_param_t)); // don't set the qos parameters
+	} while (0);
+	
+	ESP_LOGI(TAG, "register hid device callback");
+	esp_bt_hid_device_register_callback(esp_bt_hidd_cb);
+	
+	ESP_LOGI(TAG, "starting hid device");
+	esp_bt_hid_device_init();
+	
+	setLEDBinary(6);
 
+	adc_init();
+	
+	/*
+	 * Legacy pairing only; PIN supplied dynamically in GAP PIN_REQ callback
+	 * according to Wii sync/guest pairing behavior.
+	 */
+	esp_bt_pin_type_t pin_type = ESP_BT_PIN_TYPE_VARIABLE;
+	esp_bt_pin_code_t pin_code = {0};
+	esp_bt_gap_set_pin(pin_type, 0, pin_code);
+	
 	int16_t x, y, z;
 	read_from_accelerometer(&x, &y, &z);
 	ESP_LOGI("IMU_DATA","%d %d %d", x, y, z);
 	ir_points_data irpd = {0};
 	pixart_ir_get_data(&ir_handle, &irpd);
 	ESP_LOGI("IR DATA", "%d,%d[%d] %d,%d[%d] %d,%d[%d] %d,%d[%d]", irpd.point1.x, irpd.point1.y,irpd.point1.size, irpd.point2.x, irpd.point2.y,irpd.point2.size, irpd.point3.x, irpd.point3.y,irpd.point3.size, irpd.point4.x, irpd.point4.y,irpd.point4.size);
+	
+	#ifdef HCI_DEBUG
+	while (1)
+	{
+	    extern void bt_hci_log_hci_data_show(void);
+	    extern void bt_hci_log_hci_adv_show(void);
+	    bt_hci_log_hci_data_show();  // Display HCI data logs
+	    bt_hci_log_hci_adv_show();   // Display HCI advertisement logs
+	    vTaskDelay(500 / portTICK_PERIOD_MS);
+	}
+	#endif
+//	while(1){
+//		load_button_array();
+//		vTaskDelay(1);
+//	}
 }
+
+//TODO: CLEAN UP
+//TODO: FULLY FINISH READS AND WRITES
+//TODO: add battery status on A
+//TODO: add button combination to change between dolphin mode and wii mode (wii mode default)
+

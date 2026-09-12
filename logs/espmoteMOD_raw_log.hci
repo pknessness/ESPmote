@@ -1,0 +1,585 @@
+--- esp-idf-monitor 1.9.0 on /dev/ttyUSB0 115200
+--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+ets Jul 29 2019 12:21:46
+
+rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,len:15848
+load:0x40080400,len:3920
+--- 0x40080400: _invalid_pc_placeholder at /home/anshalaj/.espressif/v6.0/esp-idf/components/xtensa/xtensa_vectors.S:2235
+entry 0x40080644
+I (27) boot: ESP-IDF v6.0-dirty 2nd stage bootloader
+I (27) boot: compile time Aug 12 2026 18:53:37
+I (27) boot: Multicore bootloader
+I (29) boot: chip revision: v3.1
+I (32) boot.esp32: SPI Speed      : 40MHz
+I (36) boot.esp32: SPI Mode       : DIO
+I (39) boot.esp32: SPI Flash Size : 2MB
+I (43) boot: Enabling RNG early entropy source...
+I (47) boot: Partition Table:
+I (50) boot: ## Label            Usage          Type ST Offset   Length
+I (56) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (63) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (69) boot:  2 factory          factory app      00 00 00010000 00177000
+I (76) boot: End of partition table
+I (79) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=1b4ech (111852) map
+I (126) esp_image: segment 1: paddr=0002b514 vaddr=3ffbdb60 size=04b04h ( 19204) load
+I (134) esp_image: segment 2: paddr=00030020 vaddr=400d0020 size=67814h (423956) map
+I (285) esp_image: segment 3: paddr=0009783c vaddr=3ffc2664 size=0069ch (  1692) load
+I (286) esp_image: segment 4: paddr=00097ee0 vaddr=40080000 size=185f8h ( 99832) load
+I (330) esp_image: segment 5: paddr=000b04e0 vaddr=50000000 size=00028h (    40) load
+I (342) boot: Loaded app from partition at offset 0x10000
+I (343) boot: Disabling RNG early entropy source...
+I (353) cpu_start: Multicore app
+I (361) cpu_start: GPIO 3 and 1 are used as console UART I/O pins
+I (362) cpu_start: Pro cpu start user code
+I (362) cpu_start: cpu freq: 160000000 Hz
+I (364) app_init: Application information:
+I (367) app_init: Project name:     esp_hid_device
+I (372) app_init: App version:      dd6e84a-dirty
+I (376) app_init: Compile time:     Sep  9 2026 17:15:50
+I (381) app_init: ELF file SHA256:  87d975b08...
+I (386) app_init: ESP-IDF:          v6.0-dirty
+I (390) efuse_init: Min chip rev:     v0.0
+I (394) efuse_init: Max chip rev:     v3.99
+I (398) efuse_init: Chip rev:         v3.1
+I (402) heap_init: Initializing. RAM available for dynamic allocation:
+I (408) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (413) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (418) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (423) heap_init: At 3FFC78E0 len 00018720 (97 KiB): DRAM
+I (428) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (434) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (439) heap_init: At 400985F8 len 00007A08 (30 KiB): IRAM
+I (446) spi_flash: detected chip: generic
+I (448) spi_flash: flash io: dio
+W (451) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (465) coexist: coex firmware version: 093e3d2
+I (469) main_task: Started on CPU0
+I (471) main_task: Calling app_main()
+I (477) LSM6DS3: LSM6DS3 initialized successfully (ID: 0x6B)
+I (479) LSM6DS3: Successful Creation
+I (485) PIXART: PIXART_IR initialized successfully
+I (487) PIXART_IR: Successful Creation
+I (501) BTDM_INIT: BT controller compile version [045a658]
+I (503) BTDM_INIT: Using main XTAL as clock source
+I (505) BTDM_INIT: Bluetooth MAC: cc:9e:00:7c:16:be
+I (511) phy_init: phy_version 4863,a3a4459,Oct 28 2025,14:30:06
+E BOD: Brownout detector was triggered
+
+
+ets Jul 29 2019 12:21:46
+
+rst:0x3 (SW_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,len:15848
+load:0x40080400,len:3920
+--- 0x40080400: _invalid_pc_placeholder at /home/anshalaj/.espressif/v6.0/esp-idf/components/xtensa/xtensa_vectors.S:2235
+entry 0x40080644
+I (53) boot: ESP-IDF v6.0-dirty 2nd stage bootloader
+I (53) boot: compile time Aug 12 2026 18:53:37
+I (53) boot: Multicore bootloader
+I (55) boot: chip revision: v3.1
+I (58) boot.esp32: SPI Speed      : 40MHz
+I (62) boot.esp32: SPI Mode       : DIO
+I (65) boot.esp32: SPI Flash Size : 2MB
+I (69) boot: Enabling RNG early entropy source...
+I (73) boot: Partition Table:
+I (76) boot: ## Label            Usage          Type ST Offset   Length
+I (82) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (89) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (95) boot:  2 factory          factory app      00 00 00010000 00177000
+I (102) boot: End of partition table
+I (105) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=1b4ech (111852) map
+I (153) esp_image: segment 1: paddr=0002b514 vaddr=3ffbdb60 size=04b04h ( 19204) load
+I (160) esp_image: segment 2: paddr=00030020 vaddr=400d0020 size=67814h (423956) map
+I (312) esp_image: segment 3: paddr=0009783c vaddr=3ffc2664 size=0069ch (  1692) load
+I (313) esp_image: segment 4: paddr=00097ee0 vaddr=40080000 size=185f8h ( 99832) load
+I (356) esp_image: segment 5: paddr=000b04e0 vaddr=50000000 size=00028h (    40) load
+I (369) boot: Loaded app from partition at offset 0x10000
+I (369) boot: Disabling RNG early entropy source...
+I (379) cpu_start: Multicore app
+I (388) cpu_start: GPIO 3 and 1 are used as console UART I/O pins
+I (388) cpu_start: Pro cpu start user code
+I (388) cpu_start: cpu freq: 160000000 Hz
+I (390) app_init: Application information:
+I (393) app_init: Project name:     esp_hid_device
+I (398) app_init: App version:      dd6e84a-dirty
+I (402) app_init: Compile time:     Sep  9 2026 17:15:50
+I (407) app_init: ELF file SHA256:  87d975b08...
+I (412) app_init: ESP-IDF:          v6.0-dirty
+I (416) efuse_init: Min chip rev:     v0.0
+I (420) efuse_init: Max chip rev:     v3.99
+I (424) efuse_init: Chip rev:         v3.1
+I (428) heap_init: Initializing. RAM available for dynamic allocation:
+I (434) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (439) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (444) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (449) heap_init: At 3FFC78E0 len 00018720 (97 KiB): DRAM
+I (455) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (460) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (465) heap_init: At 400985F8 len 00007A08 (30 KiB): IRAM
+I (472) spi_flash: detected chip: generic
+I (474) spi_flash: flash io: dio
+W (477) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (491) coexist: coex firmware version: 093e3d2
+I (495) main_task: Started on CPU0
+I (497) main_task: Calling app_main()
+I (503) LSM6DS3: LSM6DS3 initialized successfully (ID: 0x6B)
+I (505) LSM6DS3: Successful Creation
+I (511) PIXART: PIXART_IR initialized successfully
+I (513) PIXART_IR: Successful Creation
+I (527) BTDM_INIT: BT controller compile version [045a658]
+I (529) BTDM_INIT: Using main XTAL as clock source
+I (531) BTDM_INIT: Bluetooth MAC: cc:9e:00:7c:16:be
+I (537) phy_init: phy_version 4863,a3a4459,Oct 28 2025,14:30:06
+E BOD: Brownout detector was triggered
+
+
+ets Jul 29 2019 12:21:46
+
+rst:0x3 (SW_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,len:15848
+load:0x40080400,len:3920
+--- 0x40080400: _invalid_pc_placeholder at /home/anshalaj/.espressif/v6.0/esp-idf/components/xtensa/xtensa_vectors.S:2235
+entry 0x40080644
+I (53) boot: ESP-IDF v6.0-dirty 2nd stage bootloader
+I (53) boot: compile time Aug 12 2026 18:53:37
+I (53) boot: Multicore bootloader
+I (55) boot: chip revision: v3.1
+I (58) boot.esp32: SPI Speed      : 40MHz
+I (62) boot.esp32: SPI Mode       : DIO
+I (65) boot.esp32: SPI Flash Size : 2MB
+I (69) boot: Enabling RNG early entropy source...
+I (73) boot: Partition Table:
+I (76) boot: ## Label            Usage          Type ST Offset   Length
+I (82) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (89) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (95) boot:  2 factory          factory app      00 00 00010000 00177000
+I (102) boot: End of partition table
+I (105) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=1b4ech (111852) map
+I (153) esp_image: segment 1: paddr=0002b514 vaddr=3ffbdb60 size=04b04h ( 19204) load
+I (160) esp_image: segment 2: paddr=00030020 vaddr=400d0020 size=67814h (423956) map
+I (312) esp_image: segment 3: paddr=0009783c vaddr=3ffc2664 size=0069ch (  1692) load
+I (313) esp_image: segment 4: paddr=00097ee0 vaddr=40080000 size=185f8h ( 99832) load
+I (356) esp_image: segment 5: paddr=000b04e0 vaddr=50000000 size=00028h (    40) load
+I (369) boot: Loaded app from partition at offset 0x10000
+I (369) boot: Disabling RNG early entropy source...
+I (379) cpu_start: Multicore app
+I (388) cpu_start: GPIO 3 and 1 are used as console UART I/O pins
+I (388) cpu_start: Pro cpu start user code
+I (388) cpu_start: cpu freq: 160000000 Hz
+I (390) app_init: Application information:
+I (393) app_init: Project name:     esp_hid_device
+I (398) app_init: App version:      dd6e84a-dirty
+I (402) app_init: Compile time:     Sep  9 2026 17:15:50
+I (407) app_init: ELF file SHA256:  87d975b08...
+I (412) app_init: ESP-IDF:          v6.0-dirty
+I (416) efuse_init: Min chip rev:     v0.0
+I (420) efuse_init: Max chip rev:     v3.99
+I (424) efuse_init: Chip rev:         v3.1
+I (428) heap_init: Initializing. RAM available for dynamic allocation:
+I (434) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (439) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (444) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (449) heap_init: At 3FFC78E0 len 00018720 (97 KiB): DRAM
+I (455) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (460) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (465) heap_init: At 400985F8 len 00007A08 (30 KiB): IRAM
+I (472) spi_flash: detected chip: generic
+I (474) spi_flash: flash io: dio
+W (477) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (491) coexist: coex firmware version: 093e3d2
+I (495) main_task: Started on CPU0
+I (497) main_task: Calling app_main()
+I (503) LSM6DS3: LSM6DS3 initialized successfully (ID: 0x6B)
+I (505) LSM6DS3: Successful Creation
+I (511) PIXART: PIXART_IR initialized successfully
+I (513) PIXART_IR: Successful Creation
+I (527) BTDM_INIT: BT controller compile version [045a658]
+I (529) BTDM_INIT: Using main XTAL as clock source
+I (531) BTDM_INIT: Bluetooth MAC: cc:9e:00:7c:16:be
+I (537) phy_init: phy_version 4863,a3a4459,Oct 28 2025,14:30:06
+I (1159) HID_DEVICE: ESP_SDP_INIT_EVT: status:0
+I (1161) HID_DEVICE: DI record request submitted
+I (1165) HID_DEVICE: ESP_SDP_CREATE_RECORD_COMP_EVT: status:0, handle:0x10000
+I (1165) HID_DEVICE: setting device name
+I (1169) HID_DEVICE: setting Wii Remote class of device (0x002504)
+I (3173) HID_DEVICE: register hid device callback
+I (3173) HID_DEVICE: starting hid device
+I (3173) BT_HIDD: HID_DevSetSecurityLevel
+I (3173) BT_HIDD: HID_DevRegister
+I (3177) BT_HIDD: hidd_conn_reg
+I (3179) esp_bt_hidd_cb: setting hid parameters
+I (3183) BT_HIDD: HID_DevAddRecord
+I (3189) BT_HIDD: HID_DevSetIncomingQos
+I (3191) BT_HIDD: HID_DevSetOutgoingQos
+I (3193) BT_HIDD: HID_DevGetDevice
+I (3197) esp_bt_hidd_cb: HID register success; opening sync-style pairing window
+I (3203) esp_bt_hidd_cb: Setting to connectable, discoverable
+I (3213) main_task: Returned from app_main()
+--- esp-idf-monitor 1.9.0 on /dev/ttyUSB0 115200
+--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+E BOD��ets Jul 29 2019 12:21:46
+
+rst:0x1 (POWERON_RESET),boot:0x3 (DOWNLOAD_BOOT(UART0/UART1/SDIO_REI_REO_V2))
+waiting for download
+�ets Jul 29 2019 12:21:46�e��ets Jul 29 2019 12:21:46
+
+rst:0x1 (POWERON_RESET),boot:0x3 (DOWNLOAD_BOOT(UART0/UART1/SDIO_REI_REO_V2))
+waiting for download
+ets Jul 29 2019 12:21:4��ets Jul 29 2019 12:21:46
+
+rst:0x1 (POWERON_RESET),boot:0x3 (DOWNLOAD_BOOT(UART0/UART1/SDIO_REI_REO_V2))
+waiting for download
+--- esp-idf-monitor 1.9.0 on /dev/ttyUSB0 115200
+--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+ets Jul 29 2019 12:21ets J�ets Jul 29 2019 12:21:46
+
+rst:0x3 (SW_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,len:15848
+load:0x40080400,len:3920
+--- 0x40080400: _invalid_pc_placeholder at /home/anshalaj/.espressif/v6.0/esp-idf/components/xtensa/xtensa_vectors.S:2235
+entry 0x40080644
+I (27) boot: ESP-IDF v6.0-dirty 2nd stage bootloader
+I (27) boot: compile time Aug 12 2026 18:53:37
+I (27) boot: Multicore bootloader
+I (29) boot: chip revision: v3.1
+I (31) boot.esp32: SPI Speed      : 40MHz
+I (35) boot.esp32: SPI Mode       : DIO
+I (39) boot.esp32: SPI Flash Size : 2MB
+I (42) boot: Enabling RNG early entropy source...
+I (47) boot: Partition Table:
+I (49) boot: ## Label            Usage          Type ST Offset   Length
+I (56) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (62) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (69) boot:  2 factory          factory app      00 00 00010000 00177000
+I (75) boot: End of partition table
+I (79) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=1b4ech (111852) map
+I (126) esp_image: segment 1: paddr=0002b514 vaddr=3ffbdb60 size=04b04h ( 19204) load
+I (134) esp_image: segment 2: paddr=00030020 vaddr=400d0020 size=679f4h (424436) map
+I (285) esp_image: segment 3: paddr=00097a1c vaddr=3ffc2664 size=0069ch (  1692) load
+I (286) esp_image: segment 4: paddr=000980c0 vaddr=40080000 size=185f8h ( 99832) load
+I (330) esp_image: segment 5: paddr=000b06c0 vaddr=50000000 size=00028h (    40) load
+I (342) boot: Loaded app from partition at offset 0x10000
+I (342) boot: Disabling RNG early entropy source...
+I (353) cpu_start: Multicore app
+I (361) cpu_start: GPIO 3 and 1 are used as console UART I/O pins
+I (361) cpu_start: Pro cpu start user code
+I (361) cpu_start: cpu freq: 160000000 Hz
+I (363) app_init: Application information:
+I (367) app_init: Project name:     esp_hid_device
+I (371) app_init: App version:      dd6e84a-dirty
+I (376) app_init: Compile time:     Sep  9 2026 17:15:50
+I (381) app_init: ELF file SHA256:  047a05261...
+I (385) app_init: ESP-IDF:          v6.0-dirty
+I (389) efuse_init: Min chip rev:     v0.0
+I (393) efuse_init: Max chip rev:     v3.99
+I (397) efuse_init: Chip rev:         v3.1
+I (401) heap_init: Initializing. RAM available for dynamic allocation:
+I (407) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (412) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (418) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (423) heap_init: At 3FFC78E0 len 00018720 (97 KiB): DRAM
+I (428) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (433) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (439) heap_init: At 400985F8 len 00007A08 (30 KiB): IRAM
+I (446) spi_flash: detected chip: generic
+I (448) spi_flash: flash io: dio
+W (451) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (464) coexist: coex firmware version: 093e3d2
+I (468) main_task: Started on CPU0
+I (470) main_task: Calling app_main()
+I (476) LSM6DS3: LSM6DS3 initialized successfully (ID: 0x6B)
+I (478) LSM6DS3: Successful Creation
+I (484) PIXART: PIXART_IR initialized successfully
+I (486) PIXART_IR: Successful Creation
+I (500) BTDM_INIT: BT controller compile version [045a658]
+I (502) BTDM_INIT: Using main XTAL as clock source
+I (502) BTDM_INIT: Bluetooth MAC: cc:9e:00:7c:16:be
+I (510) phy_init: phy_version 4863,a3a4459,Oct 28 2025,14:30:06
+I (1140) HID_DEVICE: ESP_SDP_INIT_EVT: status:0
+I (1144) HID_DEVICE: DI record request submitted
+I (1146) HID_DEVICE: ESP_SDP_CREATE_RECORD_COMP_EVT: status:0, handle:0x10000
+I (1150) HID_DEVICE: setting device name
+I (1150) HID_DEVICE: setting Wii Remote class of device (0x002504)
+I (3158) HID_DEVICE: register hid device callback
+I (3158) HID_DEVICE: starting hid device
+I (3158) BT_HIDD: HID_DevSetSecurityLevel
+I (3158) BT_HIDD: HID_DevRegister
+I (3162) BT_HIDD: hidd_conn_reg
+I (3164) esp_bt_hidd_cb: setting hid parameters
+I (3168) BT_HIDD: HID_DevAddRecord
+I (3174) BT_HIDD: HID_DevSetIncomingQos
+I (3176) BT_HIDD: HID_DevSetOutgoingQos
+I (3178) BT_HIDD: HID_DevGetDevice
+I (3182) esp_bt_hidd_cb: HID register success; opening sync-style pairing window
+I (3188) esp_bt_hidd_cb: Setting to connectable, discoverable
+ 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+26 C:09 8f 0a 00 00 00 00 00 13 0c f8 45 53 50 33 32 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+27 E:ae 9a 0a 00 00 00 00 00 0e 04 05 13 0c 00
+28 C:91 9e 0a 00 00 00 00 00 52 0c f1 01 06 09 45 53 50 33 32 01 03 01 05 01 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+29 E:89 a8 0a 00 00 00 00 00 0e 04 05 52 0c 00
+2a C:5b b5 0a 00 00 00 00 00 52 0c f1 01 06 09 45 53 50 33 32 03 03 00 12 01 05 01 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2b E:1b bf 0a 00 00 00 00 00 0e 04 05 52 0c 00
+2c C:1e c9 0a 00 00 00 00 00 13 0c f8 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2d E:88 d2 0a 00 00 00 00 00 0e 04 05 13 0c 00
+2e C:42 d6 0a 00 00 00 00 00 52 0c f1 01 14 09 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 03 03 00 12 01 05 01 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2f E:d5 df 0a 00 00 00 00 00 0e 04 05 52 0c 00
+30 C:1e e6 0a 00 00 00 00 00 24 0c 03 04 05 00
+31 E:09 ef 0a 00 00 00 00 00 0e 04 05 24 0c 00
+32 C:f7 a5 29 00 00 00 00 00 52 0c f1 01 14 09 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 05 03 24 11 00 12 01 05 01 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+33 E:21 b2 29 00 00 00 00 00 0e 04 05 52 0c 00
+34 C:db fc 29 00 00 00 00 00 3a 0c 04 01 33 8b 9e
+35 E:c9 06 2a 00 00 00 00 00 0e 04 05 3a 0c 00
+36 C:54 cb 30 00 00 00 00 00 1e 0c 04 00 08 12 00
+37 E:20 d2 30 00 00 00 00 00 0e 04 05 1e 0c 00
+38 C:a4 d4 30 00 00 00 00 00 1a 0c 01 01
+39 E:71 dc 30 00 00 00 00 00 0e 04 05 1a 0c 00
+3a C:e4 de 30 00 00 00 00 00 1a 0c 01 03
+3b E:d0 df 30 00 00 00 00 00 0e 04 05 1a 0c 00
+E BOD: Bro��ets Jul 29 2019 12:21:46
+
+rst:0x1 (POWERON_RESET),boot:0x3 (DOWNLOAD_BOOT(UART0/UART1/SDIO_REI_REO_V2))
+waiting for download
+--- esp-idf-monitor 1.9.0 on /dev/ttyUSB0 115200
+--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+�ets Juets Jul 29 2019 12:21:46
+
+rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,��ets Jul 29 2019 12:21:46
+
+rst:0x3 (SW_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,len:15848
+load:0x40080400,len:3920
+--- 0x40080400: _invalid_pc_placeholder at /home/anshalaj/.espressif/v6.0/esp-idf/components/xtensa/xtensa_vectors.S:2235
+entry 0x40080644
+I (27) boot: ESP-IDF v6.0-dirty 2nd stage bootloader
+I (27) boot: compile time Aug 12 2026 18:53:37
+I (27) boot: Multicore bootloader
+I (29) boot: chip revision: v3.1
+I (31) boot.esp32: SPI Speed      : 40MHz
+I (35) boot.esp32: SPI Mode       : DIO
+I (39) boot.esp32: SPI Flash Size : 2MB
+I (42) boot: Enabling RNG early entropy source...
+I (47) boot: Partition Table:
+I (49) boot: ## Label            Usage          Type ST Offset   Length
+I (56) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (62) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (69) boot:  2 factory          factory app      00 00 00010000 00177000
+I (75) boot: End of partition table
+I (79) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=1b4ech (111852) map
+I (126) esp_image: segment 1: paddr=0002b514 vaddr=3ffbdb60 size=04b04h ( 19204) load
+I (134) esp_image: segment 2: paddr=00030020 vaddr=400d0020 size=679f4h (424436) map
+I (285) esp_image: segment 3: paddr=00097a1c vaddr=3ffc2664 size=0069ch (  1692) load
+I (286) esp_image: segment 4: paddr=000980c0 vaddr=40080000 size=185f8h ( 99832) load
+I (330) esp_image: segment 5: paddr=000b06c0 vaddr=50000000 size=00028h (    40) load
+I (342) boot: Loaded app from partition at offset 0x10000
+I (342) boot: Disabling RNG early entropy source...
+I (353) cpu_start: Multicore app
+I (361) cpu_start: GPIO 3 and 1 are used as console UART I/O pins
+I (361) cpu_start: Pro cpu start user code
+I (361) cpu_start: cpu freq: 160000000 Hz
+I (363) app_init: Application information:
+I (367) app_init: Project name:     esp_hid_device
+I (371) app_init: App version:      dd6e84a-dirty
+I (376) app_init: Compile time:     Sep  9 2026 17:15:50
+I (381) app_init: ELF file SHA256:  247bd7d68...
+I (385) app_init: ESP-IDF:          v6.0-dirty
+I (389) efuse_init: Min chip rev:     v0.0
+I (393) efuse_init: Max chip rev:     v3.99
+I (397) efuse_init: Chip rev:         v3.1
+I (401) heap_init: Initializing. RAM available for dynamic allocation:
+I (407) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (412) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (418) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (423) heap_init: At 3FFC78E0 len 00018720 (97 KiB): DRAM
+I (428) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (433) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (439) heap_init: At 400985F8 len 00007A08 (30 KiB): IRAM
+I (446) spi_flash: detected chip: generic
+I (448) spi_flash: flash io: dio
+W (451) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (464) coexist: coex firmware version: 093e3d2
+I (468) main_task: Started on CPU0
+I (470) main_task: Calling app_main()
+I (476) LSM6DS3: LSM6DS3 initialized successfully (ID: 0x6B)
+I (478) LSM6DS3: Successful Creation
+I (484) PIXART: PIXART_IR initialized successfully
+I (486) PIXART_IR: Successful Creation
+I (500) BTDM_INIT: BT controller compile version [045a658]
+I (502) BTDM_INIT: Using main XTAL as clock source
+I (502) BTDM_INIT: Bluetooth MAC: cc:9e:00:7c:16:be
+I (510) phy_init: phy_version 4863,a3a4459,Oct 28 2025,14:30:06
+I (1142) HID_DEVICE: ESP_SDP_INIT_EVT: status:0
+I (1144) HID_DEVICE: DI record request submitted
+I (1148) HID_DEVICE: ESP_SDP_CREATE_RECORD_COMP_EVT: status:0, handle:0x10000
+I (1150) HID_DEVICE: setting device name
+I (1152) HID_DEVICE: setting Wii Remote class of device (0x002504)
+I (3160) HID_DEVICE: register hid device callback
+I (3160) HID_DEVICE: starting hid device
+I (3160) BT_HIDD: HID_DevSetSecurityLevel
+I (3160) BT_HIDD: HID_DevRegister
+I (3164) BT_HIDD: hidd_conn_reg
+I (3166) esp_bt_hidd_cb: setting hid parameters
+I (3170) BT_HIDD: HID_DevAddRecord
+I (3176) BT_HIDD: HID_DevSetIncomingQos
+I (3178) BT_HIDD: HID_DevSetOutgoingQos
+I (3180) BT_HIDD: HID_DevGetDevice
+I (3184) esp_bt_hidd_cb: HID register success; opening sync-style pairing window
+I (3190) esp_bt_hidd_cb: Setting to connectable, discoverable
+ 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+26 C:cc 94 0a 00 00 00 00 00 13 0c f8 45 53 50 33 32 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+27 E:74 a0 0a 00 00 00 00 00 0e 04 05 13 0c 00
+28 C:54 a4 0a 00 00 00 00 00 52 0c f1 01 06 09 45 53 50 33 32 01 03 01 05 01 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+29 E:4f ae 0a 00 00 00 00 00 0e 04 05 52 0c 00
+2a C:24 bb 0a 00 00 00 00 00 52 0c f1 01 06 09 45 53 50 33 32 03 03 00 12 01 05 01 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2b E:d8 c4 0a 00 00 00 00 00 0e 04 05 52 0c 00
+2c C:e3 ce 0a 00 00 00 00 00 13 0c f8 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2d E:5b d8 0a 00 00 00 00 00 0e 04 05 13 0c 00
+2e C:fc db 0a 00 00 00 00 00 52 0c f1 01 14 09 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 03 03 00 12 01 05 01 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+2f E:88 e5 0a 00 00 00 00 00 0e 04 05 52 0c 00
+30 C:ce eb 0a 00 00 00 00 00 24 0c 03 04 25 00
+31 E:ce f4 0a 00 00 00 00 00 0e 04 05 24 0c 00
+32 C:c3 ad 29 00 00 00 00 00 52 0c f1 01 14 09 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 05 03 24 11 00 12 01 05 01 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+33 E:ee b7 29 00 00 00 00 00 0e 04 05 52 0c 00
+34 C:b0 04 2a 00 00 00 00 00 3a 0c 07 02 00 8b 9e 33 8b 9e
+35 E:ff 0e 2a 00 00 00 00 00 0e 04 05 3a 0c 00
+36 C:87 d3 30 00 00 00 00 00 1e 0c 04 00 08 12 00
+37 E:5b da 30 00 00 00 00 00 0e 04 05 1e 0c 00
+38 C:dd dc 30 00 00 00 00 00 1a 0c 01 01
+39 E:a6 e4 30 00 00 00 00 00 0e 04 05 1a 0c 00
+3a C:18 e7 30 00 00 00 00 00 1a 0c 01 03
+3b E:04 e8 30 00 00 00 00 00 0e 04 05 1a 0c 00
+3c E:bc bf f6 00 00 00 00 00 04 0a dc ea 34 a0 a2 78 48 04 00 01
+3d C:3c c6 f6 00 00 00 00 00 09 04 07 dc ea 34 a0 a2 78 01
+3e E:b2 c7 f6 00 00 00 00 00 0f 04 00 05 09 04
+W (16790) BT_HCI: hcif conn complete: hdl 0x81, st 0x0
+3f E:40 3a f9 00 00 00 00 00 03 0b 00 81 00 dc ea 34 a0 a2 78 01 00
+40 C:de 3f f9 00 00 00 00 00 1f 04 02 81 00
+41 E:02 41 f9 00 00 00 00 00 0f 04 00 05 1f 04
+42 E:fa 41 f9 00 00 00 00 00 1c 05 00 81 00 ff 79
+43 E:e3 43 f9 00 00 00 00 00 1b 03 81 00 05
+44 C:45 48 f9 00 00 00 00 00 1d 04 02 81 00
+45 E:66 49 f9 00 00 00 00 00 0f 04 00 05 1d 04
+46 E:50 4a f9 00 00 00 00 00 0c 08 00 81 00 03 0f 00 0e 43
+47 C:0c 4f f9 00 00 00 00 00 1b 04 02 81 00
+48 E:eb 4f f9 00 00 00 00 00 0f 04 00 05 1b 04
+49 E:a7 50 f9 00 00 00 00 00 0b 0b 00 81 00 ff ff 8d fe 9b f9 00 80
+4a C:ca 55 f9 00 00 00 00 00 19 04 0a dc ea 34 a0 a2 78 01 00 00 00
+4b E:e7 56 f9 00 00 00 00 00 0f 04 00 05 19 04
+4c H:98 5f f9 00 00 00 00 00 81 20 0a 00 06 00 01 00 0a 02 02 00 02 00
+4d C:f8 64 f9 00 00 00 00 00 0d 08 04 81 00 05 00
+4e E:79 66 f9 00 00 00 00 00 0e 06 05 0d 08 00 81 00
+4f C:56 72 f9 00 00 00 00 00 1c 04 03 81 00 01
+50 E:af 73 f9 00 00 00 00 00 0f 04 00 05 1c 04
+51 E:8a 75 f9 00 00 00 00 00 13 05 01 81 00 01 00
+52 E:80 76 f9 00 00 00 00 00 07 ff 00 dc ea 34 a0 a2 78 57 69 69 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+53 E:dc 88 f9 00 00 00 00 00 23 0d 00 81 00 01 00 00 00 00 00 00 00 00 00
+54 C:1c 8e f9 00 00 00 00 00 0f 04 04 81 00 18 cc
+55 E:64 8f f9 00 00 00 00 00 0f 04 00 05 0f 04
+56 E:67 90 f9 00 00 00 00 00 1d 05 00 81 00 18 cc
+57 C:e4 95 f9 00 00 00 00 00 0d 08 04 81 00 05 00
+58 E:e5 96 f9 00 00 00 00 00 0e 06 05 0d 08 00 81 00
+59 D:28 b0 f9 00 00 00 00 00 81 20 0c 00 08 00 01 00 0b 02 04 00 02 00 01 00
+5a C:5f b3 f9 00 00 00 00 00 35 0c 05 01 81 00 01 00
+5b D:ff 54 fa 00 00 00 00 00 81 20 0c 00 08 00 01 00 02 01 04 00 01 00 44 00
+5c C:d6 57 fa 00 00 00 00 00 35 0c 05 01 81 00 01 00
+5d H:80 64 fa 00 00 00 00 00 81 20 10 00 0c 00 01 00 03 01 08 00 40 00 44 00 00 00 00 00
+5e H:84 6a fa 00 00 00 00 00 81 20 10 00 0c 00 01 00 04 03 08 00 44 00 00 00 01 02 a0 02
+5f E:78 78 fa 00 00 00 00 00 13 05 01 81 00 01 00
+60 E:21 7c fa 00 00 00 00 00 13 05 01 81 00 01 00
+61 D:f4 85 fa 00 00 00 00 00 81 20 14 00 10 00 01 00 04 02 0c 00 40 00 00 00 01 02 00 01 02 02 ff ff
+62 C:c7 88 fa 00 00 00 00 00 35 0c 05 01 81 00 01 00
+63 D:95 8a fa 00 00 00 00 00 81 20 0e 00 0a 00 01 00 05 03 06 00 40 00 00 00 00 00
+64 C:c2 8c fa 00 00 00 00 00 35 0c 05 01 81 00 01 00
+65 H:b0 92 fa 00 00 00 00 00 81 20 0e 00 0a 00 01 00 05 02 06 00 44 00 00 00 00 00
+I (17194) ESP_HID_GAP: BT GAP PIN_REQ_EVT min_16_digit:0
+I (17196) ESP_HID_GAP: Pin: dc ea 34 a0 a2 78
+
+66 E:9c 9e fa 00 00 00 00 00 13 05 01 81 00 01 00
+67 D:51 91 fe 00 00 00 00 00 81 20 11 00 0d 00 40 00 02 00 00 00 08 35 03 19 11 24 00 15 00
+68 C:4b 95 fe 00 00 00 00 00 35 0c 05 01 81 00 01 00
+69 H:00 9e fe 00 00 00 00 00 81 20 12 00 0e 00 44 00 03 00 00 00 09 00 01 00 01 00 01 00 01 00
+6a E:a0 a9 fe 00 00 00 00 00 13 05 01 81 00 01 00
+6b D:3f b8 fe 00 00 00 00 00 81 20 17 00 13 00 40 00 04 00 01 00 0e 00 01 00 01 00 f0 35 05 0a 00 00 ff ff 00
+6c C:f6 ba fe 00 00 00 00 00 35 0c 05 01 81 00 01 00
+6d H:71 c3 fe 00 00 00 00 00 81 20 fe 00 fa 00 44 00 05 00 01 00 f5 00 f0 36 01 ba 09 00 00 0a 00 01 00 01 09 00 01 35 03 19 11 24 09 00 04 35 0d 35 06 19 01 00 09 00 11 35 03 19 00 11 09 00 05 35 03 19 10 02 09 00 06 35 09 09 65 6e 09 00 6a 09 01 00 09 00 09 35 08 35 06 19 11 24 09 01 00 09 00 0d 35 0f 35 0d 35 06 19 01 00 09 00 13 35 03 19 00 11 09 01 00 25 14 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 00 09 01 01 25 14 4e 69 6e 74 65 6e 64 6f 20 52 56 4c 2d 43 4e 54 2d 30 31 00 09 01 02 25 09 4e 69 6e 74 65 6e 64 6f 00 09 02 00 09 01 00 09 02 01 09 01 11 09 02 02 08 04 09 02 03 08 21 09 02 04 28 01 09 02 05 28 01 09 02 06 35 d5 35 d3 08 22 25 cf 05 01 09 05 a1 01 85 10 75 08 95 01 91 00 85 11 75 08 95 01 91 00 85 12 75 08 95 02 91 00 85 13 75 08 95 01 91 00 85 14 75 02 00 f0
+6e E:8e d5 fe 00 00 00 00 00 13 05 01 81 00 01 00
+6f D:1e e4 fe 00 00 00 00 00 81 20 19 00 15 00 40 00 04 00 02 00 10 00 01 00 01 00 f0 35 05 0a 00 00 ff ff 02 00 f0
+70 C:db e6 fe 00 00 00 00 00 35 0c 05 01 81 00 01 00
+71 H:17 ee fe 00 00 00 00 00 81 20 d9 00 d5 00 44 00 05 00 02 00 d0 00 cd 08 95 01 91 00 85 15 75 08 95 01 91 00 85 16 75 08 95 15 91 00 85 17 75 08 95 06 91 00 85 18 75 08 95 15 91 00 85 19 75 08 95 01 91 00 85 1a 75 08 95 01 91 00 85 20 75 08 95 06 81 00 85 21 75 08 95 15 81 00 85 22 75 08 95 04 81 00 85 30 75 08 95 02 81 00 85 31 75 08 95 05 81 00 85 32 75 08 95 0a 81 00 85 33 75 08 95 11 81 00 85 34 75 08 95 15 81 00 85 35 75 08 95 15 81 00 85 36 75 08 95 15 81 00 85 37 75 08 95 15 81 00 85 3d 75 08 95 15 81 00 85 3e 75 08 95 15 81 00 85 3f 75 08 95 15 81 00 c0 09 02 07 35 08 35 06 09 04 09 09 01 00 09 02 09 28 01 09 02 0a 28 00 09 02 0b 09 01 00 09 02 0d 28 01 09 02 0e 28 01 00
+72 E:56 06 ff 00 00 00 00 00 13 05 01 81 00 01 00
+73 D:2e 0b ff 00 00 00 00 00 81 20 0c 00 08 00 01 00 06 03 04 00 40 00 44 00
+74 C:e0 0d ff 00 00 00 00 00 35 0c 05 01 81 00 01 00
+75 H:73 13 ff 00 00 00 00 00 81 20 0c 00 08 00 01 00 07 03 04 00 40 00 44 00
+76 E:f0 1e ff 00 00 00 00 00 13 05 01 81 00 01 00
+77 D:54 2d ff 00 00 00 00 00 81 20 0c 00 08 00 01 00 02 04 04 00 11 00 45 00
+78 C:fd 2f ff 00 00 00 00 00 35 0c 05 01 81 00 01 00
+79 H:0f 3e ff 00 00 00 00 00 81 20 10 00 0c 00 01 00 03 04 08 00 41 00 45 00 00 00 00 00
+7a H:40 44 ff 00 00 00 00 00 81 20 10 00 0c 00 01 00 04 04 08 00 45 00 00 00 01 02 40 00
+7b E:d7 4b ff 00 00 00 00 00 13 05 01 81 00 01 00
+7c E:4f 54 ff 00 00 00 00 00 13 05 01 81 00 01 00
+7d D:59 59 ff 00 00 00 00 00 81 20 14 00 10 00 01 00 04 05 0c 00 41 00 00 00 01 02 80 02 02 02 ff ff
+7e C:2d 5c ff 00 00 00 00 00 35 0c 05 01 81 00 01 00
+7f D:f4 5d ff 00 00 00 00 00 81 20 0e 00 0a 00 01 00 05 04 06 00 41 00 00 00 00 00
+80 C:b7 60 ff 00 00 00 00 00 35 0c 05 01 81 00 01 00
+81 H:bf 65 ff 00 00 00 00 00 81 20 0e 00 0a 00 01 00 05 05 06 00 45 00 00 00 00 00
+82 E:e6 71 ff 00 00 00 00 00 13 05 01 81 00 01 00
+83 E:0b 94 ff 00 00 00 00 00 16 06 dc ea 34 a0 a2 78
+84 C:2f a3 ff 00 00 00 00 00 0d 04 17 dc ea 34 a0 a2 78 06 dc ea 34 a0 a2 78 00 00 00 00 00 00 00 00 00 00
+85 E:d5 a4 ff 00 00 00 00 00 0e 0a 05 0d 04 00 dc ea 34 a0 a2 78
+W (17564) BT_APPL: new conn_srvc id:20, app_id:1
+I (17566) esp_bt_hidd_cb: OPEN OK
+I (17566) esp_bt_hidd_cb: Setting to non-connectable, non-discoverable
+I (17582) WII_OUTPUT: DATA FROM WII: ID: 0x17, Len: 6, Data:
+I (17582) WII_OUTPUT: 00 00 17 70 00 01
+I (17582) WII_OUTPUT: Attempting to read 1 bytes from EEPROM Memory at 0x001770
+#FEAT# ATTE2 status:0
+READING OUT OF RANGEW (17590) BT_HCI: hcif mode change: hdl 0x81, mode 2, intv 8, status 0x0
+86 E:8b 67 00 01 00 00 00 00 18 17 dc ea 34 a0 a2 78 35 46 73 6a a7 ee 0c 98 51 cd 41 d7 a3 48 38 34 00
+87 D:cb ce 04 01 00 00 00 00 81 20 0c 00 08 00 01 00 02 06 04 00 13 00 46 00
+88 C:31 d2 04 01 00 00 00 00 35 0c 05 01 81 00 01 00
+89 H:67 e4 04 01 00 00 00 00 81 20 10 00 0c 00 01 00 03 06 08 00 40 00 46 00 00 00 00 00
+8a H:8b ea 04 01 00 00 00 00 81 20 28 00 24 00 01 00 04 05 20 00 46 00 00 00 01 02 40 00 03 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+8b E:31 18 05 01 00 00 00 00 13 05 01 81 00 01 00
+8c E:b3 20 05 01 00 00 00 00 13 05 01 81 00 01 00
+8d D:c1 25 05 01 00 00 00 00 81 20 14 00 10 00 01 00 04 07 0c 00 40 00 00 00 01 02 80 02 02 02 ff ff
+8e C:26 29 05 01 00 00 00 00 35 0c 05 01 81 00 01 00
+8f D:a2 2a 05 01 00 00 00 00 81 20 26 00 22 00 01 00 05 05 1e 00 40 00 00 00 00 00 03 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+90 C:f5 2d 05 01 00 00 00 00 35 0c 05 01 81 00 01 00
+91 H:8c 34 05 01 00 00 00 00 81 20 0e 00 0a 00 01 00 05 07 06 00 46 00 00 00 00 00
+92 E:39 48 05 01 00 00 00 00 13 05 01 81 00 01 00
+93 E:f8 51 05 01 00 00 00 00 1b 03 81 00 01
+94 C:cd 54 05 01 00 00 00 00 24 0c 03 04 05 00
+95 E:07 56 05 01 00 00 00 00 0e 04 05 24 0c 00
+96 C:9a 5a 05 01 00 00 00 00 1a 0c 01 02
+97 E:6a 5c 05 01 00 00 00 00 0e 04 05 1a 0c 00
+98 C:64 60 05 01 00 00 00 00 1a 0c 01 00
+99 E:ce 61 05 01 00 00 00 00 0e 04 05 1a 0c 00
+9a D:05 79 05 01 00 00 00 00 81 20 0c 00 08 00 40 00 a2 17 00 00 17 70 00 01
+9b C:7f 7c 05 01 00 00 00 00 35 0c 05 01 81 00 01 00
+9c E:b3 a0 05 01 00 00 00 00 14 06 00 81 00 02 08 00
+

@@ -1,0 +1,794 @@
+rst:0x3 (SW_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0040,len:6272
+load:0x40078000,len:15848
+load:0x40080400,len:3920
+--- 0x40080400: _invalid_pc_placeholder at /home/anshalaj/.espressif/v6.0/esp-idf/components/xtensa/xtensa_vectors.S:2235
+entry 0x40080644
+I (53) boot: ESP-IDF v6.0-dirty 2nd stage bootloader
+I (53) boot: compile time Aug 12 2026 18:53:37
+I (53) boot: Multicore bootloader
+I (55) boot: chip revision: v3.1
+I (58) boot.esp32: SPI Speed      : 40MHz
+I (62) boot.esp32: SPI Mode       : DIO
+I (65) boot.esp32: SPI Flash Size : 2MB
+I (69) boot: Enabling RNG early entropy source...
+I (73) boot: Partition Table:
+I (76) boot: ## Label            Usage          Type ST Offset   Length
+I (82) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (89) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (95) boot:  2 factory          factory app      00 00 00010000 00177000
+I (102) boot: End of partition table
+I (105) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=1ba9ch (113308) map
+I (153) esp_image: segment 1: paddr=0002bac4 vaddr=3ffbdb60 size=04554h ( 17748) load
+I (160) esp_image: segment 2: paddr=00030020 vaddr=400d0020 size=65204h (414212) map
+I (308) esp_image: segment 3: paddr=0009522c vaddr=3ffc20b4 size=00aech (  2796) load
+I (309) esp_image: segment 4: paddr=00095d20 vaddr=40080000 size=18e64h (101988) load
+I (353) esp_image: segment 5: paddr=000aeb8c vaddr=50000000 size=00028h (    40) load
+I (366) boot: Loaded app from partition at offset 0x10000
+I (366) boot: Disabling RNG early entropy source...
+I (377) cpu_start: Multicore app
+I (385) cpu_start: GPIO 3 and 1 are used as console UART I/O pins
+I (385) cpu_start: Pro cpu start user code
+I (385) cpu_start: cpu freq: 160000000 Hz
+I (387) app_init: Application information:
+I (391) app_init: Project name:     esp_hid_device
+I (396) app_init: App version:      6052fa4-dirty
+I (400) app_init: Compile time:     Sep  3 2026 20:54:15
+I (405) app_init: ELF file SHA256:  85ebc2e02...
+I (409) app_init: ESP-IDF:          v6.0-dirty
+I (414) efuse_init: Min chip rev:     v0.0
+I (417) efuse_init: Max chip rev:     v3.99
+I (421) efuse_init: Chip rev:         v3.1
+I (426) heap_init: Initializing. RAM available for dynamic allocation:
+I (432) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (437) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (442) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (447) heap_init: At 3FFC9018 len 00016FE8 (91 KiB): DRAM
+I (452) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (457) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (463) heap_init: At 40098E64 len 0000719C (28 KiB): IRAM
+I (470) spi_flash: detected chip: generic
+I (472) spi_flash: flash io: dio
+W (475) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (488) coexist: coex firmware version: 093e3d2
+I (492) main_task: Started on CPU0
+I (494) main_task: Calling app_main()
+I (496) app_main: === Wii Remote emulation boot ===
+I (502) app_main: Target identity: name='Nintendo RVL-CNT-01', VID=0x057E, PID=0x0306
+I (510) wiimote_uart: UART button input active on UART0: press '+<key>', release '-<key>'; keys [W/A/S/D=DPAD, space=2, /=1, h=HOME]
+I (532) BTDM_INIT: BT controller compile version [045a658]
+I (532) BTDM_INIT: Using main XTAL as clock source
+I (534) BTDM_INIT: Bluetooth MAC: 70:4b:ca:7c:16:be
+I (540) phy_init: phy_version 4863,a3a4459,Oct 28 2025,14:30:06
+I (620) phy_init: Saving new calibration data due to checksum failure or outdated calibration data, mode(0)
+I (1184) esp_sdp_cb: SDP initialized; creating Nintendo DI record
+I (1188) create_wiimote_di_record: DI record request submitted
+I (1190) esp_bt_gap_cb: event: 10
+I (1190) esp_sdp_cb: DI record created (handle=65536, vid=0x057E pid=0x0306 ver=0x0100)
+I (1198) app_main: setting device name
+I (1204) esp_bt_gap_cb: event: 10
+I (1206) app_main: setting Wii Remote class of device (0x002504)
+I (3212) app_main: register hid device callback
+I (3212) app_main: starting hid device
+I (3212) esp_bt_hidd_cb: setting hid parameters
+I (3216) esp_bt_gap_cb: event: 10
+I (3216) esp_bt_hidd_cb: HID register success; opening sync-style pairing window
+I (3222) pairing_window: [PAIR][1/4] Entering 20s sync-style discoverable window
+I (3230) pairing_window: [PAIR][2/4] Waiting for host inquiry/authentication
+I (3238) app_main: Own address:[70:4b:ca:7c:16:be]
+I (3242) app_main: Pairing behavior: sync-style window opens after HID register success
+I (3248) app_main: Use reset/reboot to simulate pressing red sync on a physical Wiimote
+I (3256) main_task: Returned from app_main()
+W (15142) BT_HCI: hcif conn complete: hdl 0x81, st 0x0
+I (15148) esp_bt_gap_cb: event: 16
+I (15156) BT_L2CAP: L2CA_SetDesireRole() new:x1, disallow_switch:0
+I (15208) BT_L2CAP: L2CAP - Calling Connect_Ind_Cb(), CID: 0x0040
+I (15210) BT_L2CAP: L2CA_ErtmConnectRsp()  CID: 0x0040  Result: 0  Status: 0  BDA: 78a2a034eadc  p_ertm_info:0
+I (15216) BT_L2CAP: L2CA_ConfigReq()  CID 0x0040: fcr_present:0 (mode 0) mtu_present:1 (672)
+I (15224) BT_L2CAP: L2CA_ConfigRsp()  CID: 0x0040  Result: 0 MTU present:0 Flush TO:0 FCR:0 FCS:0
+I (15234) BT_L2CAP: L2CAP - Calling Config_Rsp_Cb(), CID: 0x0040
+I (15242) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 14
+I (15252) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 250
+I (15264) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 213
+I (15278) BT_L2CAP: L2CAP - Calling Disconnect_Ind_Cb(), CID: 0x0040  Conf Needed
+I (15278) BT_L2CAP: L2CA_DisconnectRsp()  CID: 0x0040
+I (15294) BT_L2CAP: L2CAP - Calling Connect_Ind_Cb(), CID: 0x0041
+I (15294) BT_L2CAP: L2CA_ErtmConnectRsp()  CID: 0x0041  Result: 0  Status: 0  BDA: 78a2a034eadc  p_ertm_info:0
+I (15300) BT_L2CAP: L2CA_ConfigReq()  CID 0x0041: fcr_present:0 (mode 0) mtu_present:1 (64)
+I (15310) BT_L2CAP: L2CA_ConfigRsp()  CID: 0x0041  Result: 0 MTU present:0 Flush TO:0 FCR:0 FCS:0
+I (15320) BT_L2CAP: L2CAP - Calling Config_Rsp_Cb(), CID: 0x0041
+I (15326) esp_bt_gap_cb: [PAIR] Legacy PIN request received (Wii-style binary PIN), min_16_digit=0
+I (15330) esp_bt_gap_cb: [PAIR] Using sync PIN source: reverse host BD_ADDR
+I (15336) esp_bt_gap_cb: dc ea 34 a0 a2 78
+I (15410) BT_L2CAP: L2CAP - Calling Connect_Ind_Cb(), CID: 0x0040
+I (15410) BT_L2CAP: L2CA_ErtmConnectRsp()  CID: 0x0040  Result: 0  Status: 0  BDA: 78a2a034eadc  p_ertm_info:0
+I (15416) BT_L2CAP: L2CA_ConfigReq()  CID 0x0040: fcr_present:0 (mode 0) mtu_present:1 (64)
+I (15428) BT_L2CAP: L2CA_ConfigRsp()  CID: 0x0040  Result: 0 MTU present:0 Flush TO:0 FCR:0 FCS:0
+I (15436) BT_L2CAP: L2CAP - Calling Config_Rsp_Cb(), CID: 0x0040
+I (15438) BT_L2CAP: L2CA_SetDesireRole() new:x1, disallow_switch:0
+W (15444) BT_APPL: new conn_srvc id:20, app_id:1
+I (15454) esp_bt_gap_cb: [PAIR] Authentication complete (legacy mode), device: Wii
+I (15454) esp_bt_gap_cb: 78 a2 a#FEAT# ATTE2 status:0
+0 34 ea dc
+W (15462) BT_HCI: hcif mode change: hdl 0x81, mode 2, intv 8, status 0x0
+I (15468) esp_bt_hidd_cb: connected to 78:a2:a0:34:ea:dc
+I (15472) esp_bt_hidd_cb: [PAIR] HID connected; disabling discoverability/connectability
+I (15480) esp_bt_gap_cb: ESP_BT_GAP_MODE_CHG_EVT mode:2
+I (15484) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15494) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 8
+I (15498) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15510) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (15514) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15514) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x20, type:1
+I (15520) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15524) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (15530) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15536) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 6
+I (15542) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15548) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15550) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x22, type:1
+I (15556) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15564) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15568) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15576) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15580) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15584) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15592) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15594) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 6
+I (15602) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15606) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15614) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15616) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15626) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x22, type:1
+I (15628) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15636) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15640) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15644) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15652) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15654) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15664) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15666) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15672) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15680) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 6
+I (15684) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15688) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15696) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15704) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15704) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15712) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15714) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15722) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x22, type:1
+I (15726) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15734) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15736) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15744) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15750) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15754) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15762) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15764) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15772) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15776) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15784) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15788) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (15796) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (15800) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (15806) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (15810) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15812) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15820) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15824) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15832) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15834) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15842) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15846) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15854) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15856) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15866) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (15868) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (15874) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15882) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (15884) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (15890) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15898) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15902) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15910) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15914) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15922) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15924) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15932) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15934) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15942) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15948) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15952) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15960) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15962) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15970) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15974) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15978) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (15986) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (15990) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (15998) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (16004) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16008) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (16014) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (16018) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16022) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16030) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16034) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16042) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16044) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16052) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16054) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16062) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16066) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16074) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16076) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16084) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16088) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16096) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16098) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16106) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (16110) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (16116) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16122) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16126) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (16132) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16140) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (16144) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16152) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16154) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16162) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16166) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16174) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16176) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16186) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16188) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16196) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16198) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16206) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16210) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16214) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16222) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16226) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16234) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16236) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16246) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16248) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16256) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16260) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16264) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16272) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16274) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16282) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16286) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16294) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (16298) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (16304) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 23
+I (16310) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16314) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16320) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16326) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16330) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16336) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16340) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16348) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16350) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16356) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16364) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16368) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16376) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16378) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16386) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16390) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16394) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16402) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16406) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16412) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16420) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16422) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16430) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16434) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16442) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16444) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16452) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (16456) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16464) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (16466) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x21, type:1
+I (16474) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16480) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16484) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16492) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16494) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16502) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16506) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16514) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16516) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16526) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16530) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16534) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16540) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16544) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16552) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16554) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16560) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16568) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16572) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16580) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16584) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16588) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16596) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16598) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16606) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16610) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16618) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16620) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16630) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16632) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16640) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16644) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16648) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16656) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16660) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16668) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 8
+I (16672) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16676) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16684) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16686) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16696) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16700) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16702) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16708) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16716) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16720) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16728) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16730) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16738) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16744) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16746) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16756) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16758) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16766) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16768) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16776) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16780) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16788) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16790) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16798) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16802) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16810) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16812) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16820) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16824) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16832) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16834) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16844) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16846) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16854) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16856) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x20, type:1
+I (16864) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16870) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16876) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16880) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16886) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16890) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16896) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16904) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16908) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16914) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16920) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16924) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16930) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16934) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16940) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16948) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16954) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16956) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16964) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16968) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16976) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16978) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16986) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (16990) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (16996) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17000) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17008) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17012) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17020) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17022) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17030) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17034) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17040) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17044) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17054) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17056) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17064) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17068) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17072) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17080) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17082) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17090) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 6
+I (17096) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17100) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17104) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17112) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17114) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17124) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17126) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17134) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17136) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17146) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17148) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17156) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17160) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17164) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17170) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17178) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17180) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17188) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17194) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17198) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17206) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17208) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17216) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17220) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17226) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17230) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17238) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17242) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17250) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17252) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17260) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17264) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17272) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17274) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17282) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17286) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17294) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17296) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17304) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17308) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17316) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17318) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17326) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x22, type:1
+I (17330) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17336) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17342) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17346) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17356) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17358) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17366) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17368) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17376) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17380) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17384) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17392) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17396) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17402) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17410) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17414) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17418) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17426) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17428) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17434) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17442) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17446) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17450) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17460) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17462) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17470) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17474) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17480) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17484) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17492) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17494) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17502) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17506) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17514) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17516) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17526) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17528) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17536) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17538) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17546) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17552) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17554) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17562) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17566) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17574) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17576) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17586) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17588) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17596) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 6
+I (17600) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17606) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17610) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17618) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17620) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17628) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17632) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17638) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17644) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17648) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17656) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17660) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17664) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17672) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17676) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17684) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17686) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17696) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17698) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17706) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17708) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17716) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17720) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17728) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17730) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17738) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17742) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17750) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17752) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17760) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17764) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17772) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17774) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17782) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17788) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17790) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17798) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17802) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17810) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17812) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17818) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17826) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17830) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17838) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17840) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17848) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17854) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17858) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17866) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17868) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x22, type:1
+I (17874) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17882) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17884) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17892) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17896) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17904) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17906) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17914) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17920) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17924) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17930) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17934) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17940) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17948) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17950) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17960) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17962) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17970) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17974) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17978) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17986) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (17990) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (17998) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18000) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18008) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18012) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18020) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18022) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18030) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18034) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18042) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18044) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18052) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18056) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18064) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18066) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18076) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18078) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18086) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18088) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18096) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18100) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18108) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18114) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18116) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18124) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18126) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18136) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18138) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18144) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18152) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18156) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18160) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18168) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18170) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18178) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18182) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18190) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 6
+I (18194) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18198) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18206) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18212) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18216) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18220) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18228) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18230) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18240) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18244) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18248) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18256) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18258) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18266) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18270) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18278) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18280) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18288) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18292) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18300) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18302) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18310) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18314) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18322) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18324) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18332) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18336) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18344) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18346) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18356) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18358) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18366) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18368) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18376) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18380) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18384) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18394) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18396) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18404) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18406) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18416) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18418) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18424) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18430) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18434) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18442) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18448) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18450) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18458) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18462) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18470) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18472) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18480) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18484) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18492) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18494) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18502) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18506) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18514) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x22, type:1
+I (18516) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18526) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18528) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18534) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18542) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18546) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18550) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18558) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18560) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18566) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18574) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18580) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18584) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18592) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18594) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18602) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18604) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18614) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18616) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18624) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18628) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18636) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18638) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18646) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18650) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18656) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18660) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18668) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18672) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18680) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18684) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18688) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18696) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18698) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18706) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18710) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18716) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18722) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18726) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18736) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18738) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18746) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18750) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18754) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18762) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18764) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18772) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18776) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18784) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18786) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18796) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18798) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18806) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18808) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18816) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18820) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18828) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18830) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18838) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18842) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18850) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18852) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18860) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18866) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18868) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18876) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18880) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 6
+I (18888) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18894) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18896) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18904) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18906) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18916) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18920) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18924) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18930) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18936) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18940) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18948) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18952) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18960) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18962) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18970) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18974) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18978) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18986) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (18990) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (18998) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (19000) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (19008) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (19012) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (19020) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (19022) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (19030) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (19034) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (19042) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (19044) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (19052) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (19056) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (19064) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (19066) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (19076) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (19078) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (19086) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (19090) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (19094) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (19102) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (19104) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (19110) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (19118) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (19122) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (19130) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (19132) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (19140) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (19144) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (19152) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (19156) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (19160) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (19168) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (19170) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+I (19178) esp_bt_hidd_cb: ESP_HIDD_SEND_REPORT_EVT id:0x30, type:1
+I (19182) BT_L2CAP: L2CA_DataWrite()  CID: 0x0040  Len: 4
+

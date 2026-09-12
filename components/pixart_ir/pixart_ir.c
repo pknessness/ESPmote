@@ -139,7 +139,7 @@ esp_err_t pixart_ir_get_raw_data(pixart_ir_handle_t *handle, uint8_t *data){
 	i2c_master_transmit(handle->i2c_handle, &send, 1, -1);	
 	i2c_master_receive(handle->i2c_handle, data, 16, -1);
 	
-	ESP_LOGI(TAG, "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
+	//ESP_LOGI(TAG, "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
 	return ESP_OK;
 }
 

@@ -280,7 +280,7 @@ static void handle_bt_device_result(struct disc_res_param *disc_res)
  * BT GAP
  * */
 
-static void bt_gap_event_handler(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
+void bt_gap_event_handler(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
 {
     switch (event) {
     case ESP_BT_GAP_DISC_STATE_CHANGED_EVT: {
