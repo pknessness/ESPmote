@@ -11,6 +11,7 @@
 #include <inttypes.h>
 
 #include "esp_gap_bt_api.h"
+#include "esp_log_timestamp.h"
 #include "esp_rom_crc.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -52,28 +53,19 @@ static const char *TAG = "HID_DEVICE";
 static const char *TAGSEND = "WIIMOTE_OUTPUT";
 static const char *TAGW = "WII_OUTPUT";
 
-#define ADC_READ_LEN                    256
-
-#define EXAMPLE_ADC_UNIT                    ADC_UNIT_1
-#define _EXAMPLE_ADC_UNIT_STR(unit)         #unit
-#define EXAMPLE_ADC_UNIT_STR(unit)          _EXAMPLE_ADC_UNIT_STR(unit)
-#define EXAMPLE_ADC_CONV_MODE               ADC_CONV_SINGLE_UNIT_1
-#define EXAMPLE_ADC_ATTEN                   ADC_ATTEN_DB_0
-#define EXAMPLE_ADC_BIT_WIDTH               SOC_ADC_DIGI_MAX_BITWIDTH
-#define EXAMPLE_ADC_OUTPUT_TYPE             ADC_DIGI_OUTPUT_FORMAT_TYPE1
-#define EXAMPLE_ADC_GET_CHANNEL(p_data)     ((p_data)->type1.channel)
-#define EXAMPLE_ADC_GET_DATA(p_data)        ((p_data)->type1.data)
+constexpr adc_unit_t BUTTONS_ADC_UNIT = ADC_UNIT_1;
+constexpr adc_atten_t BUTTONS_ADC_ATTEN = ADC_ATTEN_DB_0;
 
 constexpr int WIIMOTE_OUTPUT_DT = 100;
 
-typedef struct //came with bt example
+typedef struct
 {
-	esp_hidd_app_param_t app_param;
-    esp_hidd_qos_param_t both_qos;
-    TaskHandle_t task_hdl;
-    esp_hidd_dev_t *hid_dev;
-    uint8_t protocol_mode;
-    uint8_t *buffer;
+	esp_hidd_app_param_t app_param; //sdp server characteristics
+    esp_hidd_qos_param_t both_qos; //no qos parameters
+    TaskHandle_t task_hdl; //handle for mote_hid_main_task
+    esp_hidd_dev_t *hid_dev; //handle for hid device (NOT USED???? TODO)
+    uint8_t protocol_mode; //NOT USED?
+    uint8_t *buffer; //NOT USED?
 } local_param_t;
 
 // From https://wiibrew.org/wiki/Wiimote
@@ -570,6 +562,7 @@ void init_GPIO(){
 	gpio_set_direction(IR_CLK_GPIO, GPIO_MODE_OUTPUT); //TODO: replace with relevant output report
 	gpio_set_direction(IR_ENABLE_GPIO, GPIO_MODE_OUTPUT); //TODO: replace with relevant output report
 	gpio_set_direction(EXT_SENSE_GPIO, GPIO_MODE_INPUT);
+	gpio_set_pull_mode(EXT_SENSE_GPIO, GPIO_PULLDOWN_ONLY);
 
 	//LED SETUP
 	gpio_reset_pin(LED1);
@@ -590,12 +583,20 @@ void setLEDBinary(uint8_t bin){
 	gpio_set_level(LED1, bin & 0x08);
 }
 
-//set all four LEDs to the binary representation of a number.
+//set all four LEDs from the status byte.
 void setLEDStatus(uint8_t status){
 	gpio_set_level(LED4, status & 0x80);
 	gpio_set_level(LED3, status & 0x40);
 	gpio_set_level(LED2, status & 0x20);
 	gpio_set_level(LED1, status & 0x10);
+}
+
+//set all four LEDs to the binary representation of a number.
+void setLEDindividual(uint8_t led1, uint8_t led2, uint8_t led3, uint8_t led4){
+	gpio_set_level(LED4, led4);
+	gpio_set_level(LED3, led3);
+	gpio_set_level(LED2, led2);
+	gpio_set_level(LED1, led1);
 }
 
 //bit shifts for buttons buffer
@@ -618,13 +619,13 @@ void adc_init(){
 	//-------------ADC1 Init---------------//
 //	adc_oneshot_unit_handle_t adc1_handle;
 	adc_oneshot_unit_init_cfg_t init_config1 = {
-	    .unit_id = ADC_UNIT_1,
+	    .unit_id = BUTTONS_ADC_UNIT,
 	};
 	ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config1, &adc1_handle));
 
 	//-------------ADC1 Config---------------//
 	adc_oneshot_chan_cfg_t config = {
-	    .atten = EXAMPLE_ADC_ATTEN,
+	    .atten = BUTTONS_ADC_ATTEN,
 	    .bitwidth = ADC_BITWIDTH_DEFAULT,
 	};
 	for(int i = 0; i < channels_num; i ++){
@@ -986,7 +987,7 @@ void mote_input_data_core(bool force)
 	bool send_packet = 
 		continuousReporting || 
 		(reportingMode != 0x3d && (old_buttons[0] != buttons[0] || old_buttons[1] != buttons[1])) || 
-		((reportingMode == 0x31 || reportingMode == 0x33 || reportingMode == 0x35 || reportingMode == 0x37 || reportingMode == 0x3e) && (old_accel[0] != accel_10b_x || old_accel[1] != accel_10b_y || old_accel[1] != accel_10b_z));
+		((reportingMode == 0x31 || reportingMode == 0x33 || reportingMode == 0x35 || reportingMode == 0x37 || reportingMode == 0x3e) && (old_accel[0] != accel_10b_x || old_accel[1] != accel_10b_y || old_accel[2] != accel_10b_z));
 	if(force || send_packet){
 		switch(reportingMode){
 			case 0x30:
@@ -1104,7 +1105,33 @@ void mote_input_data_core(bool force)
 	memcpy(old_buttons, buttons, 2);
 	old_accel[0] = accel_10b_x;
 	old_accel[1] = accel_10b_y;
-	old_accel[1] = accel_10b_z;
+	old_accel[2] = accel_10b_z;
+}
+
+//void check_sync(){
+//	if(button_array[BTN_SYNC]){
+//		esp_bt_hid_device_disconnect();
+//	}
+//}
+
+void check_sync(){
+	if(button_array[BTN_SYNC]){
+		esp_bt_hid_device_disconnect();
+		ESP_LOGI(TAG, "Setting to connectable, discoverable");
+		#ifdef GENERAL_DISCOVERY
+		esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+		#else
+		esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_LIMITED_DISCOVERABLE);
+		#endif
+		for(int i = 0; i < 100; i ++){
+			setLEDindividual((i % 4 == 0),  (i % 4 == 1), (i % 4 == 2), (i % 4 == 3));
+			
+			vTaskDelay(200 / portTICK_PERIOD_MS);
+		}
+		ESP_LOGI(TAG, "no longer discoverable, still connectable");
+		esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
+		setLEDBinary(0);
+	}
 }
 
 //main loop for ESPmote, begun on successful bluetooth connection
@@ -1146,7 +1173,7 @@ void mote_hid_main_task(void *pvParameters)
 //		);  
 		
 //		gpio_set_level(LED1, !gpio_get_level(LED1));
-
+		check_sync();
 #ifdef HCI_DEBUG
 		extern void bt_hci_log_hci_data_show(void);
 		extern void bt_hci_log_hci_adv_show(void);
@@ -1158,9 +1185,25 @@ void mote_hid_main_task(void *pvParameters)
     }
 }
 
+//alternate loop for ESPmote, running when no bluetooth
+void mote_other_main_task(void *pvParameters)
+{
+    while (1) {
+		load_button_array();
+		check_sync();
+		bool extension = gpio_get_level(EXT_SENSE_GPIO);
+		gpio_set_level(LED4, extension);
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+    }
+}
+
 void bt_hid_task_start_up(void)
 {
 	//TODO: RESET OPERATIONAL VARIABLES HERE
+	if (s_bt_hid_param.task_hdl) {
+	    vTaskDelete(s_bt_hid_param.task_hdl);
+	    s_bt_hid_param.task_hdl = NULL;
+	}
 	xTaskCreate(mote_hid_main_task, "mote_hid_main_task", 2 * 1024, NULL, configMAX_PRIORITIES - 3, &s_bt_hid_param.task_hdl);
 	return;
 }
@@ -1171,8 +1214,277 @@ void bt_hid_task_shut_down(void)
         vTaskDelete(s_bt_hid_param.task_hdl);
         s_bt_hid_param.task_hdl = NULL;
     }
+	xTaskCreate(mote_other_main_task, "mote_other_main_task", 2 * 1024, NULL, configMAX_PRIORITIES - 3, &s_bt_hid_param.task_hdl);
 }
 
+void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
+	//bit 0 of any output report is for rumble
+	if(intr_data.data[0] & 0x01 && rumbling == false){
+		rumbling = true;
+		ESP_LOGI(TAGW, "RUMBLING ON");
+	}else if(!(intr_data.data[0] & 0x01) && rumbling == true){
+		rumbling = false;
+		ESP_LOGI(TAGW, "RUMBLING OFF");
+	}
+	
+	uint32_t offset;
+	uint16_t offset_16;
+	uint16_t size;
+	
+	switch (intr_data.report_id) {
+	    case O_RUMBLE:
+	        // 1 byte - bit 0 controls rumble
+			//ESP_LOGI(TAG, "RUMBLING");
+	        //ignore this because actually bit 0 of any report is for rumble, this report is for *only* rumble
+			break;
+	        
+	    case O_PLAYER_LEDS: //TODO: UPDATE TO REAL LEDS
+	        // 1 byte - bits 4-7 control LEDs 1-4
+			ESP_LOGI(TAGW, "LEDS %c %c %c %c", 
+				(intr_data.data[0] & 0x10) ? '+' : '_', 
+				(intr_data.data[0] & 0x20) ? '+' : '_', 
+				(intr_data.data[0] & 0x40) ? '+' : '_', 
+				(intr_data.data[0] & 0x80) ? '+' : '_');
+				status_byte &= 0x0F;
+				status_byte |= (intr_data.data[0] & 0xF0);
+
+			setLEDStatus(intr_data.data[0]);
+				
+			//bit 1 of any output report is requesting an acknowledgement input report
+			if(intr_data.data[0] & 0x02){
+				mote_input_data_acknowledge(intr_data.report_id, ACK_SUCCESS);
+			}
+			
+	        break;
+	        
+	    case O_DATA_REPORTING_MODE:
+	        // 2 bytes - TT MM (TT bit2 = continuous, MM = mode 0x30-0x3f)
+			continuousReporting = (intr_data.data[0] & 0x04);
+			reportingMode = intr_data.data[1];
+			if(reportingMode == 0x3f){
+				reportingMode = 0x3e; //for simplicity, lock both 3f and 3e behind 3e as they are the same.
+			}
+			ESP_LOGI( TAGW, "Data Reporting: TT[%2x] MM[%x]", continuousReporting, reportingMode);
+				
+			//bit 1 of any output report is requesting an acknowledgement input report
+			if(intr_data.data[0] & 0x02){
+				mote_input_data_acknowledge(intr_data.report_id, ACK_SUCCESS);
+			}
+			
+	        break;
+	        
+	    case O_IR_CAMERA_ENABLE: //Enables the 25 MHz (or is it 24) IR Clock
+			// 1 byte - bit 2 = ON/OFF
+			gpio_set_level(IR_CLK_GPIO, intr_data.data[0] & 0x04);
+
+			ESP_LOGI( TAGW, "Written %2x to IR Camera 1", intr_data.data[0] & 0x04);
+				
+			//bit 1 of any output report is requesting an acknowledgement input report
+			if(intr_data.data[0] & 0x02){
+				mote_input_data_acknowledge(intr_data.report_id, ACK_SUCCESS);
+			}
+			
+	        break;
+	        
+	    case O_SPEAKER_ENABLE:
+	        // 1 byte - bit 2 = ON/OFF
+			if(intr_data.data[0] & 0x04){
+				status_byte |= 0x04;
+			}
+			ESP_LOGI( TAGW, "Written %2x to Speaker Enable", intr_data.data[0]);
+				
+			//bit 1 of any output report is requesting an acknowledgement input report
+			if(intr_data.data[0] & 0x02){
+				mote_input_data_acknowledge(intr_data.report_id, ACK_SUCCESS);
+			}
+
+	        break;
+	        
+	    case O_STATUS_INFO_REQUEST:
+	        // 1 byte - request status report
+			ESP_LOGI( TAGW, "Requesting %02x to Status Info", intr_data.data[0]);
+			
+			mote_input_data_status();
+			
+			//bit 1 of any output report is requesting an acknowledgement input report
+			if(intr_data.data[0] & 0x02){
+				mote_input_data_acknowledge(intr_data.report_id, ACK_SUCCESS);
+			}
+
+	        break;
+	        
+	    case O_WRITE_MEMORY_REGISTERS: //TODO: make sure doesnt buffer overflow
+	        // 21 bytes - write to memory/registers
+			offset = (intr_data.data[1] << 16) | (intr_data.data[2] << 8) | (intr_data.data[3]);
+			offset_16 = (intr_data.data[2] << 8) | (intr_data.data[3]);
+			size = intr_data.data[4];
+			
+			ack_error_code_t return_ack = ACK_SUCCESS;
+			
+			bool extension_activated = false;
+			
+			if((intr_data.data[0] & 0x04)){
+				if(intr_data.data[1] == 0xA2){
+					ESP_LOGI( TAGW, "Attempting to write %d bytes to speaker settings at %6x [%04x]", size, offset, offset_16);
+					memcpy(speaker_settings + offset_16, intr_data.data + 5, size);
+				}else if(intr_data.data[1] == 0xA4){
+					ESP_LOGI( TAGW, "Attempting to write %d bytes to extension controller settings and data at %6x [%04x]", size, offset, offset_16);
+					if(active_extension != EXT_NONE){
+						memcpy(extension_controller_settings_data + offset_16, intr_data.data + 5, size);
+					}else{
+						return_ack = ACK_INACTIVE_EXTENSION;
+					}
+				}else if(intr_data.data[1] == 0xA6){
+					ESP_LOGI( TAGW, "Attempting to write %d bytes to wii motion plus settings and data at %6x [%04x]", size, offset, offset_16);
+					memcpy(wii_motion_plus_settings_data + offset_16, intr_data.data + 5, size);
+					if(offset_16 == 0x00FE && size == 1 && (intr_data.data[5] == 0x04 || intr_data.data[5] == 0x05 || intr_data.data[5] == 0x07)){ //changing active extension to wii motion plus
+						active_extension = EXT_WII_MOTION_PLUS_ACTIVE;
+						status_byte |= 0x02;
+
+						//copy wii motion plus extension data
+						memcpy(extension_controller_settings_data + 0x00FA, wii_motion_plus_settings_data + 0x00FA, 6);
+						memcpy(extension_controller_settings_data + 0x00FC, &EXTENSION_A4_TAG, 2);
+						
+						//copy wii motion plus calibration
+						memcpy(extension_controller_settings_data + 0x20, wii_motion_plus_settings_data + 0x20, 0x20);
+						
+						extension_activated = true;
+					}
+				}else if(intr_data.data[1] == 0xB0){
+					ESP_LOGI( TAGW, "Attempting to write %d bytes to IR camera settings at 0x%06x [%04x]", size, offset, offset_16);
+					memcpy(IR_camera_settings + offset_16, intr_data.data + 5, size);
+					pixart_reg_write(&ir_handle, offset_16, intr_data.data + 5, size);
+					
+					ESP_LOG_BUFFER_HEX(TAGW, IR_camera_settings, 52);
+				}else {
+					ESP_LOGI( TAGW, "Attempting to write %d bytes to control registers at 0x%06x [%04x]", size, offset, offset_16);
+				}
+			}else{
+				ESP_LOGI( TAGW, "Attempting to write %d bytes to EEPROM Memory at 0x%06x", size, offset);
+				
+				if(size + offset_16 <= 0x16FF){
+					memcpy(EEPROM_sim + offset_16, intr_data.data + 5, size);
+				}else{
+					ESP_LOGI( TAGW, "WRITING OUT OF RANGE");
+					return_ack = ACK_ERROR; //TODO: check against real mote/dolphin if this is the correct error message for a read out of bounds
+				}
+			}
+			ESP_LOG_BUFFER_HEX(TAGW, intr_data.data + 5, size); 
+				
+			//apparently all writes request an ack automatically
+			mote_input_data_acknowledge(intr_data.report_id, return_ack);
+
+			if(extension_activated){
+				mote_input_data_status();
+			}
+							
+			break;
+	        
+	    case O_READ_MEMORY_REGISTERS:
+			//TODO: MAKE SURE NO MEM OVERFLOW
+	        // 6 bytes - read from memory/registers
+			offset = (intr_data.data[1] << 16) | (intr_data.data[2] << 8) | (intr_data.data[3]);
+			offset_16 = (intr_data.data[2] << 8) | (intr_data.data[3]);
+			
+			read_error_code_t read_return = READ_SUCCESS;
+			size = (intr_data.data[4] << 8) | (intr_data.data[5]);
+			if((intr_data.data[0] & 0x04)){ //also 0x08 is for registers, but not both? wiibrew reading and writing
+				if(intr_data.data[1] == 0xA2){
+					ESP_LOGI( TAGW, "Attempting to read %d bytes from speaker settings at 0x%06x [%04x]", size, offset, offset_16);
+					mote_input_data_read(size, 0, offset_16, speaker_settings);
+				}else if(intr_data.data[1] == 0xA4){
+					ESP_LOGI( TAGW, "Attempting to read %d bytes from extension controller settings and data at 0x%06x [%04x]", size, offset, offset_16);
+					if(active_extension != EXT_NONE){
+						mote_input_data_read(size, 0, offset_16, extension_controller_settings_data);
+					}else{
+						uint8_t zero_buffer[16] = {0};
+						mote_input_data_read(16, READ_WRITE_ONLY, offset_16, zero_buffer - offset_16); //TODO: fix this, this is atrocious
+					}
+				}else if(intr_data.data[1] == 0xA6){
+					ESP_LOGI( TAGW, "Attempting to read %d bytes from wii motion plus settings and data at 0x%06x [%04x]", size, offset, offset_16);
+					mote_input_data_read(size, 0, offset_16, wii_motion_plus_settings_data);
+				}else if(intr_data.data[1] == 0xB0){
+					ESP_LOGI( TAGW, "Attempting to read %d bytes from IR camera settings at 0x%06x [%04x]", size, offset, offset_16);
+					//mote_input_data_read(size, 0, offset_16, IR_camera_settings);
+					pixart_reg_read(&ir_handle, offset_16, input_report + 5, size);
+					send_hid_report(0x21, input_report, 21);
+					ESP_LOG_BUFFER_HEX("Responding to read", input_report + 5, size);
+				}else {
+					ESP_LOGI( TAGW, "Attempting to read %d bytes from control registers at 0x%06x", size, offset);
+				}
+			}else{
+				ESP_LOGI( TAGW, "Attempting to read %d bytes from EEPROM Memory at 0x%06x", size, offset);
+				if(size + offset_16 <= 0x16FF){
+					mote_input_data_read(size, 0, offset_16, EEPROM_sim);
+				}else{
+					ESP_LOGI( TAGW, "READING OUT OF RANGE");
+					uint8_t bfr[16] = {0};
+					mote_input_data_read(size, READ_WRITE_ONLY, offset_16, bfr);
+				}
+			}
+				
+			//bit 1 of any output report is requesting an acknowledgement input report
+			if(intr_data.data[0] & 0x02){
+				mote_input_data_acknowledge(intr_data.report_id, read_return);
+			}
+
+	        break;
+	        
+	    case O_SPEAKER_DATA:
+	        // 21 bytes - audio data for speaker
+			ESP_LOGI( TAGW, "%d bytes of Speaker Data", intr_data.data[0]);
+			ESP_LOG_BUFFER_HEX(TAGW, intr_data.data + 1, intr_data.data[0]); //TODO: make sure doesnt buffer overflow
+				
+			//bit 1 of any output report is requesting an acknowledgement input report
+			if(intr_data.data[0] & 0x02){
+				mote_input_data_acknowledge(intr_data.report_id, ACK_SUCCESS);
+			}
+
+	        break;
+	        
+	    case O_SPEAKER_MUTE:
+	        // 1 byte - bit 2 = mute when set
+			ESP_LOGI( TAGW, "Written %2x to Speaker Mute", intr_data.data[0]);
+				
+			//bit 1 of any output report is requesting an acknowledgement input report
+			if(intr_data.data[0] & 0x02){
+				mote_input_data_acknowledge(intr_data.report_id, ACK_SUCCESS);
+			}
+
+	        break;
+	        
+	    case O_IR_CAMERA_ENABLE_2: //Enables the IR Camera itself
+	        // 1 byte - bit 2 = ON/OFF (alternate)
+			
+			gpio_set_level(IR_ENABLE_GPIO, intr_data.data[0] & 0x04);
+			
+			//TODO: I am currently treating this as the main IR Camera Toggle (status byte), this MAY be the case in final	        
+			if(intr_data.data[0] & 0x04){
+				status_byte |= 0x04;
+			}
+			
+			ESP_LOGI( TAGW, "Written %2x to IR Camera 2", intr_data.data[0] & 0x04);
+				
+			//bit 1 of any output report is requesting an acknowledgement input report
+			if(intr_data.data[0] & 0x02){
+				mote_input_data_acknowledge(intr_data.report_id, ACK_SUCCESS);
+			}
+
+	        break;
+	        
+	    default:
+	        // Unknown output report ID
+			//ESP_LOGW(TAGW, "UNKNOWN REPORT ID[%u]: %8s ID: 0x%2x, Len: %d, Data:", intr_data.map_index, esp_hid_usage_str(intr_data.usage), intr_data.report_id, output.length);
+			ESP_LOG_BUFFER_HEX(TAGW, intr_data.data, intr_data.len);
+				
+			//bit 1 of any output report is requesting an acknowledgement input report
+			if(intr_data.data[0] & 0x02){
+				mote_input_data_acknowledge(intr_data.report_id, ACK_ERROR);
+			}
+
+	        break;
+	}
+}
 
 void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
 {
@@ -1191,12 +1503,13 @@ void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
     case ESP_HIDD_REGISTER_APP_EVT:
         if (param->register_app.status == ESP_HIDD_SUCCESS) {
             ESP_LOGI(TAG, "HID register success; opening sync-style pairing window");
-			ESP_LOGI(TAG, "Setting to connectable, discoverable");
-			#ifdef GENERAL_DISCOVERY
-			esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
-			#else
-			esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_LIMITED_DISCOVERABLE);
-			#endif
+			ESP_LOGI(TAG, "Setting to connectable, non-discoverable");
+//			#ifdef GENERAL_DISCOVERY
+//			esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+//			#else
+//			esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_LIMITED_DISCOVERABLE);
+//			#endif
+			esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
             if (param->register_app.in_use) {
                 ESP_LOGI(TAG, "known virtual cable host found, attempting reconnect");
                 esp_bt_hid_device_connect(param->register_app.bd_addr);
@@ -1232,12 +1545,13 @@ void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
             } else if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTED) {
 				ESP_LOGI(TAG, "DISCONNECT OK");
 	            bt_hid_task_shut_down();
-	            ESP_LOGI(TAG, "Setting to connectable, discoverable again");
-				#ifdef GENERAL_DISCOVERY
-				esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
-				#else
-				esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_LIMITED_DISCOVERABLE);
-				#endif
+	            ESP_LOGI(TAG, "Setting to connectable, non-discoverable");
+//				#ifdef GENERAL_DISCOVERY
+//				esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+//				#else
+//				esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_LIMITED_DISCOVERABLE);
+//				#endif
+				esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
 				setLEDBinary(0);
             } else {
                 ESP_LOGE(TAG, "DISCONNECT failed!");
@@ -1247,14 +1561,6 @@ void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
         }
         break;
     case ESP_HIDD_SEND_REPORT_EVT:
-//        if (param->send_report.status == ESP_HIDD_SUCCESS) {
-//            ESP_LOGI(TAG, "ESP_HIDD_SEND_REPORT_EVT id:0x%02x, type:%d", param->send_report.report_id,
-//                     param->send_report.report_type);
-//        } else {
-//            ESP_LOGE(TAG, "ESP_HIDD_SEND_REPORT_EVT id:0x%02x, type:%d, status:%d, reason:%d",
-//                     param->send_report.report_id, param->send_report.report_type, param->send_report.status,
-//                     param->send_report.reason);
-//        }
         break; 
     case ESP_HIDD_REPORT_ERR_EVT:
         ESP_LOGI(TAG, "ESP_HIDD_REPORT_ERR_EVT");
@@ -1273,275 +1579,8 @@ void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
     case ESP_HIDD_INTR_DATA_EVT:
 		ESP_LOGI(TAGW, "REPORT: ID: 0x%2x, Len: %d, Data:", param->intr_data.report_id, param->intr_data.len);
         ESP_LOG_BUFFER_HEX(TAGW, param->intr_data.data, param->intr_data.len);
-		
-		//bit 0 of any output report is for rumble
-		if(param->intr_data.data[0] & 0x01 && rumbling == false){
-			rumbling = true;
-			ESP_LOGI(TAGW, "RUMBLING ON");
-		}else if(!(param->intr_data.data[0] & 0x01) && rumbling == true){
-			rumbling = false;
-			ESP_LOGI(TAGW, "RUMBLING OFF");
-		}
-		
-		uint32_t offset;
-		uint16_t offset_16;
-		uint16_t size;
-		
-		switch (param->intr_data.report_id) {
-		    case O_RUMBLE:
-		        // 1 byte - bit 0 controls rumble
-				//ESP_LOGI(TAG, "RUMBLING");
-		        //ignore this because actually bit 0 of any report is for rumble, this report is for *only* rumble
-				break;
-		        
-		    case O_PLAYER_LEDS: //TODO: UPDATE TO REAL LEDS
-		        // 1 byte - bits 4-7 control LEDs 1-4
-				ESP_LOGI(TAGW, "LEDS %c %c %c %c", 
-					(param->intr_data.data[0] & 0x10) ? '+' : '_', 
-					(param->intr_data.data[0] & 0x20) ? '+' : '_', 
-					(param->intr_data.data[0] & 0x40) ? '+' : '_', 
-					(param->intr_data.data[0] & 0x80) ? '+' : '_');
-					status_byte &= 0x0F;
-					status_byte |= (param->intr_data.data[0] & 0xF0);
-
-				setLEDStatus(param->intr_data.data[0]);
-					
-				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->intr_data.data[0] & 0x02){
-					mote_input_data_acknowledge(param->intr_data.report_id, ACK_SUCCESS);
-				}
-				
-		        break;
-		        
-		    case O_DATA_REPORTING_MODE:
-		        // 2 bytes - TT MM (TT bit2 = continuous, MM = mode 0x30-0x3f)
-				continuousReporting = (param->intr_data.data[0] & 0x04);
-				reportingMode = param->intr_data.data[1];
-				if(reportingMode == 0x3f){
-					reportingMode = 0x3e; //for simplicity, lock both 3f and 3e behind 3e as they are the same.
-				}
-				ESP_LOGI( TAGW, "Data Reporting: TT[%2x] MM[%x]", continuousReporting, reportingMode);
-					
-				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->intr_data.data[0] & 0x02){
-					mote_input_data_acknowledge(param->intr_data.report_id, ACK_SUCCESS);
-				}
-				
-		        break;
-		        
-		    case O_IR_CAMERA_ENABLE: //Enables the 25 MHz (or is it 24) IR Clock
-				// 1 byte - bit 2 = ON/OFF
-				
-				gpio_set_level(IR_CLK_GPIO, param->intr_data.data[0] & 0x04);
-
-				ESP_LOGI( TAGW, "Written %2x to IR Camera 1", param->intr_data.data[0] & 0x04);
-					
-				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->intr_data.data[0] & 0x02){
-					mote_input_data_acknowledge(param->intr_data.report_id, ACK_SUCCESS);
-				}
-				
-		        break;
-		        
-		    case O_SPEAKER_ENABLE:
-		        // 1 byte - bit 2 = ON/OFF
-				if(param->intr_data.data[0] & 0x04){
-					status_byte |= 0x04;
-				}
-				ESP_LOGI( TAGW, "Written %2x to Speaker Enable", param->intr_data.data[0]);
-					
-				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->intr_data.data[0] & 0x02){
-					mote_input_data_acknowledge(param->intr_data.report_id, ACK_SUCCESS);
-				}
-
-		        break;
-		        
-		    case O_STATUS_INFO_REQUEST:
-		        // 1 byte - request status report
-				ESP_LOGI( TAGW, "Requesting %02x to Status Info", param->intr_data.data[0]);
-				
-				mote_input_data_status();
-				
-				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->intr_data.data[0] & 0x02){
-					mote_input_data_acknowledge(param->intr_data.report_id, ACK_SUCCESS);
-				}
-
-		        break;
-		        
-		    case O_WRITE_MEMORY_REGISTERS: //TODO: make sure doesnt buffer overflow
-		        // 21 bytes - write to memory/registers
-				offset = (param->intr_data.data[1] << 16) | (param->intr_data.data[2] << 8) | (param->intr_data.data[3]);
-				offset_16 = (param->intr_data.data[2] << 8) | (param->intr_data.data[3]);
-				size = param->intr_data.data[4];
-				
-				ack_error_code_t return_ack = ACK_SUCCESS;
-				
-				bool extension_activated = false;
-				
-				if((param->intr_data.data[0] & 0x04)){
-					if(param->intr_data.data[1] == 0xA2){
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to speaker settings at %6x [%04x]", size, offset, offset_16);
-						memcpy(speaker_settings + offset_16, param->intr_data.data + 5, size);
-					}else if(param->intr_data.data[1] == 0xA4){
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to extension controller settings and data at %6x [%04x]", size, offset, offset_16);
-						if(active_extension != EXT_NONE){
-							memcpy(extension_controller_settings_data + offset_16, param->intr_data.data + 5, size);
-						}else{
-							return_ack = ACK_INACTIVE_EXTENSION;
-						}
-					}else if(param->intr_data.data[1] == 0xA6){
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to wii motion plus settings and data at %6x [%04x]", size, offset, offset_16);
-						memcpy(wii_motion_plus_settings_data + offset_16, param->intr_data.data + 5, size);
-						if(offset_16 == 0x00FE && size == 1 && (param->intr_data.data[5] == 0x04 || param->intr_data.data[5] == 0x05 || param->intr_data.data[5] == 0x07)){ //changing active extension to wii motion plus
-							active_extension = EXT_WII_MOTION_PLUS_ACTIVE;
-							status_byte |= 0x02;
-
-							//copy wii motion plus extension data
-							memcpy(extension_controller_settings_data + 0x00FA, wii_motion_plus_settings_data + 0x00FA, 6);
-							memcpy(extension_controller_settings_data + 0x00FC, &EXTENSION_A4_TAG, 2);
-							
-							//copy wii motion plus calibration
-							memcpy(extension_controller_settings_data + 0x20, wii_motion_plus_settings_data + 0x20, 0x20);
-							
-							extension_activated = true;
-						}
-					}else if(param->intr_data.data[1] == 0xB0){
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to IR camera settings at 0x%06x [%04x]", size, offset, offset_16);
-						memcpy(IR_camera_settings + offset_16, param->intr_data.data + 5, size);
-						pixart_reg_write(&ir_handle, offset_16, param->intr_data.data + 5, size);
-						
-						ESP_LOG_BUFFER_HEX(TAGW, IR_camera_settings, 52);
-					}else {
-						ESP_LOGI( TAGW, "Attempting to write %d bytes to control registers at 0x%06x [%04x]", size, offset, offset_16);
-					}
-				}else{
-					ESP_LOGI( TAGW, "Attempting to write %d bytes to EEPROM Memory at 0x%06x", size, offset);
-					
-					if(size + offset_16 <= 0x16FF){
-						memcpy(EEPROM_sim + offset_16, param->intr_data.data + 5, size);
-					}else{
-						ESP_LOGI( TAGW, "WRITING OUT OF RANGE");
-						return_ack = ACK_ERROR; //TODO: check against real mote/dolphin if this is the correct error message for a read out of bounds
-					}
-				}
-				ESP_LOG_BUFFER_HEX(TAGW, param->intr_data.data + 5, size); 
-					
-				//apparently all writes request an ack automatically
-				mote_input_data_acknowledge(param->intr_data.report_id, return_ack);
-
-				if(extension_activated){
-					mote_input_data_status();
-				}
-								
-				break;
-		        
-		    case O_READ_MEMORY_REGISTERS: //TODO: SET UP READS FOR GREATER THAN 16 BYTES TOTAL 
-				//TODO: MAKE SURE NO MEM OVERFLOW
-		        // 6 bytes - read from memory/registers
-				offset = (param->intr_data.data[1] << 16) | (param->intr_data.data[2] << 8) | (param->intr_data.data[3]);
-				offset_16 = (param->intr_data.data[2] << 8) | (param->intr_data.data[3]);
-				
-				read_error_code_t read_return = READ_SUCCESS;
-				size = (param->intr_data.data[4] << 8) | (param->intr_data.data[5]);
-				if((param->intr_data.data[0] & 0x04)){ //also 0x08 is for registers, but not both? wiibrew reading and writing
-					if(param->intr_data.data[1] == 0xA2){
-						ESP_LOGI( TAGW, "Attempting to read %d bytes from speaker settings at 0x%06x [%04x]", size, offset, offset_16);
-						mote_input_data_read(size, 0, offset_16, speaker_settings);
-					}else if(param->intr_data.data[1] == 0xA4){
-						ESP_LOGI( TAGW, "Attempting to read %d bytes from extension controller settings and data at 0x%06x [%04x]", size, offset, offset_16);
-						if(active_extension != EXT_NONE){
-							mote_input_data_read(size, 0, offset_16, extension_controller_settings_data);
-						}else{
-							uint8_t zero_buffer[16] = {0};
-							mote_input_data_read(16, READ_WRITE_ONLY, offset_16, zero_buffer - offset_16); //TODO: fix this, this is atrocious
-						}
-					}else if(param->intr_data.data[1] == 0xA6){
-						ESP_LOGI( TAGW, "Attempting to read %d bytes from wii motion plus settings and data at 0x%06x [%04x]", size, offset, offset_16);
-						mote_input_data_read(size, 0, offset_16, wii_motion_plus_settings_data);
-					}else if(param->intr_data.data[1] == 0xB0){
-						ESP_LOGI( TAGW, "Attempting to read %d bytes from IR camera settings at 0x%06x [%04x]", size, offset, offset_16);
-						//mote_input_data_read(size, 0, offset_16, IR_camera_settings);
-						pixart_reg_read(&ir_handle, offset_16, input_report + 5, size);
-						send_hid_report(0x21, input_report, 21);
-						ESP_LOG_BUFFER_HEX("Responding to read", input_report + 5, size);
-					}else {
-						ESP_LOGI( TAGW, "Attempting to read %d bytes from control registers at 0x%06x", size, offset);
-					}
-				}else{
-					ESP_LOGI( TAGW, "Attempting to read %d bytes from EEPROM Memory at 0x%06x", size, offset);
-					if(size + offset_16 <= 0x16FF){
-						mote_input_data_read(size, 0, offset_16, EEPROM_sim);
-					}else{
-						ESP_LOGI( TAGW, "READING OUT OF RANGE");
-						uint8_t bfr[16] = {0};
-						mote_input_data_read(size, READ_WRITE_ONLY, offset_16, bfr);
-					}
-				}
-					
-				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->intr_data.data[0] & 0x02){
-					mote_input_data_acknowledge(param->intr_data.report_id, read_return);
-				}
-
-		        break;
-		        
-		    case O_SPEAKER_DATA:
-		        // 21 bytes - audio data for speaker
-				ESP_LOGI( TAGW, "%d bytes of Speaker Data", param->intr_data.data[0]);
-				ESP_LOG_BUFFER_HEX(TAGW, param->intr_data.data + 1, param->intr_data.data[0]); //TODO: make sure doesnt buffer overflow
-					
-				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->intr_data.data[0] & 0x02){
-					mote_input_data_acknowledge(param->intr_data.report_id, ACK_SUCCESS);
-				}
-
-		        break;
-		        
-		    case O_SPEAKER_MUTE:
-		        // 1 byte - bit 2 = mute when set
-				ESP_LOGI( TAGW, "Written %2x to Speaker Mute", param->intr_data.data[0]);
-					
-				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->intr_data.data[0] & 0x02){
-					mote_input_data_acknowledge(param->intr_data.report_id, ACK_SUCCESS);
-				}
-
-		        break;
-		        
-		    case O_IR_CAMERA_ENABLE_2: //Enables the IR Camera itself
-		        // 1 byte - bit 2 = ON/OFF (alternate)
-				
-				gpio_set_level(IR_ENABLE_GPIO, param->intr_data.data[0] & 0x04);
-				
-				//TODO: I am currently treating this as the main IR Camera Toggle (status byte), this MAY be the case in final	        
-				if(param->intr_data.data[0] & 0x04){
-					status_byte |= 0x04;
-				}
-				
-				ESP_LOGI( TAGW, "Written %2x to IR Camera 2", param->intr_data.data[0] & 0x04);
-					
-				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->intr_data.data[0] & 0x02){
-					mote_input_data_acknowledge(param->intr_data.report_id, ACK_SUCCESS);
-				}
-
-		        break;
-		        
-		    default:
-		        // Unknown output report ID
-				//ESP_LOGW(TAGW, "UNKNOWN REPORT ID[%u]: %8s ID: 0x%2x, Len: %d, Data:", param->intr_data.map_index, esp_hid_usage_str(param->intr_data.usage), param->intr_data.report_id, param->output.length);
-				ESP_LOG_BUFFER_HEX(TAGW, param->intr_data.data, param->intr_data.len);
-					
-				//bit 1 of any output report is requesting an acknowledgement input report
-				if(param->intr_data.data[0] & 0x02){
-					mote_input_data_acknowledge(param->intr_data.report_id, ACK_ERROR);
-				}
-
-		        break;
-		}
-        break;
+		handle_output_reports(param->intr_data);
+		break;
     case ESP_HIDD_VC_UNPLUG_EVT:
         ESP_LOGI(TAG, "ESP_HIDD_VC_UNPLUG_EVT");
         if (param->vc_unplug.status == ESP_HIDD_SUCCESS) {
@@ -1780,6 +1819,8 @@ void app_main(void){
 //		load_button_array();
 //		vTaskDelay(1);
 //	}
+	xTaskCreate(mote_other_main_task, "mote_other_main_task", 2 * 1024, NULL, configMAX_PRIORITIES - 3, &s_bt_hid_param.task_hdl);
+
 }
 
 //TODO: CLEAN UP
