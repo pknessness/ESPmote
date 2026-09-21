@@ -341,3 +341,50 @@ Loren is using:
 
 Mine is:
 05 01 09 05 A1 01 85 10 15 00 26 FF 00 75 08 95 01 06 00 FF 09 01 91 00 85 11 95 01 09 01 91 00 85 12 95 02 09 01 91 00 85 13 95 01 09 01 91 00 85 14 95 01 09 01 91 00 85 15 95 01 09 01 91 00 85 16 95 15 09 01 91 00 85 17 95 06 09 01 91 00 85 18 95 15 09 01 91 00 85 19 95 01 09 01 91 00 85 1A 95 01 09 01 91 00 85 20 95 06 09 01 81 00 85 21 95 15 09 01 81 00 85 22 95 04 09 01 81 00 85 30 95 02 09 01 81 00 85 31 95 05 09 01 81 00 85 32 95 0A 09 01 81 00 85 33 95 11 09 01 81 00 85 34 95 15 09 01 81 00 85 35 95 15 09 01 81 00 85 36 95 15 09 01 81 00 85 37 95 15 09 01 81 00 85 3D 95 15 09 01 81 00 85 3E 95 15 09 01 81 00 85 3F 95 15 09 01 81 00 C0
+
+Error: 
+
+I (8614) WII_OUTPUT: Attempting to write 1 bytes to extension controller settings and data at a400f0 [00f0]
+Guru Meditation Error: Core  0 panic'ed (LoadProhibited). Exception was unhandled.
+
+Core  0 register dump:
+PC      : 0x40133fc3  PS      : 0x00060b30  A0      : 0x80134069  A1      : 0x3ffcd970  
+--- 0x40133fc3: i2c_master_multi_buffer_transmit at /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_driver_i2c/i2c_master.c:1285
+A2      : 0x3ffb78f8  A3      : 0x3ffcdab0  A4      : 0x00000001  A5      : 0xffffffff  
+A6      : 0x0000006a  A7      : 0x00000004  A8      : 0x00000100  A9      : 0x3ffcd9a0  
+A10     : 0x00001800  A11     : 0x00000001  A12     : 0x00000003  A13     : 0x00000020  
+A14     : 0xfffffeff  A15     : 0x00000010  SAR     : 0x00000005  EXCCAUSE: 0x0000001c  
+EXCVADDR: 0x00000141  LBEG    : 0x4000c46c  LEND    : 0x4000c477  LCOUNT  : 0x00000000  
+--- 0x4000c46c: memset in ROM
+--- 0x4000c477: memset in ROM
+
+
+Backtrace: 0x40133fc0:0x3ffcd970 0x40134066:0x3ffcdaa0 0x40107d75:0x3ffcdae0 0x400dd0ac:0x3ffcdb20 0x400dd891:0x3ffcdb70 0x400dfb3d:0x3ffcdba0 0x400e06cd:0x3ffcdbc0 0x400f3d83:0x3ffcdc00 0x400f53d7:0x3ffcdc20 0x40135192:0x3ffcdc50
+--- 0x40133fc0: i2c_master_multi_buffer_transmit at /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_driver_i2c/i2c_master.c:1285
+--- 0x40134066: i2c_master_transmit at /home/anshalaj/.espressif/v6.0/esp-idf/components/esp_driver_i2c/i2c_master.c:1301
+--- 0x40107d75: extension_reg_write at /home/anshalaj/esp-workspace/ESPmote/components/wiimote_extension/extension.c:39
+--- 0x400dd0ac: handle_output_reports at /home/anshalaj/esp-workspace/ESPmote/main/espmote_main.c:1381
+--- 0x400dd891: esp_bt_hidd_cb at /home/anshalaj/esp-workspace/ESPmote/main/espmote_main.c:1656
+--- 0x400dfb3d: btc_hd_cb_to_app at /home/anshalaj/.espressif/v6.0/esp-idf/components/bt/host/bluedroid/btc/profile/std/hid/btc_hd.c:84
+--- 0x400e06cd: btc_hd_cb_handler at /home/anshalaj/.espressif/v6.0/esp-idf/components/bt/host/bluedroid/btc/profile/std/hid/btc_hd.c:911
+--- 0x400f3d83: btc_thread_handler at /home/anshalaj/.espressif/v6.0/esp-idf/components/bt/common/btc/core/btc_task.c:300
+--- 0x400f53d7: osi_thread_run at /home/anshalaj/.espressif/v6.0/esp-idf/components/bt/common/osi/thread.c:172
+--- 0x40135192: vPortTaskWrapper at /home/anshalaj/.espressif/v6.0/esp-idf/components/freertos/FreeRTOS-Kernel/portable/xtensa/port.c:143
+
+Nunchuck Register DUMP:
+I (16355) EXTENSION_DUMP: 00 84 ae 77 7e 33 00 00 00 00 00 00 00 00 00 00
+I (16363) EXTENSION_DUMP: 00 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff
+I (16369) EXTENSION_DUMP: 7c 7c 7b 19 af ad ad 1d e3 1c 7f dd 1f 84 05 5a
+I (16375) EXTENSION_DUMP: 7c 7c 7b 19 af ad ad 1d e3 1c 7f dd 1f 84 05 5a
+I (16381) EXTENSION_DUMP: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+I (16389) EXTENSION_DUMP: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+I (16395) EXTENSION_DUMP: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+I (16401) EXTENSION_DUMP: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+I (16407) EXTENSION_DUMP: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+I (16415) EXTENSION_DUMP: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+I (16421) EXTENSION_DUMP: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+I (16427) EXTENSION_DUMP: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+I (16433) EXTENSION_DUMP: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+I (16441) EXTENSION_DUMP: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+I (16447) EXTENSION_DUMP: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+I (16453) EXTENSION_DUMP: 55 00 00 00 00 00 00 00 00 00 00 00 a4 20 00 00

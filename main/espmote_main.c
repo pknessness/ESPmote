@@ -10,9 +10,12 @@
 #include <string.h>
 #include <inttypes.h>
 
+#include "driver/i2c_master.h"
 #include "esp_gap_bt_api.h"
+#include "esp_log_buffer.h"
 #include "esp_log_timestamp.h"
 #include "esp_rom_crc.h"
+#include "esp_sleep.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
@@ -40,8 +43,11 @@
 #include "esp_mac.h"
 #include "driver/uart.h"
 
+//#include "i2c_private.h"
+
 #include "lsm6ds3.h"
 #include "pixart_ir.h"
+#include "extension.h"
 
 #include "esp_adc/adc_oneshot.h"
 
@@ -133,18 +139,21 @@ typedef enum {
     IR_FULL                   		= 0x05,
 } ir_modes_t;
 
-// EXTENSION IDS
+// EXTENSION IDS (in reverse because memcpy)
 // Decrypted last 2 bytes (lowest 16 bits) for each device
 constexpr uint16_t EXT_NONE                        = 0x0000;  // None
 //constexpr uint16_t EXT_NUNCHUK                     = 0x0000;  // Nunchuk
 //constexpr uint16_t EXT_CLASSIC_CONTROLLER          = 0x0101;  // Classic Controller 
-//constexpr uint16_t EXT_WII_MOTION_PLUS_INACTIVE    = 0x0005;  // Inactive Wii Motion Plus (Built-in)
-constexpr uint16_t EXT_WII_MOTION_PLUS_ACTIVE      = 0x0405;  // Activated Wii Motion Plus
+constexpr uint16_t EXT_WII_MOTION_PLUS_INACTIVE    = 0x0500;  // Inactive Wii Motion Plus (Built-in)
+constexpr uint16_t EXT_OTHER      = 0xFFFF;  // Generic for i2c passthrough for most extensions
+constexpr uint16_t EXT_WII_MOTION_PLUS_ACTIVE      = 0x0504;  // Activated Wii Motion Plus
 //constexpr uint16_t EXT_WII_MOTION_PLUS_NUNCHUK_PASSTHROUGH = 0x0505;  // Activated Wii Motion Plus in Nunchuck passthrough mode
-//constexpr uint16_t EXT_WII_MOTION_PLUS_CLASSIC_PASSTHROUGH = 0x0705;  // Activated Wii Motion Plus in Classic Controller passthrough mode
+//constexpr uint16_t EXT_WII_MOTION_PLUS_CLASSIC_PASSTHROUGH = 0x0507;  // Activated Wii Motion Plus in Classic Controller passthrough mode
 
 constexpr uint16_t EXTENSION_A4_TAG = 0x20A4; //in reverse because memcpy
-//constexpr uint16_t EXTENSION_A6_TAG = 0x20A6; //in reverse because memcpy
+constexpr uint16_t EXTENSION_A6_TAG = 0x20A6; //in reverse because memcpy
+
+constexpr uint8_t EXTENSION_DATA_STREAM_REG = 0x08;
 
 // LED GPIO
 constexpr gpio_num_t LED1 = GPIO_NUM_12;
@@ -156,6 +165,8 @@ constexpr gpio_num_t LED4 = GPIO_NUM_15;
 constexpr gpio_num_t BUTTON_I1 = GPIO_NUM_19;
 constexpr gpio_num_t BUTTON_I2 = GPIO_NUM_18;
 constexpr gpio_num_t BUTTON_I3 = GPIO_NUM_27;
+
+constexpr gpio_num_t BOOT_GPIO = GPIO_NUM_0;
 
 // Commented out because we don't use GPIO, we use ADC
 //constexpr gpio_num_t BUTTON_O1 = GPIO_NUM_36;
@@ -217,6 +228,7 @@ int adc1_channels[10] = {0};
 int8_t button_matrix_input = 0;
 
 //IMU (I2C) config bits
+i2c_master_bus_handle_t i2c_bus_handle = NULL;
 constexpr gpio_num_t I2C_MASTER_SCL_IO = 22; // SCL pin
 constexpr gpio_num_t I2C_MASTER_SDA_IO = 21; // SDA pin
 //#define I2C_MASTER_FREQ_HZ   400000
@@ -224,6 +236,8 @@ constexpr gpio_num_t I2C_MASTER_SDA_IO = 21; // SDA pin
 //#define ESP_INTR_FLAG_DEFAULT 0
 lsm6ds3_handle_t imu_handle;
 pixart_ir_handle_t ir_handle;
+extension_handle_t extension_handle;
+bool extension_handle_connected = false;
 
 static local_param_t s_bt_hid_param = {0};
 //uint8_t WiiMoteHIDDescriptor[] = {
@@ -573,6 +587,8 @@ void init_GPIO(){
 	gpio_set_direction(LED2, GPIO_MODE_OUTPUT);
 	gpio_set_direction(LED3, GPIO_MODE_OUTPUT);
 	gpio_set_direction(LED4, GPIO_MODE_OUTPUT);
+	
+	gpio_set_direction(BOOT_GPIO, GPIO_MODE_INPUT);
 }
 
 //set all four LEDs to the binary representation of a number.
@@ -879,7 +895,7 @@ void load_wii_motion_plus_buffer(uint8_t* destination){
 
 	uint8_t roll7_0 = gyro_roll_14b & 0xFF;
 	uint8_t roll13_8 = (gyro_roll_14b & 0x3F00) >> 6;
-	roll13_8 |= (slow_roll << 1 | 0); //THIS ZERO IS FOR EXTENSION CONNECTED, TODO: IMPLEMENT
+	roll13_8 |= (slow_roll << 1 | gpio_get_level(EXT_SENSE_GPIO)); //THIS ZERO IS FOR EXTENSION CONNECTED, TODO: IMPLEMENT
 	
 	uint8_t pitch7_0 = gyro_pitch_14b & 0xFF;
 	uint8_t pitch13_8 = (gyro_pitch_14b & 0x3F00) >> 6;
@@ -909,6 +925,8 @@ void mote_input_data_status()
 	input_report[4] = 0;
 	input_report[5] = 0xEF; //TODO: Battery value, replace with actual battery value
 	send_hid_report(0x20, input_report, 6);
+	ESP_LOGI(TAGSEND, "STATUS[0x%02x] EXT:%d SPK:%d IR:%d BATTERY:%d", status_byte, status_byte&0x02, status_byte&0x04, status_byte&0x08, 0xEF); // TODO: replace with actual battery value
+
 }
 
 //21 BB BB SE AA AA DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD
@@ -938,11 +956,7 @@ void mote_input_data_read(uint8_t size, uint8_t error, uint16_t address_low_16, 
 				chunk = 16;
 			}
 			uint16_t pointer = address_low_16 + index;
-	//		if(chunk >= 16){
-	//			input_report[2] = (0xF << 4) | (error & 0xF);
-	//		}else{
-	//			input_report[2] = (((chunk - 1) & 0xF) << 4) | (error & 0xF);
-	//		}
+
 			input_report[2] = (((chunk - 1) & 0xF) << 4) | (error & 0xF);
 			input_report[3] = (pointer & 0xFF00) >> 8;
 			input_report[4] = pointer & 0x00FF;
@@ -956,10 +970,6 @@ void mote_input_data_read(uint8_t size, uint8_t error, uint16_t address_low_16, 
 			index += 16;
 		}
 	}
-	
-
-	
-	//TODO: WORK ON READS OVER 16 bytes
 }
 
 //22 BB BB RR EE
@@ -969,6 +979,7 @@ void mote_input_data_acknowledge(uint8_t report_number, uint8_t error)
 	input_report[2] = report_number;
 	input_report[3] = error;
 	send_hid_report(0x22, input_report, 4);
+	ESP_LOGI(TAGSEND, "ACK to 0x%02x with error 0x%02x", report_number, error);
 }
 
 //central function for all hid input data (wiimote > wii)
@@ -990,82 +1001,91 @@ void mote_input_data_core(bool force)
 		((reportingMode == 0x31 || reportingMode == 0x33 || reportingMode == 0x35 || reportingMode == 0x37 || reportingMode == 0x3e) && (old_accel[0] != accel_10b_x || old_accel[1] != accel_10b_y || old_accel[2] != accel_10b_z));
 	if(force || send_packet){
 		switch(reportingMode){
-			case 0x30:
+			case 0x30: //30 BB BB
 				//memcpy(input_report,buttons,2);
 				send_hid_report(0x30, buttons, 2);
 				ESP_LOG_BUFFER_HEX("SEND 0x30", buttons, 2);
 			    break;
-			case 0x31:
+			case 0x31: //31 BB BB AA AA AA
 				memcpy(input_report,buttons,2);
 				load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
 				send_hid_report(0x31, input_report, 5);
 				ESP_LOG_BUFFER_HEX("SEND 0x31", input_report, 5);
 			    break;
-			case 0x32:
+			case 0x32: //32 BB BB EE EE EE EE EE EE EE EE
 				memcpy(input_report,buttons,2);
 				if(active_extension == EXT_WII_MOTION_PLUS_ACTIVE){
 					load_wii_motion_plus_buffer(input_report+2);
 					memset(input_report+8,0,2);
 				}else{
-					memset(input_report+2,0xFF,8); //replace with 8 extension bytes
+					extension_reg_read(&extension_handle, EXTENSION_DATA_STREAM_REG, extension_controller_settings_data + EXTENSION_DATA_STREAM_REG, 8); //maybe remove this and go straight from extension to report;
+					memcpy(input_report+2, extension_controller_settings_data + EXTENSION_DATA_STREAM_REG, 8);
+					//may need to fill unused with 0, in which case i need to create unique cases for every extension controller to see how much 0 is filled, or replace all 0xff with 0x00;
+//					memset(input_report+2,0xFF,8); //replace with 8 extension bytes
 				}
 				send_hid_report(0x32, input_report, 10);
 				ESP_LOG_BUFFER_HEX("SEND 0x32", input_report, 10);
 				
 			    break;
-			case 0x33:
+			case 0x33: //33 BB BB AA AA AA II II II II II II II II II II II II
 				memcpy(input_report,buttons,2);
 				load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
 				if(get_IR_mode() == IR_EXTENDED){
 					load_IR_extended_buffer(input_report+5);
 				}else{
 					memset(input_report+5,0xFF,12); //blank 12 IR bytes
-					ESP_LOGW("SEND 0x37", "WRONG IR MODE: %d instead of 3", get_IR_mode());
+					ESP_LOGW("SEND 0x33", "WRONG IR MODE: %d instead of 3", get_IR_mode());
 				}
 				send_hid_report(0x33, input_report, 17);
 				ESP_LOG_BUFFER_HEX("SEND 0x33", input_report, 17);
 			    break;
-			case 0x34:
+			case 0x34: //34 BB BB EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE
 				memcpy(input_report,buttons,2);
 				if(active_extension == EXT_WII_MOTION_PLUS_ACTIVE){
 					load_wii_motion_plus_buffer(input_report+2);
 					memset(input_report+8,0,13);
 				}else{
-					memset(input_report+2,0xFF,19); //replace with 19 extension bytes
+					extension_reg_read(&extension_handle, EXTENSION_DATA_STREAM_REG, extension_controller_settings_data + EXTENSION_DATA_STREAM_REG, 19); //maybe remove this and go straight from extension to report;
+					memcpy(input_report+2, extension_controller_settings_data + EXTENSION_DATA_STREAM_REG, 19);
+//					memset(input_report+2,0xFF,19); //replace with 19 extension bytes
 				}
 				send_hid_report(0x34, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x34", input_report, 21);
 			    break;
-			case 0x35:
+			case 0x35: //35 BB BB AA AA AA EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE
 				memcpy(input_report,buttons,2);
 				load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
 				if(active_extension == EXT_WII_MOTION_PLUS_ACTIVE){
 					load_wii_motion_plus_buffer(input_report+5);
 					memset(input_report+11,0,10);
 				}else{
-					memset(input_report+5,0xFF,16); //replace with 16 extension bytes
+					extension_reg_read(&extension_handle, EXTENSION_DATA_STREAM_REG, extension_controller_settings_data + EXTENSION_DATA_STREAM_REG, 16); //maybe remove this and go straight from extension to report;
+					memcpy(input_report+5, extension_controller_settings_data + EXTENSION_DATA_STREAM_REG, 16);
+//					memset(input_report+5,0xFF,16); //replace with 16 extension bytes
 				}
 				send_hid_report(0x35, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x35", input_report, 21);
 			    break;
-			case 0x36:
+			case 0x36: //36 BB BB II II II II II II II II II II EE EE EE EE EE EE EE EE EE
 				memcpy(input_report,buttons,2);
 				if(get_IR_mode() == IR_BASIC){
 					load_IR_basic_buffer(input_report+5);
 				}else{
 					memset(input_report+5,0xFF,10); //blank 10 IR bytes
-					ESP_LOGW("SEND 0x37", "WRONG IR MODE: %d instead of 1", get_IR_mode());
+					ESP_LOGW("SEND 0x36", "WRONG IR MODE: %d instead of 1", get_IR_mode());
 				}
 				if(active_extension == EXT_WII_MOTION_PLUS_ACTIVE){
 					load_wii_motion_plus_buffer(input_report+12);
 					memset(input_report+18,0,3);
 				}else{
-					memset(input_report+12,0xFF,9); //replace with 9 extension bytes
+					extension_reg_read(&extension_handle, EXTENSION_DATA_STREAM_REG, extension_controller_settings_data + EXTENSION_DATA_STREAM_REG, 9); //maybe remove this and go straight from extension to report;
+					memcpy(input_report+12, extension_controller_settings_data + EXTENSION_DATA_STREAM_REG, 9);
+//					memset(input_report+12,0xFF,9); //replace with 9 extension bytes
 				}
 				send_hid_report(0x36, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x36", input_report, 21);
 			    break;
-			case 0x37:
+			case 0x37: //37 BB BB AA AA AA II II II II II II II II II II EE EE EE EE EE EE
 				memcpy(input_report,buttons,2);
 				load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
 				if(get_IR_mode() == IR_BASIC){
@@ -1076,25 +1096,38 @@ void mote_input_data_core(bool force)
 				}
 				if(active_extension == EXT_WII_MOTION_PLUS_ACTIVE){
 					load_wii_motion_plus_buffer(input_report+15);
+					ESP_LOG_BUFFER_HEX("SEND 0x37 WMP", input_report, 21);
+
 				}else{
-					memset(input_report+15,0xFF,6); //replace with 6 extension bytes
+					extension_reg_read(&extension_handle, EXTENSION_DATA_STREAM_REG, extension_controller_settings_data + EXTENSION_DATA_STREAM_REG, 6); //maybe remove this and go straight from extension to report;
+					memcpy(input_report+15, extension_controller_settings_data + EXTENSION_DATA_STREAM_REG, 6);
+//					memset(input_report+15,0xFF,6); //replace with 6 extension bytes
+					ESP_LOG_BUFFER_HEX("SEND 0x37 EXT", input_report, 21);
+
 				}
 				send_hid_report(0x37, input_report, 21);
-				ESP_LOG_BUFFER_HEX("SEND 0x37", input_report, 21);
+//				ESP_LOG_BUFFER_HEX("SEND 0x37", input_report, 21);
 			    break;
-			case 0x3d:
+			case 0x3d: //3d EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE
 				if(active_extension == EXT_WII_MOTION_PLUS_ACTIVE){
 					load_wii_motion_plus_buffer(input_report);
 					memset(input_report+6,0,15); 
 				}else{
-					memset(input_report,0xFF,21); //replace with 21 extension bytes
+					extension_reg_read(&extension_handle, EXTENSION_DATA_STREAM_REG, extension_controller_settings_data + EXTENSION_DATA_STREAM_REG, 21); //maybe remove this and go straight from extension to report;
+					memcpy(input_report, extension_controller_settings_data + EXTENSION_DATA_STREAM_REG, 21);
+//					memset(input_report,0xFF,21); //replace with 21 extension bytes
 				}
 				send_hid_report(0x3d, input_report, 21);
 				ESP_LOG_BUFFER_HEX("SEND 0x3d", input_report, 21);
 			    break;
 			case 0x3e: //same as 3f, forced to 3e during output report handling
+			
+				// 3e BB BB AA II II II II II II II II II II II II II II II II II II (first 18)
+				// 3f BB BB AA II II II II II II II II II II II II II II II II II II (second 18)
+			
 				//TODO: SET UP LATER ITS A WHOLE THING
 				//send_hid_report(0x3e, buttons, 21);
+				ESP_LOGE(TAGSEND, "0x3E NOT SUPPORTED");
 				ESP_LOG_BUFFER_HEX("0x3e NOT SUPPORTED", input_report, 21);
 			    break;
 			default:
@@ -1140,6 +1173,27 @@ void mote_hid_main_task(void *pvParameters)
     while (1) {
 		load_button_array();
 		mote_input_data_core(false);
+		bool extension = gpio_get_level(EXT_SENSE_GPIO);
+		gpio_set_level(LED4, extension_handle_connected);
+
+		if(extension && !extension_handle_connected){
+			extension_init(i2c_bus_handle, &extension_handle);
+			extension_handle_connected = true;
+			status_byte |= 0x2;
+			mote_input_data_status();
+		}else if(!extension && extension_handle_connected){
+			extension_deinit(&extension_handle);
+			extension_handle_connected = false;
+			active_extension = EXT_NONE;
+			status_byte &= 0xFD;
+			mote_input_data_status();
+		}
+		
+		if(!gpio_get_level(BOOT_GPIO)){
+			//every time the mote shuts off and doesn't disconnect, my computer's audio cuts out and i have to reboot my headphones, so annoying
+			ESP_LOGW("ESPMOTE", "DISCONNECTING BECAUSE OF BOOT"); 
+			esp_bt_hid_device_disconnect();
+		}
 		
 //		ESP_LOGI(TAG, "%c%c%c%c%c%c%c%c%c%c%c%c%c",
 //		    button_array[BTN_A] ? 'A' : ' ',
@@ -1170,7 +1224,7 @@ void mote_hid_main_task(void *pvParameters)
 //		    button_array_adc[BTN_RIGHT],
 //		    button_array_adc[BTN_SYNC],
 //		    button_array_adc[BTN_POWER]
-//		);  
+//		);  size
 		
 //		gpio_set_level(LED1, !gpio_get_level(LED1));
 		check_sync();
@@ -1191,9 +1245,51 @@ void mote_other_main_task(void *pvParameters)
     while (1) {
 		load_button_array();
 		check_sync();
+		
 		bool extension = gpio_get_level(EXT_SENSE_GPIO);
-		gpio_set_level(LED4, extension);
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+		gpio_set_level(LED4, extension_handle_connected);
+
+		if(extension && !extension_handle_connected){
+			extension_init(i2c_bus_handle, &extension_handle);
+			extension_handle_connected = true;
+			
+			uint8_t writes[2] = {0x55, 0x00};
+			uint8_t data[6] = {0};
+
+			extension_reg_write(&extension_handle, 0xF0, writes, 1);
+			vTaskDelay(500 / portTICK_PERIOD_MS);
+			extension_reg_write(&extension_handle, 0xFB, writes+1, 1);
+			vTaskDelay(100 / portTICK_PERIOD_MS);
+
+//			extension_reg_write(&extension_handle, 0x40, writes+1, 1);
+//			vTaskDelay(100 / portTICK_PERIOD_MS);
+
+			extension_reg_read(&extension_handle, 0xFA, data, 6);
+			ESP_LOG_BUFFER_HEX("EXTENSION_ID", data, 6);
+			vTaskDelay(500 / portTICK_PERIOD_MS);
+	
+//			i2c_master_receive(extension_handle.i2c_handle, data, 6, 10);
+//			vTaskDelay(100 / portTICK_PERIOD_MS);
+			
+		}else if(!extension && extension_handle_connected){
+			extension_deinit(&extension_handle);
+			extension_handle_connected = false;
+		}
+		
+		if(extension_handle_connected){
+			uint8_t nunchuck_data[6] = {0};
+			
+//			uint8_t dump[256];
+//			for(int i = 0; i < 256; i ++){
+//				extension_reg_read(&extension_handle, i, dump+i, 1);
+//			}
+//			ESP_LOG_BUFFER_HEX("EXTENSION_DUMP", dump, 256);
+
+			extension_get_raw_data(&extension_handle, nunchuck_data);
+			ESP_LOG_BUFFER_HEX("EXTENSION_INFO", nunchuck_data, 6);
+		}
+		
+        vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
 
@@ -1238,15 +1334,15 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 	        //ignore this because actually bit 0 of any report is for rumble, this report is for *only* rumble
 			break;
 	        
-	    case O_PLAYER_LEDS: //TODO: UPDATE TO REAL LEDS
+	    case O_PLAYER_LEDS:
 	        // 1 byte - bits 4-7 control LEDs 1-4
-			ESP_LOGI(TAGW, "LEDS %c %c %c %c", 
-				(intr_data.data[0] & 0x10) ? '+' : '_', 
-				(intr_data.data[0] & 0x20) ? '+' : '_', 
-				(intr_data.data[0] & 0x40) ? '+' : '_', 
-				(intr_data.data[0] & 0x80) ? '+' : '_');
-				status_byte &= 0x0F;
-				status_byte |= (intr_data.data[0] & 0xF0);
+//			ESP_LOGI(TAGW, "LEDS %c %c %c %c", 
+//				(intr_data.data[0] & 0x10) ? '+' : '_', 
+//				(intr_data.data[0] & 0x20) ? '+' : '_', 
+//				(intr_data.data[0] & 0x40) ? '+' : '_', 
+//				(intr_data.data[0] & 0x80) ? '+' : '_');
+//				status_byte &= 0x0F;
+//				status_byte |= (intr_data.data[0] & 0xF0);
 
 			setLEDStatus(intr_data.data[0]);
 				
@@ -1320,27 +1416,55 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 			size = intr_data.data[4];
 			
 			ack_error_code_t return_ack = ACK_SUCCESS;
-			
-			bool extension_activated = false;
-			
+						
 			if((intr_data.data[0] & 0x04)){
 				if(intr_data.data[1] == 0xA2){
 					ESP_LOGI( TAGW, "Attempting to write %d bytes to speaker settings at %6x [%04x]", size, offset, offset_16);
 					memcpy(speaker_settings + offset_16, intr_data.data + 5, size);
 				}else if(intr_data.data[1] == 0xA4){
 					ESP_LOGI( TAGW, "Attempting to write %d bytes to extension controller settings and data at %6x [%04x]", size, offset, offset_16);
-					if(active_extension != EXT_NONE){
-						memcpy(extension_controller_settings_data + offset_16, intr_data.data + 5, size);
+					
+					//if 0x55 is written to 0x00F0, enable plugged-in extension (not wii motion plus) as main extension
+					if(offset_16 == 0x00F0 && size == 1 && (intr_data.data[5] == 0x55) && extension_handle_connected){ //changing active extension to whatever is plugged in
+						ESP_LOGD(TAGSEND, "CHANGING ACTIVE");
+//						uint8_t writes[2] = 0x55;
+						extension_reg_write(&extension_handle, offset_16, intr_data.data+5, 1);
+						
+						active_extension = EXT_OTHER;
+						//changing active extension from wii motion plus to plugged-in
+						if((status_byte & 0x02) && active_extension == EXT_WII_MOTION_PLUS_ACTIVE){
+							status_byte &= 0xFD; //set status byte to zero
+							mote_input_data_status();
+						}
+						memcpy(wii_motion_plus_settings_data + 0x00FC, &EXTENSION_A6_TAG, 2);
+						memcpy(wii_motion_plus_settings_data + 0x00FE, &EXT_WII_MOTION_PLUS_INACTIVE, 2);
+						status_byte |= 0x02;
+						mote_input_data_status();
+
+//						//copy wii motion plus extension data
+//						memcpy(extension_controller_settings_data + 0x00FA, wii_motion_plus_settings_data + 0x00FA, 6);
+//						memcpy(extension_controller_settings_data + 0x00FC, &EXTENSION_A4_TAG, 2);
+//						
+//						//copy wii motion plus calibration
+//						memcpy(extension_controller_settings_data + 0x20, wii_motion_plus_settings_data + 0x20, 0x20);
+						
 					}else{
-						return_ack = ACK_INACTIVE_EXTENSION;
+						if(active_extension != EXT_NONE){
+							extension_reg_write(&extension_handle, offset_16, intr_data.data + 5, size);
+							memcpy(extension_controller_settings_data + offset_16, intr_data.data + 5, size);
+	//						extension_reg_write(&extension_handle, offset_16, intr_data.data + 5, size);
+						}else{
+							return_ack = ACK_INACTIVE_EXTENSION;
+						}
 					}
 				}else if(intr_data.data[1] == 0xA6){
-					ESP_LOGI( TAGW, "Attempting to write %d bytes to wii motion plus settings and data at %6x [%04x]", size, offset, offset_16);
+					ESP_LOGI( TAGW, "Attempting to write %d bytes to wii motion plus settings and data at 0x%06x [%04x]", size, offset, offset_16);
 					memcpy(wii_motion_plus_settings_data + offset_16, intr_data.data + 5, size);
+					
+					//if 0x04 (regular mode), 0x05(nunchuck passthrough), or 0x07(classic passthrough) is written to 0x00FE, enable wii motion plus as main extension
 					if(offset_16 == 0x00FE && size == 1 && (intr_data.data[5] == 0x04 || intr_data.data[5] == 0x05 || intr_data.data[5] == 0x07)){ //changing active extension to wii motion plus
 						active_extension = EXT_WII_MOTION_PLUS_ACTIVE;
 						status_byte |= 0x02;
-
 						//copy wii motion plus extension data
 						memcpy(extension_controller_settings_data + 0x00FA, wii_motion_plus_settings_data + 0x00FA, 6);
 						memcpy(extension_controller_settings_data + 0x00FC, &EXTENSION_A4_TAG, 2);
@@ -1348,7 +1472,8 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 						//copy wii motion plus calibration
 						memcpy(extension_controller_settings_data + 0x20, wii_motion_plus_settings_data + 0x20, 0x20);
 						
-						extension_activated = true;
+						mote_input_data_status();
+						
 					}
 				}else if(intr_data.data[1] == 0xB0){
 					ESP_LOGI( TAGW, "Attempting to write %d bytes to IR camera settings at 0x%06x [%04x]", size, offset, offset_16);
@@ -1373,10 +1498,6 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 				
 			//apparently all writes request an ack automatically
 			mote_input_data_acknowledge(intr_data.report_id, return_ack);
-
-			if(extension_activated){
-				mote_input_data_status();
-			}
 							
 			break;
 	        
@@ -1395,10 +1516,14 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 				}else if(intr_data.data[1] == 0xA4){
 					ESP_LOGI( TAGW, "Attempting to read %d bytes from extension controller settings and data at 0x%06x [%04x]", size, offset, offset_16);
 					if(active_extension != EXT_NONE){
+						if(active_extension != EXT_WII_MOTION_PLUS_ACTIVE){
+							ESP_LOGI(TAGSEND, "extension reg read");
+							extension_reg_read(&extension_handle, offset_16, extension_controller_settings_data + offset_16, size);
+						}
 						mote_input_data_read(size, 0, offset_16, extension_controller_settings_data);
 					}else{
 						uint8_t zero_buffer[16] = {0};
-						mote_input_data_read(16, READ_WRITE_ONLY, offset_16, zero_buffer - offset_16); //TODO: fix this, this is atrocious
+						mote_input_data_read(16, READ_WRITE_ONLY, offset_16, zero_buffer - offset_16); //TODO: fix this, this is atrocious [ i think by this i meant the buffer tag]
 					}
 				}else if(intr_data.data[1] == 0xA6){
 					ESP_LOGI( TAGW, "Attempting to read %d bytes from wii motion plus settings and data at 0x%06x [%04x]", size, offset, offset_16);
@@ -1672,11 +1797,14 @@ void app_main(void){
 	    .flags = {
 	        .enable_internal_pullup = false, // disable internal pullup resistors (board has)
 	    },
+		.trans_queue_depth = 0
 	};
 	
-	i2c_master_bus_handle_t i2c_bus_handle = NULL;
 	ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &i2c_bus_handle));
 	
+//	i2c_bus_handle->async_trans = false;
+	
+//	i2c_bus_handle
 	//lsm6ds3 config
 	ret = lsm6ds3_init(i2c_bus_handle, &imu_handle);
 	if (ret != ESP_OK) {
