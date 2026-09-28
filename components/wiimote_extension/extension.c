@@ -6,6 +6,7 @@ Huge help from Kako's blog at http://www.kako.com/neta/2008-009/2008-009.html
 */
 
 #include "extension.h"
+//#include "portmacro.h"
 #include <stdint.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -13,7 +14,10 @@ Huge help from Kako's blog at http://www.kako.com/neta/2008-009/2008-009.html
 #include <esp_log.h>
 #include <esp_check.h>
 
+#include "esp_timer.h"
+
 static const char *TAG = "EXTENSION";
+const uint8_t FF[21] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 #define EXTENSION_MAX_REG_TRANSFER_LEN 16  // Maximum register transfer length (register + data) (This might be 8, 16 is random num)
 
@@ -60,7 +64,9 @@ esp_err_t extension_reg_read(extension_handle_t *handle, uint8_t reg, uint8_t *d
 	}
 	
 	esp_err_t recv_err = i2c_master_receive(handle->i2c_handle, data, len, -1);
-	
+	if(recv_err || !memcmp(data, FF, 6)){
+		recv_err = i2c_master_receive(handle->i2c_handle, data, len, -1);
+	}
 	if (recv_err) {
 	    ESP_LOGE(TAG, "Invalid Read");
 	    return recv_err;
@@ -123,10 +129,10 @@ esp_err_t extension_get_data(extension_handle_t *handle){
 	return ESP_OK;
 }
 
-esp_err_t extension_get_raw_data(extension_handle_t *handle, uint8_t *data){
+esp_err_t extension_get_raw_data(extension_handle_t *handle, uint8_t *data, uint8_t len){
 
 	uint8_t send = 0x00;
-	i2c_master_receive(handle->i2c_handle, data, 16, -1);
+	i2c_master_receive(handle->i2c_handle, data, len, 5);
 	i2c_master_transmit(handle->i2c_handle, &send, 1, -1);	
 
 	//ESP_LOGI(TAG, "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
@@ -134,7 +140,33 @@ esp_err_t extension_get_raw_data(extension_handle_t *handle, uint8_t *data){
 	return ESP_OK;
 }
 
-esp_err_t extension_set_sensitivity(extension_handle_t *handle){
-	return ESP_OK;
+esp_err_t extension_get_raw_data_sync(extension_handle_t *handle, uint8_t *data, uint8_t len){
+
+	uint8_t send = 0x00;	
+	i2c_master_transmit(handle->i2c_handle, &send, 1, -1);
+	vTaskDelay(2 / portTICK_PERIOD_MS); //this wait is NECESSARY (maybe I can turn it down to 1ms)
+
+	esp_err_t recv_err = i2c_master_receive(handle->i2c_handle, data, len, 2);
+	if(recv_err || !memcmp(data, FF, len)){
+		recv_err = i2c_master_receive(handle->i2c_handle, data, len, -1);
+	}
+
+	//ESP_LOGI(TAG, "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
+
+	return recv_err;
 }
+
+nunchuk_data_t extension_decompose_nunchuck(uint8_t *data){
+	nunchuk_data_t nunchuk_data;
+	nunchuk_data.stick_x = data[0];
+	nunchuk_data.stick_y = data[1];
+	nunchuk_data.accel_x = (data[2] << 2) | ((data[5] & 0x0C) >> 2);
+	nunchuk_data.accel_y = (data[3] << 2) | ((data[5] & 0x30) >> 4);
+	nunchuk_data.accel_z = (data[4] << 2) | ((data[5] & 0xC0) >> 6);
+	nunchuk_data.button_C = !(data[5] & 0x2);
+	nunchuk_data.button_Z = !(data[5] & 0x1);
+	
+	return nunchuk_data;
+}
+
 
