@@ -51,6 +51,8 @@
 
 #include "esp_adc/adc_oneshot.h"
 
+//#include <cpptrace/cpptrace.hpp>
+
 #define GENERAL_DISCOVERY
 
 //#define HCI_DEBUG
@@ -802,7 +804,7 @@ void load_extension_buffer(uint8_t* destination, uint8_t length){
 }
 
 uint8_t input_report[21] = {0};
-uint8_t input_report_old[21] = {0xFF};
+uint8_t input_report_old[21] = {0};
 
 
 //20 BB BB LF 00 00 VV
@@ -890,8 +892,8 @@ void mote_input_data_core(bool force)
 //		((reportingMode == 0x31 || reportingMode == 0x33 || reportingMode == 0x35 || reportingMode == 0x37 || reportingMode == 0x3e) && (old_accel[0] != accel_10b_x || old_accel[1] != accel_10b_y || old_accel[2] != accel_10b_z));
 //	bool send_packet = memcmp(input_report_old, input_report, 21); // if equal, 0, don't send packet
 #define CHECK_NEW(len) memcmp(input_report_old, input_report, len)
-	
-	
+//	ESP_LOGI("mote_input_data_core", "force:%d  2:%d", force, CHECK_NEW(2));
+//	ESP_LOG_BUFFER_HEX("mote_input_data_core: InReport_OLD", input_report_old, 21);
 	switch(reportingMode){
 		case 0x30: //30 BB BB
 			memcpy(input_report,buttons,2);
@@ -899,8 +901,8 @@ void mote_input_data_core(bool force)
 			if(force || CHECK_NEW(2)){
 				send_hid_report(0x30, input_report, 2);
 				memcpy(input_report_old, input_report, 2);
+				ESP_LOG_BUFFER_HEX("SEND 0x30", input_report, 2);
 			}
-			ESP_LOG_BUFFER_HEX("SEND 0x30", input_report, 2);
 		    break;
 		case 0x31: //31 BB BB AA AA AA
 			memcpy(input_report,buttons,2);
@@ -909,8 +911,8 @@ void mote_input_data_core(bool force)
 			if(force || CHECK_NEW(5)){
 				send_hid_report(0x31, input_report, 5);
 				memcpy(input_report_old, input_report, 5);
+				ESP_LOG_BUFFER_HEX("SEND 0x31", input_report, 5);
 			}
-			ESP_LOG_BUFFER_HEX("SEND 0x31", input_report, 5);
 		    break;
 		case 0x32: //32 BB BB EE EE EE EE EE EE EE EE
 			memcpy(input_report,buttons,2);
@@ -921,8 +923,8 @@ void mote_input_data_core(bool force)
 			if(force || CHECK_NEW(10)){
 				send_hid_report(0x32, input_report, 10);
 				memcpy(input_report_old, input_report, 10);
+				ESP_LOG_BUFFER_HEX("SEND 0x32", input_report, 10);
 			}
-			ESP_LOG_BUFFER_HEX("SEND 0x32", input_report, 10);
 		    break;
 		case 0x33: //33 BB BB AA AA AA II II II II II II II II II II II II
 			memcpy(input_report,buttons,2);
@@ -937,8 +939,8 @@ void mote_input_data_core(bool force)
 			if(force || CHECK_NEW(21)){
 				send_hid_report(0x33, input_report, 17);
 				memcpy(input_report_old, input_report, 17);
+				ESP_LOG_BUFFER_HEX("SEND 0x33", input_report, 17);
 			}
-			ESP_LOG_BUFFER_HEX("SEND 0x33", input_report, 17);
 		    break;
 		case 0x34: //34 BB BB EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE
 			memcpy(input_report,buttons,2);
@@ -949,8 +951,8 @@ void mote_input_data_core(bool force)
 			if(force || CHECK_NEW(21)){
 				send_hid_report(0x34, input_report, 21);
 				memcpy(input_report_old, input_report, 21);
+				ESP_LOG_BUFFER_HEX("SEND 0x34", input_report, 21);
 			}
-			ESP_LOG_BUFFER_HEX("SEND 0x34", input_report, 21);
 		    break;
 		case 0x35: //35 BB BB AA AA AA EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE
 			memcpy(input_report,buttons,2);
@@ -962,8 +964,8 @@ void mote_input_data_core(bool force)
 			if(force || CHECK_NEW(21)){
 				send_hid_report(0x35, input_report, 21);
 				memcpy(input_report_old, input_report, 21);
+				ESP_LOG_BUFFER_HEX("SEND 0x35", input_report, 21);
 			}
-			ESP_LOG_BUFFER_HEX("SEND 0x35", input_report, 21);
 		    break;
 		case 0x36: //36 BB BB II II II II II II II II II II EE EE EE EE EE EE EE EE EE
 			memcpy(input_report,buttons,2);
@@ -980,8 +982,8 @@ void mote_input_data_core(bool force)
 			if(force || CHECK_NEW(21)){
 				send_hid_report(0x36, input_report, 21);
 				memcpy(input_report_old, input_report, 21);
+				ESP_LOG_BUFFER_HEX("SEND 0x36", input_report, 21);
 			}
-			ESP_LOG_BUFFER_HEX("SEND 0x36", input_report, 21);
 		    break;
 		case 0x37: //37 BB BB AA AA AA II II II II II II II II II II EE EE EE EE EE EE
 			memcpy(input_report,buttons,2);
@@ -999,8 +1001,8 @@ void mote_input_data_core(bool force)
 			if(force || CHECK_NEW(21)){
 				send_hid_report(0x37, input_report, 21);
 				memcpy(input_report_old, input_report, 21);
+				ESP_LOG_BUFFER_HEX("SEND 0x37", input_report, 21);
 			}
-			ESP_LOG_BUFFER_HEX("SEND 0x37", input_report, 21);
 		    break;
 		case 0x3d: //3d EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE
 		
@@ -1010,8 +1012,8 @@ void mote_input_data_core(bool force)
 			if(force || CHECK_NEW(21)){
 				send_hid_report(0x3d, input_report, 21);
 				memcpy(input_report_old, input_report, 21);
+				ESP_LOG_BUFFER_HEX("SEND 0x3d", input_report, 21);
 			}
-			ESP_LOG_BUFFER_HEX("SEND 0x3d", input_report, 21);
 		    break;
 		case 0x3e: //same as 3f, forced to 3e during output report handling
 			// 3e BB BB AA II II II II II II II II II II II II II II II II II II (first 18)
@@ -1258,8 +1260,7 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 			}
 			
 			memset(input_report_old, 0xFF, 21);
-			
-			mote_input_data_core(true);
+			mote_input_data_core(false);
 			
 			ESP_LOGI( TAGW, "Data Reporting: TT[%2x] MM[%x]", continuousReporting, reportingMode);
 				
@@ -1366,6 +1367,7 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 			offset_16 = (intr_data.data[2] << 8) | (intr_data.data[3]);
 			
 			read_error_code_t read_return = READ_SUCCESS;
+			ack_error_code_t ack_return = ACK_SUCCESS;
 			size = (intr_data.data[4] << 8) | (intr_data.data[5]);
 			if((intr_data.data[0] & 0x04)){ //also 0x08 is for registers, but not both? wiibrew reading and writing
 				if(intr_data.data[1] == 0xA2){
@@ -1373,21 +1375,35 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 					mote_input_data_read(size, 0, offset_16, speaker_settings);
 				}else if(intr_data.data[1] == 0xA4){
 					ESP_LOGI( TAGW, "Attempting to read %d bytes from extension controller settings and data at 0x%06x [%04x]", size, offset, offset_16);
-					uint8_t data[16] = {0};
+					uint8_t data[16] = {0}, zeros[6] = {0};
 					if(extension_handle_connected){
 						extension_reg_read(&extension_handle, offset_16, data, size);
-						mote_input_data_read(size, 0, offset_16, data);
+						if(offset_16 == 0x00FA && size == 6 && !memcmp(data, zeros, 6)){
+							ESP_LOGE(TAGW, "BAD READ FROM EXTENSION IDENTIFIER");
+						}
+						//TODO: fix this, this is atrocious [data - offset_16 for buffer traversal]
+						mote_input_data_read(size, 0, offset_16, data - offset_16);
 					}else{
-						mote_input_data_read(size, READ_WRITE_ONLY, offset_16, data);
+						//TODO: fix this, this is atrocious [data - offset_16 for buffer traversal]
+						mote_input_data_read(16, READ_WRITE_ONLY, offset_16, data - offset_16); 
 					}
 				}else if(intr_data.data[1] == 0xA6){
 					ESP_LOGI( TAGW, "Attempting to read %d bytes from wii motion plus settings and data at 0x%06x [%04x]", size, offset, offset_16);
-					read_return = READ_WRITE_ONLY; 
+//					ack_return = ACK_INACTIVE_EXTENSION;
+					
+					uint8_t data[16] = {0};
+					mote_input_data_read(size, READ_WRITE_ONLY, offset_16, data);
+					
 				}else if(intr_data.data[1] == 0xB0){
 					ESP_LOGI( TAGW, "Attempting to read %d bytes from IR camera settings at 0x%06x [%04x]", size, offset, offset_16);
 					//mote_input_data_read(size, 0, offset_16, IR_camera_settings);
-					pixart_reg_read(&ir_handle, offset_16, input_report + 5, size);
-					send_hid_report(0x21, input_report, 21); //raw read becausue im just pulling from pixart not from internal registers or "EEPROM"
+					uint8_t data[16] = {0};
+					pixart_reg_read(&ir_handle, offset_16, data, size);
+					
+					//raw read instead of mote_input_data_read because im pulling from pixart not from internal registers or "EEPROM"
+					//mote_input_read automatically pulls from a section in memory
+					//TODO: fix this, this is atrocious [data - offset_16 for buffer traversal]
+					mote_input_data_read(16, 0, offset_16, data - offset_16); 
 //					ESP_LOG_BUFFER_HEX("Responding to read", input_report + 5, size);
 				}else {
 					ESP_LOGI( TAGW, "Attempting to read %d bytes from control registers at 0x%06x", size, offset);
@@ -1395,9 +1411,11 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 			}else{
 				ESP_LOGI( TAGW, "Attempting to read %d bytes from EEPROM Memory at 0x%06x", size, offset);
 				if(size + offset_16 <= 0x16FF){
+					
 					mote_input_data_read(size, 0, offset_16, EEPROM_sim);
 				}else{
 					ESP_LOGI( TAGW, "READING OUT OF RANGE");
+					
 					uint8_t data[16] = {0};
 					mote_input_data_read(size, READ_WRITE_ONLY, offset_16, data);
 				}
@@ -1405,7 +1423,7 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 				
 			//bit 1 of any output report is requesting an acknowledgement input report
 			if((intr_data.data[0] & 0x02) || read_return){
-				mote_input_data_acknowledge(intr_data.report_id, read_return);
+				mote_input_data_acknowledge(intr_data.report_id, ack_return);
 			}
 
 	        break;
@@ -1511,8 +1529,16 @@ void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
 			ESP_LOGI(TAG, "Setting to non-connectable, non-discoverable");
 			esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
 			bt_hid_task_start_up();
-			mote_input_data_core(true);
+			memset(input_report_old, 0xFF, 21);
+			mote_input_data_core(false);
 //			mote_input_data_status();
+
+			// Reset Wiimote Operational Variables
+			continuousReporting = false;
+			reportingMode = 0x30;
+			rumbling = false;
+			speaker_enable = false;
+
         } else {
             ESP_LOGE(TAG, "OPEN failed!");
         }
@@ -1541,6 +1567,7 @@ void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
         }
         break;
     case ESP_HIDD_SEND_REPORT_EVT:
+//		cpptrace::generate_trace().print();
         break; 
     case ESP_HIDD_REPORT_ERR_EVT:
         ESP_LOGI(TAG, "ESP_HIDD_REPORT_ERR_EVT");

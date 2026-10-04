@@ -112,18 +112,18 @@ esp_err_t pixart_ir_get_data(pixart_ir_handle_t *handle, ir_points_data *points_
 	points_data->point1.y = data[11] | ((data[12] & 0xC0) << 2);
 	points_data->point1.size = data[12] & 0xF;
 	
-	//ESP_LOGI(TAG, "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
+//	ESP_LOGI(TAG, "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
 	return ESP_OK;
 }
 
 esp_err_t pixart_ir_get_raw_data(pixart_ir_handle_t *handle, uint8_t *data){
 //	uint8_t raw_data[16] = {0};
 //	reg_read_i2c(handle, 0x36, data, 16);
-	uint8_t send = 0x36;
+	uint8_t send = 0x37; //its 0x36 but the first byte is always 0?
 	i2c_master_transmit(handle->i2c_handle, &send, 1, -1);	
 	i2c_master_receive(handle->i2c_handle, data, 16, -1);
 	
-	//ESP_LOGI(TAG, "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
+//	ESP_LOGI(TAG, "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
 	return ESP_OK;
 }
 

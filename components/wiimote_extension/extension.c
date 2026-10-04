@@ -63,9 +63,11 @@ esp_err_t extension_reg_read(extension_handle_t *handle, uint8_t reg, uint8_t *d
 	    return transmit_err;
 	}
 	
-	esp_err_t recv_err = i2c_master_receive(handle->i2c_handle, data, len, -1);
+	vTaskDelay(2 / portTICK_PERIOD_MS); //idk if this wait is NECESSARY (maybe I can turn it down to 1ms)
+
+	esp_err_t recv_err = i2c_master_receive(handle->i2c_handle, data, len, 4);
 	if(recv_err || !memcmp(data, FF, 6)){
-		recv_err = i2c_master_receive(handle->i2c_handle, data, len, -1);
+		recv_err = i2c_master_receive(handle->i2c_handle, data, len, 8);
 	}
 	if (recv_err) {
 	    ESP_LOGE(TAG, "Invalid Read");
@@ -146,7 +148,7 @@ esp_err_t extension_get_raw_data_sync(extension_handle_t *handle, uint8_t *data,
 	i2c_master_transmit(handle->i2c_handle, &send, 1, -1);
 	vTaskDelay(2 / portTICK_PERIOD_MS); //this wait is NECESSARY (maybe I can turn it down to 1ms)
 
-	esp_err_t recv_err = i2c_master_receive(handle->i2c_handle, data, len, 2);
+	esp_err_t recv_err = i2c_master_receive(handle->i2c_handle, data, len, 4);
 	if(recv_err || !memcmp(data, FF, len)){
 		recv_err = i2c_master_receive(handle->i2c_handle, data, len, -1);
 	}
