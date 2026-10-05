@@ -1,6 +1,12 @@
 /*
-Driver for Pixart PAJ7025R2 (Wiimote IR Camera)
-Adapted lightly by pknessness from https://github.com/ybasviel/wiiIRcam/
+Driver for Wiimote Extensions
+Written by pknessness
+Referenced other drivers:
+https://github.com/rkrishnasanka/ArduinoNunchuk
+https://github.com/infusion/Fritzing
+https://github.com/madhephaestus/WiiChuck
+https://github.com/moefh/esp32-wii-nunchuk
+https://github.com/denizkoekden/arduino-wiimote/ //This is a classic controller emulator, not a driver
 
 Huge help from Kako's blog at http://www.kako.com/neta/2008-009/2008-009.html
 */
@@ -15,11 +21,19 @@ Huge help from Kako's blog at http://www.kako.com/neta/2008-009/2008-009.html
 #include <esp_check.h>
 
 #include "esp_timer.h"
+#include "freertos/projdefs.h"
 
 static const char *TAG = "EXTENSION";
 const uint8_t FF[21] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 #define EXTENSION_MAX_REG_TRANSFER_LEN 16  // Maximum register transfer length (register + data) (This might be 8, 16 is random num)
+
+SemaphoreHandle_t xExtensionMutex;
+
+esp_err_t extension_init_mutex(){
+	xExtensionMutex = xSemaphoreCreateMutex();
+	return ESP_OK;
+}
 
 esp_err_t extension_reg_write(extension_handle_t *handle, uint8_t reg, const uint8_t *bufp, uint16_t len)
 {
@@ -55,11 +69,15 @@ esp_err_t extension_reg_read(extension_handle_t *handle, uint8_t reg, uint8_t *d
 	    return -1;
 	}
 	
+	BaseType_t xReture = xSemaphoreTake(xExtensionMutex, 10); 
+	if(xReture == pdFALSE){	ESP_LOGE(TAG, "Mutex Timed Out"); return ESP_ERR_TIMEOUT; }
+	
 	uint8_t register_to_read = reg;
 	esp_err_t transmit_err = i2c_master_transmit(handle->i2c_handle, &register_to_read, 1, -1);	
 	
 	if (transmit_err) {
-	    ESP_LOGE(TAG, "Invalid Write");
+	    ESP_LOGE(TAG, "Invalid Reg Read (Write)");
+		xSemaphoreGive(xExtensionMutex);
 	    return transmit_err;
 	}
 	
@@ -69,8 +87,11 @@ esp_err_t extension_reg_read(extension_handle_t *handle, uint8_t reg, uint8_t *d
 	if(recv_err || !memcmp(data, FF, 6)){
 		recv_err = i2c_master_receive(handle->i2c_handle, data, len, 8);
 	}
+	
+	xSemaphoreGive(xExtensionMutex); 
+	
 	if (recv_err) {
-	    ESP_LOGE(TAG, "Invalid Read");
+	    ESP_LOGE(TAG, "Invalid Reg Read (Read)");
 	    return recv_err;
 	}
 	return ESP_OK;
@@ -117,41 +138,47 @@ esp_err_t extension_deinit(extension_handle_t *handle)
     return ESP_OK;
 }
 
-// For some reason, when reading from a nunchuck, you need to read and then write, possibly for the next read. 
-// Does each read take that long that you need to write for the next read immediately after the read?
-esp_err_t extension_get_data(extension_handle_t *handle){
-	uint8_t data[16] = {0};
-	
-	uint8_t send = 0x00;
-	i2c_master_receive(handle->i2c_handle, data, 16, -1);
-	i2c_master_transmit(handle->i2c_handle, &send, 1, -1);	
-	
-	//ESP_LOGI(TAG, "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
-	
-	return ESP_OK;
-}
-
-esp_err_t extension_get_raw_data(extension_handle_t *handle, uint8_t *data, uint8_t len){
-
-	uint8_t send = 0x00;
-	i2c_master_receive(handle->i2c_handle, data, len, 5);
-	i2c_master_transmit(handle->i2c_handle, &send, 1, -1);	
-
-	//ESP_LOGI(TAG, "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
-
-	return ESP_OK;
-}
+//// For some reason, when reading from a nunchuck, you need to read and then write, possibly for the next read. 
+//// Does each read take that long that you need to write for the next read immediately after the read?
+//esp_err_t extension_get_data(extension_handle_t *handle){
+//	uint8_t data[16] = {0};
+//	
+//	uint8_t send = 0x00;
+//	i2c_master_receive(handle->i2c_handle, data, 16, -1);
+//	i2c_master_transmit(handle->i2c_handle, &send, 1, -1);	
+//	
+//	//ESP_LOGI(TAG, "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
+//	
+//	return ESP_OK;
+//}
+//
+//esp_err_t extension_get_raw_data(extension_handle_t *handle, uint8_t *data, uint8_t len){
+//
+//	uint8_t send = 0x00;
+//	i2c_master_receive(handle->i2c_handle, data, len, 5);
+//	i2c_master_transmit(handle->i2c_handle, &send, 1, -1);	
+//
+//	//ESP_LOGI(TAG, "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
+//
+//	return ESP_OK;
+//}
 
 esp_err_t extension_get_raw_data_sync(extension_handle_t *handle, uint8_t *data, uint8_t len){
 
 	uint8_t send = 0x00;	
+	
+	BaseType_t xReture = xSemaphoreTake(xExtensionMutex, 10); 
+	if(xReture == pdFALSE){	ESP_LOGE(TAG, "Mutex Timed Out"); return ESP_ERR_TIMEOUT; }
+	
 	i2c_master_transmit(handle->i2c_handle, &send, 1, -1);
-	vTaskDelay(2 / portTICK_PERIOD_MS); //this wait is NECESSARY (maybe I can turn it down to 1ms)
+	vTaskDelay(2 / portTICK_PERIOD_MS); //this wait is NECESSARY (maybe I can turn it down to 1ms, but then I need to turn up the hz)
 
 	esp_err_t recv_err = i2c_master_receive(handle->i2c_handle, data, len, 4);
 	if(recv_err || !memcmp(data, FF, len)){
 		recv_err = i2c_master_receive(handle->i2c_handle, data, len, -1);
 	}
+	
+	xSemaphoreGive(xExtensionMutex); 
 
 	//ESP_LOGI(TAG, "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
 

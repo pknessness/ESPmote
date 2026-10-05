@@ -1069,8 +1069,8 @@ void mote_hid_main_task(void *pvParameters)
 		if(extension && !extension_handle_connected){
 			extension_init(i2c_bus_handle, &extension_handle);
 			extension_handle_connected = true;
-			uint8_t writes[1] ={0x55};
-			extension_reg_write(&extension_handle, 0xF0, writes, 1); //TODO: in theory i want to remove this
+//			uint8_t writes[1] ={0x55};
+//			extension_reg_write(&extension_handle, 0xF0, writes, 1); //TODO: in theory i want to remove this
 			plugged_in_extension = EXT_OTHER;
 			status_byte |= STATUS_MASK_EXTENSION; //set extension bit to 1
 			mote_input_data_status();
@@ -1154,15 +1154,9 @@ void mote_other_main_task(void *pvParameters)
 			extension_reg_write(&extension_handle, 0xFB, writes+1, 1);
 			vTaskDelay(100 / portTICK_PERIOD_MS);
 
-//			extension_reg_write(&extension_handle, 0x40, writes+1, 1);
-//			vTaskDelay(100 / portTICK_PERIOD_MS);
-
 			extension_reg_read(&extension_handle, 0xFA, data, 6);
 			ESP_LOG_BUFFER_HEX("EXTENSION_ID", data, 6);
 			vTaskDelay(500 / portTICK_PERIOD_MS);
-	
-//			i2c_master_receive(extension_handle.i2c_handle, data, 6, 10);
-//			vTaskDelay(100 / portTICK_PERIOD_MS);
 			
 		}else if(!extension && extension_handle_connected){
 			extension_deinit(&extension_handle);
@@ -1180,7 +1174,6 @@ void mote_other_main_task(void *pvParameters)
 			
 			extension_get_raw_data_sync(&extension_handle, nunchuk_data, 6);
 			nunchuk_data_t nchuk = extension_decompose_nunchuck(nunchuk_data);
-//			ESP_LOG_BUFFER_HEX("EXTENSION_DATA", nunchuk_data, 6);
 			ESP_LOGI("EXTENSION_DATA", "SX:%d SY:%d A:[%d %d %d] %c %c",
 				nchuk.stick_x, nchuk.stick_y, nchuk.accel_x, nchuk.accel_y, nchuk.accel_z,
 				(nchuk.button_C ? 'C' : '.'), (nchuk.button_Z ? 'Z' : '.')
@@ -1669,6 +1662,8 @@ void app_main(void){
 	
 	init_GPIO();
 	init_memory_chunks();
+	
+	extension_init_mutex();
 	
 	//i2c config
 	i2c_master_bus_config_t bus_config = {
