@@ -51,8 +51,6 @@
 
 #include "esp_adc/adc_oneshot.h"
 
-//#include <cpptrace/cpptrace.hpp>
-
 #define GENERAL_DISCOVERY
 
 //#define HCI_DEBUG
@@ -147,7 +145,13 @@ constexpr uint16_t EXT_NONE                        = 0x0000;  // None
 constexpr uint16_t EXT_OTHER                       = 0xFFFF; //generic (what do i do with this, should i read in the actual value on plug-in and replace this with that, or do i turn plugged-in-extension into just a bool?)
 //constexpr uint16_t EXT_NUNCHUK                     = 0x0000;  // Nunchuk
 //constexpr uint16_t EXT_CLASSIC_CONTROLLER          = 0x0101;  // Classic Controller 
-//constexpr uint16_t EXTENSION_A4_TAG = 0x20A4; //in reverse because memcpy
+constexpr uint16_t EXTENSION_A4_TAG = 0x20A4; //in reverse because memcpy
+constexpr uint16_t EXTENSION_A6_TAG = 0x20A6; //in reverse because memcpy
+
+
+constexpr uint16_t EXT_WII_MOTION_PLUS_STANDARD     = 0x0504;  // Activated Wii Motion Plus
+constexpr uint16_t EXT_WII_MOTION_PLUS_NUNCHUK_PASSTHROUGH = 0x0505;  // Activated Wii Motion Plus in Nunchuck passthrough mode
+constexpr uint16_t EXT_WII_MOTION_PLUS_CLASSIC_PASSTHROUGH = 0x0507;  // Activated Wii 
 
 //constexpr uint8_t EXTENSION_DATA_STREAM_REG = 0x08;
 
@@ -468,13 +472,100 @@ constexpr int16_t CALIBRATION_ACCEL_1G_OFFSET = 100;
 float accel_scale_mg = (CALIBRATION_ACCEL_1G_OFFSET / 1000.0); //multiply values by this to get +-100 at +- 1G to match wiimote range
 constexpr int16_t CALIBRATION_ACCEL_ZERO = 0x0200;
 
+//Wii Motion Plus constants
+float gyro_mdps[3];
+float gyro_dps[3];
+//constexpr uint16_t CALIBRATION_GYRO_ZERO = 0x8000; //CALIBRATION VALUES ARE BAKED INTO THE REGISTER THING, TODO IS TO NOT BAKE THEM IN? 
+//constexpr uint16_t CALIBRATION_GYRO_SCALE_OFFSET = 0x4400;
+//constexpr uint16_t CALIBRATION_GYRO_FAST_SCALE_DEGREES = 1200;
+//constexpr uint16_t CALIBRATION_GYRO_SLOW_SCALE_DEGREES = 270;
+constexpr uint16_t VALUE_ZERO = 0x2000;
+constexpr uint16_t VALUE_SCALE_OFFSET = 0x1100;
+bool wii_motion_plus_enabled = false;
+
 // Register chunks
 uint8_t speaker_settings[10]; //A20000 - A20009
 //uint8_t extension_controller_settings_data[256]; //A40000 - A400FF
 //uint8_t wii_motion_plus_settings_data[256]; //A60000 - A600FF
 uint8_t IR_camera_settings[52]; //B00000 - B00033
 
+//A60000 - A600FF
+uint8_t wii_motion_plus_settings_data[256]  = { //TODO: HAVE CALIBRATION VALUES BETTER MATCH REAL MOTE STUFF
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+  
+  0x80, 0x00, 0x80, 0x00, 0x80, 0x00, 0x44, 0x00, 0x44, 0x00, 0x44, 0x00, 0xc8, 0x01, 0x03, 0xbf, 
+  0x80, 0x00, 0x80, 0x00, 0x80, 0x00, 0x44, 0x00, 0x44, 0x00, 0x44, 0x00, 0x2d, 0x6e, 0x13, 0xf7, 
+
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+  
+  0xb9, 0x3f, 0x25, 0x93, 0x9d, 0x17, 0xbb, 0x9c, 0x05, 0x9d, 0xc3, 0x38, 0x18, 0x3c, 0xba, 0x33, 
+  0xba, 0x18, 0xd1, 0x7a, 0xbc, 0x03, 0xd3, 0x55, 0x32, 0xec, 0x81, 0x38, 0x7d, 0xa6, 0x77, 0xa8, 
+  0x4c, 0xe6, 0xc7, 0x11, 0x7c, 0x50, 0x78, 0x80, 0x77, 0x35, 0x08, 0x81, 0xf6, 0x14, 0x4e, 0x67, 
+  0xd4, 0xb5, 0xcb, 0xde, 0x6a, 0x54, 0x5f, 0x66, 0x3c, 0xc4, 0x25, 0xfd, 0x33, 0xda, 0x1d, 0x75, 
+  
+  0x58, 0x98, 0x15, 0x6d, 0x5e, 0x63, 0x51, 0xee, 0x8f, 0xdd, 0x3a, 0xb2, 0x94, 0xfe, 0x5b, 0x58, 
+  0xbf, 0x17, 0x91, 0x78, 0x7f, 0x84, 0xb4, 0x9b, 0xb0, 0xf9, 0x75, 0xc2, 0x2e, 0x7f, 0x1f, 0xed, 
+  0xe5, 0x6b, 0x02, 0xf4, 0xf2, 0x7d, 0x74, 0x17, 0x3d, 0x23, 0x35, 0x5c, 0xe0, 0x72, 0x22, 0x6e, 
+  0x3b, 0xa7, 0x7b, 0x65, 0x6c, 0x3c, 0x72, 0x7e, 0x5b, 0xae, 0xe7, 0x09, 0x09, 0xf0, 0x01, 0x00, 
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+  
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+  0x55, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x10, 0xff, 0xff, 0x01, 0x00, 0xa6, 0x20, 0x00, 0x05
+};
+
+//real mote calibration values (is this orcamote?)
+//0x78, 0xd9, 0x78, 0x38, 0x77, 0x9d, 0x2f, 0x0c, 0xcf, 0xf0, 0x31, 0xad, 0xc8, 0x0b, 0x5e, 0x39
+//0x6f, 0x81, 0x7b, 0x89, 0x78, 0x51, 0x33, 0x60, 0xc9, 0xf5, 0x37, 0xc1, 0x2d, 0xe9, 0x15, 0x8d
+//crc: 0x5e39158d
+
+//pinkmote
+//0000   7c 7b 81 22 77 40 30 82 d0 ae 32 b1 c8 01 4a 9d
+//0010   7d 18 7f d8 74 e7 34 ba c9 4f 39 d9 2d 6e 66 46
+
+//taken from dolphin MotionPlus.h
+//a60000 register map
+// 0x00 21 bytes of controller data
+// 0x15 11 bytes of 0xFF (unknown)
+// 0x20 32 bytes of calibration
+// 0x40 16 bytes of passthrough extension calibration
+// 0x50 64 bytes of challenge data
+// 0x90 96 bytes of unknown
+// 0xF0 1 byte of init trigger
+// 0xF1 1 byte of challenge type
+// 0xF2 1 byte of calibration trigger
+// 0xF3 3 bytes of unknown
+// 0xF6 1 byte of passthrough_extension_id_4
+// 0xF7 1 byte of challenge_state
+// DOLPHIN: Games read this value to know when the data at 0x50 is ready.
+// DOLPHIN: Value is 0x02 upon activation. (via a write to 0xfe)
+// DOLPHIN: Real M+ changes this value to 0x4, 0x8, 0xc, and finally 0xe.
+// DOLPHIN: Games then trigger a 2nd stage via a write to 0xf1.
+// DOLPHIN: Real M+ changes this value to 0x14, 0x18, and finally 0x1a.
+// DOLPHIN: Note: We don't progress like this. We jump to the final value as soon as possible.
+// 0xF8 1 byte of passthrough_extension_id_0
+// 0xF9 1 byte of passthrough_extension_id_5
+// 0xFA 6 bytes of identifier (for motion plus)
+
+//TODO: THIS IS FOR INITIALIZING THE A60000 REGISTERS, CURRENTLY HARDCODED, 
 void init_memory_chunks(){ 
+	//	uint8_t wii_motion_plus_identifier[6] = {0x01,0x00,0xa6,0x20,0x00,0x05};
+	//	memcpy(wii_motion_plus_settings_data + 0xFA ,wii_motion_plus_identifier, 6);
+
+	//	memcpy(wii_motion_plus_settings_data, register_a60000_sample_1, 256);
+		
+	//	uint32_t crc_result = esp_rom_crc32_le(0, wii_motion_plus_settings_data + 0x20, 14);
+	//	crc_result = esp_rom_crc32_le(crc_result, wii_motion_plus_settings_data + 0x30, 14);
+	//	
+	//	ESP_LOG_BUFFER_HEX("CRC THINGU", wii_motion_plus_settings_data + 0x20, 0x20);
+	//
+	//	uint16_t crc_msb = (crc_result >> 16) & 0xFFFF;
+	//	uint16_t crc_lsb = (crc_result & 0xFFFF);
+	//	
+	//	printf("0x %04x %04x", crc_msb, crc_lsb);
+		
+	//	memcpy(&wii_motion_plus_settings_data + 46, &crc_msb, 2);
+	
 	memcpy(EEPROM_sim, eeprom_calibration, 0x2A);
 	memcpy(EEPROM_sim + 0x16D0, eeprom_unknown_end, 0x30);
 }
@@ -485,7 +576,6 @@ void send_hid_report(uint8_t report_id, uint8_t* data, uint8_t report_len){
 }
 
 void init_GPIO(){
-	
 	//RESET I2C, seems to be important for some reason, i guess the i2c init code doesn't do this?
 	gpio_reset_pin(I2C_MASTER_SCL_IO);
 	gpio_reset_pin(I2C_MASTER_SDA_IO);
@@ -787,59 +877,176 @@ void load_accelerometer_buffer(uint8_t* destination, uint16_t processed_10bit_ac
 	}
 }
 
-//TODO: maybe i just constantly load extension shit on the side/ see how long it takes for extension data to actually return and just have that on a side thread?
-//test with mote other main
-void load_extension_buffer(uint8_t* destination, uint8_t length){
-	if(extension_handle_connected){
-		extension_get_raw_data_sync(&extension_handle, destination, 6);
-		nunchuk_data_t nchuk = extension_decompose_nunchuck(destination);
-//		ESP_LOG_BUFFER_HEX("EXTENSION_DATA", nunchuk_data, 6);
-		ESP_LOGI("EXTENSION_DATA", "SX:%d SY:%d A:[%d %d %d] %c %c",
-			nchuk.stick_x, nchuk.stick_y, nchuk.accel_x, nchuk.accel_y, nchuk.accel_z,
-			(nchuk.button_C ? 'C' : '.'), (nchuk.button_Z ? 'Z' : '.')
-		);
+//TODO: LOOK AT THIS AND COMMENT PROPERLY (AND MAYBE REWRITE), WHY TF IS THERE 1200 AND NOT 2000?
+void load_wii_motion_plus_buffer(uint8_t* destination){
+	//fast mode reaches a peak of 2000 degrees per second? and slow mode is potentially 440?
+	esp_err_t ret = lsm6ds3_read_gyro(&imu_handle, gyro_mdps);
+	if (ret != ESP_OK) {
+	    ESP_LOGE("LSM6DS3", "Read failed");
+	    return;
+	}
+
+	gyro_dps[0] = gyro_mdps[0] / 1000.0f;
+	gyro_dps[1] = gyro_mdps[1] / 1000.0f;
+	gyro_dps[2] = gyro_mdps[2] / 1000.0f;
+
+	//_base value should be 0 to 1 on the range from 0 to 440
+	float gyro_yaw_base = gyro_dps[0] / 440;
+	float gyro_roll_base = gyro_dps[1] / 440;
+	float gyro_pitch_base = gyro_dps[2] / 440;
+	
+	bool slow_yaw = true, slow_roll = true, slow_pitch = true;
+	
+	if(gyro_yaw_base > 1.0 || gyro_yaw_base < -1.0){
+		slow_yaw = false;
+		gyro_yaw_base *= (440.0 / 1200);
+	}
+	if(gyro_roll_base > 1.0 || gyro_roll_base < -1.0){
+		slow_roll = false;
+		gyro_roll_base *= (440.0 / 1200);
+	}
+	if(gyro_pitch_base > 1.0 || gyro_pitch_base < -1.0){
+		slow_pitch = false;
+		gyro_pitch_base *= (440.0 / 1200);
+	}
+	
+	int16_t gyro_yaw_14b = VALUE_ZERO + (gyro_yaw_base * VALUE_SCALE_OFFSET);
+	int16_t gyro_roll_14b = VALUE_ZERO + (gyro_roll_base * VALUE_SCALE_OFFSET);
+	int16_t gyro_pitch_14b = VALUE_ZERO + (gyro_pitch_base * VALUE_SCALE_OFFSET);
+	
+	uint8_t yaw7_0 = gyro_yaw_14b & 0xFF;
+	uint8_t yaw13_8 = (gyro_yaw_14b & 0x3F00) >> 6;
+	yaw13_8 |= ((slow_yaw << 1) | slow_pitch);
+
+	uint8_t roll7_0 = gyro_roll_14b & 0xFF;
+	uint8_t roll13_8 = (gyro_roll_14b & 0x3F00) >> 6;
+	roll13_8 |= (slow_roll << 1 | gpio_get_level(EXT_SENSE_GPIO)); //THIS ZERO IS FOR EXTENSION CONNECTED, TODO: IMPLEMENT
+	
+	uint8_t pitch7_0 = gyro_pitch_14b & 0xFF;
+	uint8_t pitch13_8 = (gyro_pitch_14b & 0x3F00) >> 6;
+	pitch13_8 |= 0x02; //AAAAAAAAAAAAAAAAAAAAAAAAAAAA I SPENT TWO FUCKING DAYS ON roll13_8 vs pitch13_8
+
+	
+	if(destination != nullptr){
+		memcpy(destination, &yaw7_0, 1);
+		memcpy(destination+1, &roll7_0, 1);
+		memcpy(destination+2, &pitch7_0, 1);
+		memcpy(destination+3, &yaw13_8, 1);
+		memcpy(destination+4, &roll13_8, 1);
+		memcpy(destination+5, &pitch13_8, 1);
 	}else{
-		memset(destination, 0xFF, length);
+		ESP_LOGE("LOAD_WII_MOTION_PLUS_BUFFER", "NO DESTINATION");
 	}
 }
 
-uint8_t input_report[21] = {0};
-uint8_t input_report_old[21] = {0};
+
+void load_nunchuck_passthrough_buffer(uint8_t* destination){
+	uint8_t nunchuck[6];
+	esp_err_t ret = extension_get_raw_data_sync(&extension_handle, nunchuck, 6);
+	if (ret != ESP_OK) {
+	    ESP_LOGE("LSM6DS3", "Read failed");
+	    return;
+	}
+
+	//bit 7 6 5 4 3 2 1 0 
+	
+	bool az_2 = nunchuck[4] & 0x01; //byte 4 bit 0
+	bool az_1 = nunchuck[5] & 0x80; //byte 5 bit 7
+	bool ay_1 = nunchuck[5] & 0x20; //byte 5 bit 5
+	bool ax_1 = nunchuck[5] & 0x08; //byte 5 bit 3
+	bool button_C = nunchuck[5] & 0x02; //byte 5 bit 1
+	bool button_Z = nunchuck[5] & 0x01; //byte 5 bit 0
+	
+	ESP_LOGW("LOAD_NUNCHUCK_PASSTHROUGH_BUFFER", "NUNCK %d az_1", az_1);
+	
+	nunchuck[4] &= 0xFE; //exclude last bit of byte 5;
+	nunchuck[4] |= (extension_handle_connected & 0x01);
+	nunchuck[5] = (az_2 << 7) | (az_1 << 6) | (ay_1 << 5) | (ax_1 << 4) | (button_C << 3) | (button_Z << 2);
+	
+	if(destination != nullptr){
+		memcpy(destination, &nunchuck, 6);
+	}else{
+		ESP_LOGE("LOAD_NUNCHUCK_PASSTHROUGH_BUFFER", "NO DESTINATION");
+	}
+}
+
+//TODO: maybe i just constantly load extension shit on the side/ see how long it takes for extension data to actually return and just have that on a side thread?
+//test with mote other main
+void load_extension_buffer(uint8_t* destination, uint8_t length){
+//	ESP_LOGW(TAGSEND, "WMP_EN: %d", wii_motion_plus_enabled);
+	if(wii_motion_plus_enabled){
+		uint16_t wmp_mode;
+		memcpy(&wmp_mode, wii_motion_plus_settings_data + 0xFE, 2);
+//		ESP_LOGW(TAGSEND, "WMP_MODE: %x", wmp_mode);
+		if(wmp_mode == EXT_WII_MOTION_PLUS_STANDARD){
+			load_wii_motion_plus_buffer(destination);
+		}else if (wmp_mode == EXT_WII_MOTION_PLUS_NUNCHUK_PASSTHROUGH){
+//			ESP_LOGE(TAGSEND, "NO SUPPORT FOR NUNCHUCK PASSTHROUGH");
+			load_wii_motion_plus_buffer(destination);
+			if(extension_handle_connected){
+				load_nunchuck_passthrough_buffer(destination);
+			}
+		}else if (wmp_mode == EXT_WII_MOTION_PLUS_CLASSIC_PASSTHROUGH){
+			ESP_LOGE(TAGSEND, "NO SUPPORT FOR CLASSIC PASSTHROUGH");
+		}else{
+			ESP_LOGE(TAGSEND, "NO SUPPORT FOR UNKNOWN PASSTHROUGH %04x", wmp_mode);
+		}
+	}else{
+		if(extension_handle_connected){
+			extension_get_raw_data_sync(&extension_handle, destination, 6);
+			nunchuk_data_t nchuk = extension_decompose_nunchuck(destination);
+	//		ESP_LOG_BUFFER_HEX("EXTENSION_DATA", nunchuk_data, 6);
+			ESP_LOGI("EXTENSION_DATA", "SX:%d SY:%d A:[%d %d %d] %c %c",
+				nchuk.stick_x, nchuk.stick_y, nchuk.accel_x, nchuk.accel_y, nchuk.accel_z,
+				(nchuk.button_C ? 'C' : '.'), (nchuk.button_Z ? 'Z' : '.')
+			);
+		}else{
+			memset(destination, 0xFF, length);
+		}
+	}
+}
+
+uint8_t core_input_report[21] = {0};
+uint8_t core_input_report_old[21] = {0};
 
 
 //20 BB BB LF 00 00 VV
 void mote_input_data_status()
 {
-	load_buttons_buffer(input_report);
-	input_report[2] = status_byte;
-	input_report[3] = 0;
-	input_report[4] = 0;
-	input_report[5] = 0xEF; //TODO: Battery value, replace with actual battery value
-	send_hid_report(0x20, input_report, 6);
+	uint8_t status_input_report[21] = {0};
+	load_buttons_buffer(status_input_report);
+	status_input_report[2] = status_byte;
+	status_input_report[3] = 0;
+	status_input_report[4] = 0;
+	status_input_report[5] = 0xEF; //TODO: Battery value, replace with actual battery value
+	send_hid_report(0x20, status_input_report, 6);
 	ESP_LOGI(TAGSEND, "STATUS[0x%02x] EXT:%d SPK:%d IR:%d BATT_LOW:%d", status_byte, status_byte & STATUS_MASK_EXTENSION, status_byte & STATUS_MASK_IR_ENABLED, status_byte & STATUS_MASK_BATTERY_LOW, 0xEF); // TODO: replace with actual battery value
 
 }
 
-//21 BB BB SE AA AA DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD
+//21 BB BB SE AA AA DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD 
+//if error, output data is automatically set 0
 void mote_input_data_read(uint8_t size, uint8_t error, uint16_t address_low_16, uint8_t* buffer)
 {
-	load_buttons_buffer(input_report);
-	if(error){
+	uint8_t read_input_report[21] = {0};
+
+	load_buttons_buffer(read_input_report);
+	if(error || buffer == nullptr){
 		uint8_t siz = size;
 		if(siz > 16){
 			siz = 16;
 		}
-		input_report[2] = ((siz) << 4) | (error & 0xF);
-		input_report[3] = (address_low_16 & 0xFF00) >> 8;
-		input_report[4] = address_low_16 & 0x00FF;
+		read_input_report[2] = ((siz) << 4) | (error & 0xF);
+		read_input_report[3] = (address_low_16 & 0xFF00) >> 8;
+		read_input_report[4] = address_low_16 & 0x00FF;
 		
-		memset(input_report + 5, 0, 16);
+		memset(read_input_report + 5, 0, 16);
 		
-		send_hid_report(0x21, input_report, 21);
+		send_hid_report(0x21, read_input_report, 21);
 		ESP_LOGI(TAGSEND, "Responding to read with error 0x%02x", error);
 	}else{
 		//TODO: MAKE SURE DONT MEM OVERFLOW
-		//	memcpy(input_report + 3, &address_low_16, 2);
+		//	memcpy(read_input_report + 3, &address_low_16, 2);
 		int index = 0;
 		while(index < size){
 			uint8_t chunk = size - index;
@@ -848,15 +1055,15 @@ void mote_input_data_read(uint8_t size, uint8_t error, uint16_t address_low_16, 
 			}
 			uint16_t pointer = address_low_16 + index;
 
-			input_report[2] = (((chunk - 1) & 0xF) << 4) | (error & 0xF);
-			input_report[3] = (pointer & 0xFF00) >> 8;
-			input_report[4] = pointer & 0x00FF;
+			read_input_report[2] = (((chunk - 1) & 0xF) << 4) | (error & 0xF);
+			read_input_report[3] = (pointer & 0xFF00) >> 8;
+			read_input_report[4] = pointer & 0x00FF;
 		
-			memset(input_report + 5, 0, 16);
-			memcpy(input_report + 5, buffer + pointer, chunk);
+			memset(read_input_report + 5, 0, 16);
+			memcpy(read_input_report + 5, buffer + pointer, chunk);
 		
-			send_hid_report(0x21, input_report, 21);
-			ESP_LOG_BUFFER_HEX("WIIMOTE_OUTPUT: Responding to read", input_report + 5, chunk);
+			send_hid_report(0x21, read_input_report, 21);
+			ESP_LOG_BUFFER_HEX("WIIMOTE_OUTPUT: Responding to read", read_input_report + 5, chunk);
 			
 			index += 16;
 		}
@@ -866,10 +1073,11 @@ void mote_input_data_read(uint8_t size, uint8_t error, uint16_t address_low_16, 
 //22 BB BB RR EE
 void mote_input_data_acknowledge(uint8_t report_number, uint8_t error)
 {
-	load_buttons_buffer(input_report);
-	input_report[2] = report_number;
-	input_report[3] = error;
-	send_hid_report(0x22, input_report, 4);
+	uint8_t ack_input_report[21] = {0};
+	load_buttons_buffer(ack_input_report);
+	ack_input_report[2] = report_number;
+	ack_input_report[3] = error;
+	send_hid_report(0x22, ack_input_report, 4);
 	ESP_LOGI(TAGSEND, "ACK to 0x%02x with error 0x%02x", report_number, error);
 }
 
@@ -886,133 +1094,134 @@ void mote_input_data_core(bool force)
 	
 	read_IR();
 	
-//	bool send_packet = 
-//		continuousReporting || 
-//		(reportingMode != 0x3d && (old_buttons[0] != buttons[0] || old_buttons[1] != buttons[1])) || 
-//		((reportingMode == 0x31 || reportingMode == 0x33 || reportingMode == 0x35 || reportingMode == 0x37 || reportingMode == 0x3e) && (old_accel[0] != accel_10b_x || old_accel[1] != accel_10b_y || old_accel[2] != accel_10b_z));
-//	bool send_packet = memcmp(input_report_old, input_report, 21); // if equal, 0, don't send packet
-#define CHECK_NEW(len) memcmp(input_report_old, input_report, len)
-//	ESP_LOGI("mote_input_data_core", "force:%d  2:%d", force, CHECK_NEW(2));
-//	ESP_LOG_BUFFER_HEX("mote_input_data_core: InReport_OLD", input_report_old, 21);
+	//check if previous sent report matches the about-to-be-sent report. 0 is match, else is non-match
+	#define CHECK_NEW(len) memcmp(core_input_report_old, core_input_report, len)
+
 	switch(reportingMode){
 		case 0x30: //30 BB BB
-			memcpy(input_report,buttons,2);
+			memcpy(core_input_report,buttons,2);
 			
 			if(force || CHECK_NEW(2)){
-				send_hid_report(0x30, input_report, 2);
-				memcpy(input_report_old, input_report, 2);
-				ESP_LOG_BUFFER_HEX("SEND 0x30", input_report, 2);
+				send_hid_report(0x30, core_input_report, 2);
+				memcpy(core_input_report_old, core_input_report, 2);
+				ESP_LOG_BUFFER_HEX("SEND 0x30", core_input_report, 2);
 			}
 		    break;
 		case 0x31: //31 BB BB AA AA AA
-			memcpy(input_report,buttons,2);
-			load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
+			memcpy(core_input_report,buttons,2);
+			
+			load_accelerometer_buffer(core_input_report, accel_10b_x, accel_10b_y, accel_10b_z);
 			
 			if(force || CHECK_NEW(5)){
-				send_hid_report(0x31, input_report, 5);
-				memcpy(input_report_old, input_report, 5);
-				ESP_LOG_BUFFER_HEX("SEND 0x31", input_report, 5);
+				send_hid_report(0x31, core_input_report, 5);
+				memcpy(core_input_report_old, core_input_report, 5);
+				ESP_LOG_BUFFER_HEX("SEND 0x31", core_input_report, 5);
 			}
 		    break;
 		case 0x32: //32 BB BB EE EE EE EE EE EE EE EE
-			memcpy(input_report,buttons,2);
+			memcpy(core_input_report,buttons,2);
 			
-			load_extension_buffer(input_report+2, 8);
+			load_extension_buffer(core_input_report+2, 8);
 
 
 			if(force || CHECK_NEW(10)){
-				send_hid_report(0x32, input_report, 10);
-				memcpy(input_report_old, input_report, 10);
-				ESP_LOG_BUFFER_HEX("SEND 0x32", input_report, 10);
+				send_hid_report(0x32, core_input_report, 10);
+				memcpy(core_input_report_old, core_input_report, 10);
+				ESP_LOG_BUFFER_HEX("SEND 0x32", core_input_report, 10);
 			}
 		    break;
 		case 0x33: //33 BB BB AA AA AA II II II II II II II II II II II II
-			memcpy(input_report,buttons,2);
-			load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
+			memcpy(core_input_report,buttons,2);
+			
+			load_accelerometer_buffer(core_input_report, accel_10b_x, accel_10b_y, accel_10b_z);
+			
 			if(get_IR_mode() == IR_EXTENDED){
-				load_IR_extended_buffer(input_report+5);
+				load_IR_extended_buffer(core_input_report+5);
 			}else{
-				memset(input_report+5,0xFF,12); //blank 12 IR bytes
+				memset(core_input_report+5,0xFF,12); //blank 12 IR bytes
 				ESP_LOGW("SEND 0x33", "WRONG IR MODE: %d instead of 3", get_IR_mode());
 			}
 
 			if(force || CHECK_NEW(21)){
-				send_hid_report(0x33, input_report, 17);
-				memcpy(input_report_old, input_report, 17);
-				ESP_LOG_BUFFER_HEX("SEND 0x33", input_report, 17);
+				send_hid_report(0x33, core_input_report, 17);
+				memcpy(core_input_report_old, core_input_report, 17);
+				ESP_LOG_BUFFER_HEX("SEND 0x33", core_input_report, 17);
 			}
 		    break;
 		case 0x34: //34 BB BB EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE
-			memcpy(input_report,buttons,2);
+			memcpy(core_input_report,buttons,2);
 			
-			load_extension_buffer(input_report+2, 19);
+			load_extension_buffer(core_input_report+2, 19);
 
 
 			if(force || CHECK_NEW(21)){
-				send_hid_report(0x34, input_report, 21);
-				memcpy(input_report_old, input_report, 21);
-				ESP_LOG_BUFFER_HEX("SEND 0x34", input_report, 21);
+				send_hid_report(0x34, core_input_report, 21);
+				memcpy(core_input_report_old, core_input_report, 21);
+				ESP_LOG_BUFFER_HEX("SEND 0x34", core_input_report, 21);
 			}
 		    break;
 		case 0x35: //35 BB BB AA AA AA EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE
-			memcpy(input_report,buttons,2);
-			load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
+			memcpy(core_input_report,buttons,2);
+			load_accelerometer_buffer(core_input_report, accel_10b_x, accel_10b_y, accel_10b_z);
 			
-			load_extension_buffer(input_report+5, 16);
+			load_extension_buffer(core_input_report+5, 16);
 
 
 			if(force || CHECK_NEW(21)){
-				send_hid_report(0x35, input_report, 21);
-				memcpy(input_report_old, input_report, 21);
-				ESP_LOG_BUFFER_HEX("SEND 0x35", input_report, 21);
+				send_hid_report(0x35, core_input_report, 21);
+				memcpy(core_input_report_old, core_input_report, 21);
+				ESP_LOG_BUFFER_HEX("SEND 0x35", core_input_report, 21);
 			}
 		    break;
 		case 0x36: //36 BB BB II II II II II II II II II II EE EE EE EE EE EE EE EE EE
-			memcpy(input_report,buttons,2);
+			memcpy(core_input_report,buttons,2);
+			
 			if(get_IR_mode() == IR_BASIC){
-				load_IR_basic_buffer(input_report+5);
+				load_IR_basic_buffer(core_input_report+5);
 			}else{
-				memset(input_report+5,0xFF,10); //blank 10 IR bytes
+				memset(core_input_report+5,0xFF,10); //blank 10 IR bytes
 				ESP_LOGW("SEND 0x36", "WRONG IR MODE: %d instead of 1", get_IR_mode());
 			}
 			
-			load_extension_buffer(input_report+12, 9);
+			load_extension_buffer(core_input_report+12, 9);
 
 
 			if(force || CHECK_NEW(21)){
-				send_hid_report(0x36, input_report, 21);
-				memcpy(input_report_old, input_report, 21);
-				ESP_LOG_BUFFER_HEX("SEND 0x36", input_report, 21);
+				send_hid_report(0x36, core_input_report, 21);
+				memcpy(core_input_report_old, core_input_report, 21);
+				ESP_LOG_BUFFER_HEX("SEND 0x36", core_input_report, 21);
 			}
 		    break;
 		case 0x37: //37 BB BB AA AA AA II II II II II II II II II II EE EE EE EE EE EE
-			memcpy(input_report,buttons,2);
-			load_accelerometer_buffer(input_report, accel_10b_x, accel_10b_y, accel_10b_z);
+			memcpy(core_input_report,buttons,2);
+			
+			load_accelerometer_buffer(core_input_report, accel_10b_x, accel_10b_y, accel_10b_z);
+			
 			if(get_IR_mode() == IR_BASIC){
-				load_IR_basic_buffer(input_report+5);
+				load_IR_basic_buffer(core_input_report+5);
 			}else{
-				memset(input_report+5,0xFF,10); //blank 10 IR bytes
+				memset(core_input_report+5,0xFF,10); //blank 10 IR bytes
 				ESP_LOGW("SEND 0x37", "WRONG IR MODE: %d instead of 1", get_IR_mode());
 			}
 
-			load_extension_buffer(input_report+15, 6);
+			load_extension_buffer(core_input_report+15, 6);
 
 
 			if(force || CHECK_NEW(21)){
-				send_hid_report(0x37, input_report, 21);
-				memcpy(input_report_old, input_report, 21);
-				ESP_LOG_BUFFER_HEX("SEND 0x37", input_report, 21);
+				send_hid_report(0x37, core_input_report, 21);
+				memcpy(core_input_report_old, core_input_report, 21);
+				ESP_LOG_BUFFER_HEX("SEND 0x37", core_input_report, 21);
 			}
 		    break;
 		case 0x3d: //3d EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE EE
 		
-			load_extension_buffer(input_report, 21);
+			load_extension_buffer(core_input_report, 21);
 
 
 			if(force || CHECK_NEW(21)){
-				send_hid_report(0x3d, input_report, 21);
-				memcpy(input_report_old, input_report, 21);
-				ESP_LOG_BUFFER_HEX("SEND 0x3d", input_report, 21);
+				send_hid_report(0x3d, core_input_report, 21);
+				memcpy(core_input_report_old, core_input_report, 21);
+				ESP_LOG_BUFFER_HEX("SEND 0x3d", core_input_report, 21);
 			}
 		    break;
 		case 0x3e: //same as 3f, forced to 3e during output report handling
@@ -1024,18 +1233,12 @@ void mote_input_data_core(bool force)
 			//TODO: SET UP LATER ITS A WHOLE THING
 			//send_hid_report(0x3e, buttons, 21);
 			ESP_LOGE(TAGSEND, "0x3E NOT SUPPORTED");
-			ESP_LOG_BUFFER_HEX("0x3e NOT SUPPORTED", input_report, 21);
+			ESP_LOG_BUFFER_HEX("0x3e NOT SUPPORTED", core_input_report, 21);
 		    break;
 		default:
 		    break;
 	}
 }
-
-//void check_sync(){
-//	if(button_array[BTN_SYNC]){
-//		esp_bt_hid_device_disconnect();
-//	}
-//}
 
 void check_sync(){
 	if(button_array[BTN_SYNC]){
@@ -1186,7 +1389,12 @@ void mote_other_main_task(void *pvParameters)
 
 void bt_hid_task_start_up(void)
 {
-	//TODO: RESET OPERATIONAL VARIABLES HERE
+	// Reset Wiimote Operational Variables
+	continuousReporting = false;
+	reportingMode = 0x30;
+	rumbling = false;
+	speaker_enable = false;
+	
 	if (s_bt_hid_param.task_hdl) {
 	    vTaskDelete(s_bt_hid_param.task_hdl);
 	    s_bt_hid_param.task_hdl = NULL;
@@ -1252,7 +1460,7 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 				reportingMode = 0x3e; //for simplicity, lock both 3f and 3e behind 3e as they are the same.
 			}
 			
-			memset(input_report_old, 0xFF, 21);
+			memset(core_input_report_old, 0xFF, 21);
 			mote_input_data_core(false);
 			
 			ESP_LOGI( TAGW, "Data Reporting: TT[%2x] MM[%x]", continuousReporting, reportingMode);
@@ -1311,45 +1519,116 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 			size = intr_data.data[4];
 			
 			ack_error_code_t return_ack = ACK_SUCCESS;
-						
+			/*
+			Writing 0x04 to 0x(4)A600FE activates the MotionPlus as the "active" extension. This does 3 things (with no additional initialization):
+
+			    A status report (0x20) will automatically be sent indicating that a normal extension has been plugged in, if and only if there was no extension plugged into the MotionPlus pass-through extension port.
+			    The standard extension identifier at 0x(4)A400FA now reads 00 00 A4 20 04 05
+			    Extension reports now contain MotionPlus data.
+
+			Writing 0x55 to 0x(4)A400F0 deactivates the MotionPlus, and activates the Nunchuk or other extension plugged into the back of the Motion Plus. It does these things (with no additional initialization):
+
+			    A status report (0x20) will always be sent indicating that a normal extension has been unplugged.
+			    The Motion Plus extension identifier at 0x(4)A600FA now reads 00 00 A6 20 04 05
+			    Another status report (0x20) will always be sent indicating that a normal extension has been plugged in.
+			    The standard extension block at 0x(4)A40000 now reads from the Nunchuk (or other extension)
+			    Extension reports no longer contain MotionPlus data
+			*/
+			
 			if((intr_data.data[0] & 0x04)){
 				if(intr_data.data[1] == 0xA2){
 					ESP_LOGI( TAGW, "Attempting to write %d bytes to speaker settings at %6x [%04x]", size, offset, offset_16);
 					memcpy(speaker_settings + offset_16, intr_data.data + 5, size);
 				}else if(intr_data.data[1] == 0xA4){
 					ESP_LOGI( TAGW, "Attempting to write %d bytes to extension controller settings and data at %6x [%04x]", size, offset, offset_16);
-					//if 0x55 is written to 0x00F0, enable plugged-in extension
-					if(extension_handle_connected){
+					
+					if(offset_16 != 0xF0 && wii_motion_plus_enabled){ //only 0xF0 write can disable wmp and is not passed through to wmp
+						
+						memcpy(wii_motion_plus_settings_data + offset_16, intr_data.data + 5, size); //TODO: test this, this might be bad
+						
+						mote_input_data_acknowledge(intr_data.report_id, ACK_SUCCESS);
+						
+					}else if(extension_handle_connected){
+						
 						extension_reg_write(&extension_handle, offset_16, intr_data.data + 5, size);
+						
+						mote_input_data_acknowledge(intr_data.report_id, ACK_SUCCESS);
+						
+						//if 0x55 is written to 0x00F0, enable plugged-in extension
+						if(offset_16 == 0x00F0 && size == 1 && intr_data.data[5] == 0x55){
+							ESP_LOGW(TAGSEND, "CHANGING ACTIVE TO EXTENSION");
+														
+							if(wii_motion_plus_enabled){
+								status_byte &= (~STATUS_MASK_EXTENSION); //set extension bit to 0
+								mote_input_data_status();
+								
+								//TODO: shouldn't be necessary
+//								memcpy(wii_motion_plus_settings_data + 0x00FC, &EXTENSION_A6_TAG, 2);
+//								memcpy(wii_motion_plus_settings_data + 0x00FE, &EXT_WII_MOTION_PLUS_INACTIVE, 2);
+							}
+							
+							wii_motion_plus_enabled = false;
+
+							status_byte |= STATUS_MASK_EXTENSION;
+							mote_input_data_status();
+							
+						}
 					}else{
-						return_ack = ACK_INACTIVE_EXTENSION;
+						mote_input_data_acknowledge(intr_data.report_id, ACK_INACTIVE_EXTENSION);
+
 					}
 				}else if(intr_data.data[1] == 0xA6){
+					//passthrough from write data to the actual wmp data
+					memcpy(wii_motion_plus_settings_data + offset_16, intr_data.data + 5, size);
+					
+					mote_input_data_acknowledge(intr_data.report_id, ACK_SUCCESS);
+					
+					if(offset_16 == 0x00FE && size == 1 && (intr_data.data[5] == 0x04 || intr_data.data[5] == 0x05 || intr_data.data[5] == 0x07)){
+						ESP_LOGW(TAGSEND, "CHANGING ACTIVE TO WMP");
+						
+						wii_motion_plus_enabled = true;
+						
+						status_byte |= STATUS_MASK_EXTENSION;
+						mote_input_data_status();
+						
+						//instead of copying over to extension data, we will just passthrough all requests to read 0xFA+ to the wii_motion_plus_settings_data
+					}
 					ESP_LOGI( TAGW, "Attempting to write %d bytes to wii motion plus settings and data at 0x%06x [%04x]", size, offset, offset_16);
-					return_ack = ACK_INACTIVE_EXTENSION; //for now, no WMP
+//					return_ack = ACK_INACTIVE_EXTENSION; //for now, no WMP
 				}else if(intr_data.data[1] == 0xB0){
 					ESP_LOGI( TAGW, "Attempting to write %d bytes to IR camera settings at 0x%06x [%04x]", size, offset, offset_16);
+					
 					memcpy(IR_camera_settings + offset_16, intr_data.data + 5, size);
+					
 					pixart_reg_write(&ir_handle, offset_16, intr_data.data + 5, size);
+					
+					mote_input_data_acknowledge(intr_data.report_id, ACK_SUCCESS);
 					
 //					ESP_LOG_BUFFER_HEX(TAGW, IR_camera_settings, 52);
 				}else {
 					ESP_LOGI( TAGW, "Attempting to write %d bytes to control registers at 0x%06x [%04x]", size, offset, offset_16);
+					
+					mote_input_data_acknowledge(intr_data.report_id, ACK_ERROR);
 				}
 			}else{
 				ESP_LOGI( TAGW, "Attempting to write %d bytes to EEPROM Memory at 0x%06x", size, offset);
 				
 				if(size + offset_16 <= 0x16FF){
 					memcpy(EEPROM_sim + offset_16, intr_data.data + 5, size);
+					mote_input_data_acknowledge(intr_data.report_id, ACK_SUCCESS);
+
 				}else{
 					ESP_LOGI( TAGW, "WRITING OUT OF RANGE");
-					return_ack = ACK_ERROR; //TODO: check against real mote/dolphin if this is the correct error message for a read out of bounds
+					mote_input_data_acknowledge(intr_data.report_id, ACK_ERROR); 
+					//TODO: check against real mote/dolphin if this is the correct error message for a read out of bounds
+					//also the ACK_ERROR 10 lines up.
 				}
 			}
 			ESP_LOG_BUFFER_HEX(TAGW, intr_data.data + 5, size); 
 				
 			//apparently all writes request an ack automatically
-			mote_input_data_acknowledge(intr_data.report_id, return_ack);
+			//moving this up because on a real mote, ack report happens before the status report 
+			//mote_input_data_acknowledge(intr_data.report_id, return_ack);
 							
 			break;
 	        
@@ -1369,23 +1648,30 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 				}else if(intr_data.data[1] == 0xA4){
 					ESP_LOGI( TAGW, "Attempting to read %d bytes from extension controller settings and data at 0x%06x [%04x]", size, offset, offset_16);
 					uint8_t data[16] = {0}, zeros[6] = {0};
-					if(extension_handle_connected){
-						extension_reg_read(&extension_handle, offset_16, data, size);
-						if(offset_16 == 0x00FA && size == 6 && !memcmp(data, zeros, 6)){
-							ESP_LOGE(TAGW, "BAD READ FROM EXTENSION IDENTIFIER");
-						}
-						//TODO: fix this, this is atrocious [data - offset_16 for buffer traversal]
-						mote_input_data_read(size, 0, offset_16, data - offset_16);
+					if(wii_motion_plus_enabled){ //if wmp is active, redirect reads to wmp i think
+						//TODO: do this better, the memcpy is so stupid
+						//im doing this so that I can have reads pass through to the wmp settings data but reads to A4 should return A4 and reads to A6 should return A6
+						memcpy(wii_motion_plus_settings_data + 0xFC, &EXTENSION_A4_TAG, 2);
+						
+						mote_input_data_read(size, 0, offset_16, wii_motion_plus_settings_data);
+						
+						memcpy(wii_motion_plus_settings_data + 0xFC, &EXTENSION_A6_TAG, 2);
 					}else{
-						//TODO: fix this, this is atrocious [data - offset_16 for buffer traversal]
-						mote_input_data_read(16, READ_WRITE_ONLY, offset_16, data - offset_16); 
+						if(extension_handle_connected){
+							extension_reg_read(&extension_handle, offset_16, data, size);
+							if(offset_16 == 0x00FA && size == 6 && !memcmp(data, zeros, 6)){
+								ESP_LOGE(TAGW, "BAD READ FROM EXTENSION IDENTIFIER");
+							}
+							//TODO: fix this, this is atrocious [data - offset_16 for buffer traversal]
+							mote_input_data_read(size, 0, offset_16, data - offset_16);
+						}else{
+							//TODO: fix this, this is atrocious [data - offset_16 for buffer traversal]
+							mote_input_data_read(16, READ_WRITE_ONLY, offset_16, data - offset_16); 
+						}
 					}
 				}else if(intr_data.data[1] == 0xA6){
 					ESP_LOGI( TAGW, "Attempting to read %d bytes from wii motion plus settings and data at 0x%06x [%04x]", size, offset, offset_16);
-//					ack_return = ACK_INACTIVE_EXTENSION;
-					
-					uint8_t data[16] = {0};
-					mote_input_data_read(size, READ_WRITE_ONLY, offset_16, data);
+					mote_input_data_read(size, 0, offset_16, wii_motion_plus_settings_data);
 					
 				}else if(intr_data.data[1] == 0xB0){
 					ESP_LOGI( TAGW, "Attempting to read %d bytes from IR camera settings at 0x%06x [%04x]", size, offset, offset_16);
@@ -1397,7 +1683,7 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 					//mote_input_read automatically pulls from a section in memory
 					//TODO: fix this, this is atrocious [data - offset_16 for buffer traversal]
 					mote_input_data_read(16, 0, offset_16, data - offset_16); 
-//					ESP_LOG_BUFFER_HEX("Responding to read", input_report + 5, size);
+//					ESP_LOG_BUFFER_HEX("Responding to read", read_input_report + 5, size);
 				}else {
 					ESP_LOGI( TAGW, "Attempting to read %d bytes from control registers at 0x%06x", size, offset);
 				}
@@ -1522,15 +1808,9 @@ void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
 			ESP_LOGI(TAG, "Setting to non-connectable, non-discoverable");
 			esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
 			bt_hid_task_start_up();
-			memset(input_report_old, 0xFF, 21);
+			memset(core_input_report_old, 0xFF, 21);
 			mote_input_data_core(false);
 //			mote_input_data_status();
-
-			// Reset Wiimote Operational Variables
-			continuousReporting = false;
-			reportingMode = 0x30;
-			rumbling = false;
-			speaker_enable = false;
 
         } else {
             ESP_LOGE(TAG, "OPEN failed!");
@@ -1545,11 +1825,6 @@ void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
 				ESP_LOGI(TAG, "DISCONNECT OK");
 	            bt_hid_task_shut_down();
 	            ESP_LOGI(TAG, "Setting to connectable, non-discoverable");
-//				#ifdef GENERAL_DISCOVERY
-//				esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
-//				#else
-//				esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_LIMITED_DISCOVERABLE);
-//				#endif
 				esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
 				setLEDBinary(0);
             } else {
@@ -1589,7 +1864,7 @@ void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
                 //s_hid_connected = false;
                 ESP_LOGI(TAG, "disconnected!");
                 bt_hid_task_shut_down();
-                ESP_LOGI(TAG, "[PAIR] Virtual cable unplug; staying connectable/non-discoverable");
+                ESP_LOGI(TAG, "[PAIR] Virtual cable uprobablynplug; staying connectable/non-discoverable");
                 esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
             } else {
                 ESP_LOGE(TAG, "unknown connection status");
