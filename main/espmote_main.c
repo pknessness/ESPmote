@@ -475,10 +475,28 @@ constexpr int16_t CALIBRATION_ACCEL_ZERO = 0x0200;
 //Wii Motion Plus constants
 float gyro_mdps[3];
 float gyro_dps[3];
-//constexpr uint16_t CALIBRATION_GYRO_ZERO = 0x8000; //CALIBRATION VALUES ARE BAKED INTO THE REGISTER THING, TODO IS TO NOT BAKE THEM IN? 
-//constexpr uint16_t CALIBRATION_GYRO_SCALE_OFFSET = 0x4400;
-//constexpr uint16_t CALIBRATION_GYRO_FAST_SCALE_DEGREES = 1200;
-//constexpr uint16_t CALIBRATION_GYRO_SLOW_SCALE_DEGREES = 270;
+
+//CALIBRATION VALUES ARE BAKED INTO THE REGISTER THING, TODO IS TO NOT BAKE THEM IN? 
+constexpr uint16_t CALIBRATION_GYRO_ZERO = 0x8000;
+constexpr uint16_t CALIBRATION_GYRO_SCALE_VALUE = 0x4400;
+
+constexpr uint16_t CALIBRATION_GYRO_FAST_SCALE_DEGREES = 1200; //this divided by 6 is the fastModeDegreesDiv6 at 0x2C of WMP data
+constexpr uint16_t CALIBRATION_GYRO_SLOW_SCALE_DEGREES = 270; //this divided by 6 is the slowModeDegreesDiv6 at 0x3C of WMP data
+
+//The values above are 16 bit and are used in calibration, these values are 14b and used in actual math.
+constexpr float CALIBRATION_GYRO_ZERO_14b = CALIBRATION_GYRO_ZERO >> 2;
+constexpr float CALIBRATION_GYRO_SCALE_VALUE_14b = CALIBRATION_GYRO_SCALE_VALUE >> 2; 
+
+constexpr float CALIBRATION_GYRO_FAST_SCALE_DEGREES_div = 1.0F / CALIBRATION_GYRO_FAST_SCALE_DEGREES;
+constexpr float CALIBRATION_GYRO_SLOW_SCALE_DEGREES_div = 1.0F / CALIBRATION_GYRO_SLOW_SCALE_DEGREES;
+
+
+//There is a measurement of ZERO +- SCALE_VALUE at a measurement of SCALE_DEGREES dps
+//to get a dps from measurement, equation is ((measurement - GYRO_ZERO) * SCALE_DEGREES / _VALUE)
+//to get measurement from dps, equataion is dps * _VALUE / SCALE_DEGREES + GYRO_ZERO
+//if gyro measurement is above about 1.8*SLOW_SCALE_DEGREES = 480, it exceeds the size it can carry but we'll set the limit to 440.
+
+//OLD USE CONSTANTS
 constexpr uint16_t VALUE_ZERO = 0x2000;
 constexpr uint16_t VALUE_SCALE_OFFSET = 0x1100;
 bool wii_motion_plus_enabled = false;
@@ -511,7 +529,7 @@ uint8_t wii_motion_plus_settings_data[256]  = { //TODO: HAVE CALIBRATION VALUES 
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
   
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
-  0x55, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x10, 0xff, 0xff, 0x01, 0x00, 0xa6, 0x20, 0x00, 0x05
+  0x55, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x0E, 0xff, 0xff, 0x01, 0x00, 0xa6, 0x20, 0x00, 0x05
 };
 
 //real mote calibration values (is this orcamote?)
@@ -522,6 +540,8 @@ uint8_t wii_motion_plus_settings_data[256]  = { //TODO: HAVE CALIBRATION VALUES 
 //pinkmote
 //0000   7c 7b 81 22 77 40 30 82 d0 ae 32 b1 c8 01 4a 9d
 //0010   7d 18 7f d8 74 e7 34 ba c9 4f 39 d9 2d 6e 66 46
+
+//TODO: motion plus math challenge
 
 //taken from dolphin MotionPlus.h
 //a60000 register map
@@ -878,7 +898,7 @@ void load_accelerometer_buffer(uint8_t* destination, uint16_t processed_10bit_ac
 }
 
 //TODO: LOOK AT THIS AND COMMENT PROPERLY (AND MAYBE REWRITE), WHY TF IS THERE 1200 AND NOT 2000?
-void load_wii_motion_plus_buffer(uint8_t* destination){
+void load_wii_motion_plus_buffer_OLD(uint8_t* destination){
 	//fast mode reaches a peak of 2000 degrees per second? and slow mode is potentially 440?
 	esp_err_t ret = lsm6ds3_read_gyro(&imu_handle, gyro_mdps);
 	if (ret != ESP_OK) {
@@ -939,6 +959,73 @@ void load_wii_motion_plus_buffer(uint8_t* destination){
 	}
 }
 
+void load_wii_motion_plus_buffer(uint8_t* destination){
+	//fast mode reaches a peak of 2000 degrees per second? and slow mode is potentially 440?
+	esp_err_t ret = lsm6ds3_read_gyro(&imu_handle, gyro_mdps);
+	if (ret != ESP_OK) {
+	    ESP_LOGE("LSM6DS3", "Read failed");
+	    return;
+	}
+
+	gyro_dps[0] = gyro_mdps[0] / 1000.0f;
+	gyro_dps[1] = gyro_mdps[1] / 1000.0f;
+	gyro_dps[2] = gyro_mdps[2] / 1000.0f;
+	
+//	ESP_LOGW("WMP_RAW", "[%.2f %.2f %.2f]", gyro_dps[0], gyro_dps[1], gyro_dps[2]);
+	
+	bool slow_yaw = true, slow_roll = true, slow_pitch = true;
+	
+	//to get measurement from dps, equataion is dps * _VALUE / SCALE_DEGREES + GYRO_ZERO
+	uint16_t gyro_yaw_14b, gyro_roll_14b, gyro_pitch_14b;
+	if(gyro_dps[0] > 440){
+		gyro_yaw_14b = (int16_t)(gyro_dps[0] * CALIBRATION_GYRO_SCALE_VALUE_14b * CALIBRATION_GYRO_FAST_SCALE_DEGREES_div) + CALIBRATION_GYRO_ZERO_14b;
+		slow_yaw = false;
+	}else{
+		gyro_yaw_14b = (int16_t)(gyro_dps[0] * CALIBRATION_GYRO_SCALE_VALUE_14b * CALIBRATION_GYRO_SLOW_SCALE_DEGREES_div) + CALIBRATION_GYRO_ZERO_14b;
+	}
+	if(gyro_dps[1] > 440){
+		gyro_roll_14b = (int16_t)(gyro_dps[1] * CALIBRATION_GYRO_SCALE_VALUE_14b * CALIBRATION_GYRO_FAST_SCALE_DEGREES_div) + CALIBRATION_GYRO_ZERO_14b;
+		slow_roll = false;
+	}else{
+		gyro_roll_14b = (int16_t)(gyro_dps[1] * CALIBRATION_GYRO_SCALE_VALUE_14b * CALIBRATION_GYRO_SLOW_SCALE_DEGREES_div) + CALIBRATION_GYRO_ZERO_14b;
+	}
+	if(gyro_dps[2] > 440){
+		gyro_pitch_14b = (int16_t)(gyro_dps[2] * CALIBRATION_GYRO_SCALE_VALUE_14b * CALIBRATION_GYRO_FAST_SCALE_DEGREES_div) + CALIBRATION_GYRO_ZERO_14b;
+		slow_pitch = false;
+	}else{
+		gyro_pitch_14b = (int16_t)(gyro_dps[2] * CALIBRATION_GYRO_SCALE_VALUE_14b * CALIBRATION_GYRO_SLOW_SCALE_DEGREES_div) + CALIBRATION_GYRO_ZERO_14b;
+	}
+	//TODO: set a max and set the values to 0xFFFFFF
+
+//	ESP_LOGW("WMP_SLOW", "[%c %c %c]", slow_yaw ? 'S' : 'F', slow_roll ? 'S' : 'F', slow_pitch ? 'S' : 'F');
+//	ESP_LOGW("WMP_14b", "[%u %u %u]", gyro_yaw_14b, gyro_roll_14b, gyro_pitch_14b);
+	
+	uint8_t yaw7_0 = gyro_yaw_14b & 0xFF;
+	uint8_t yaw13_8 = (gyro_yaw_14b & 0x3F00) >> 6;
+	yaw13_8 |= ((slow_yaw << 1) | slow_pitch);
+
+	uint8_t roll7_0 = gyro_roll_14b & 0xFF;
+	uint8_t roll13_8 = (gyro_roll_14b & 0x3F00) >> 6;
+	roll13_8 |= (slow_roll << 1 | extension_handle_connected);
+	
+	uint8_t pitch7_0 = gyro_pitch_14b & 0xFF;
+	uint8_t pitch13_8 = (gyro_pitch_14b & 0x3F00) >> 6;
+	pitch13_8 |= 0x02; //AAAAAAAAAAAAAAAAAAAAAAAAAAAA I SPENT TWO FUCKING DAYS ON roll13_8 vs pitch13_8
+
+//	ESP_LOGW("WMP_BUFFER", "[%02x %02x %02x %02x %02x %02x]", yaw7_0, roll7_0, pitch7_0, yaw13_8, roll13_8, pitch13_8);
+	
+	if(destination != nullptr){
+		memcpy(destination, &yaw7_0, 1);
+		memcpy(destination+1, &roll7_0, 1);
+		memcpy(destination+2, &pitch7_0, 1);
+		memcpy(destination+3, &yaw13_8, 1);
+		memcpy(destination+4, &roll13_8, 1);
+		memcpy(destination+5, &pitch13_8, 1);
+	}else{
+		ESP_LOGE("LOAD_WII_MOTION_PLUS_BUFFER", "NO DESTINATION");
+	}
+}
+
 
 void load_nunchuck_passthrough_buffer(uint8_t* destination){
 	uint8_t nunchuck[6];
@@ -973,6 +1060,7 @@ void load_nunchuck_passthrough_buffer(uint8_t* destination){
 //TODO: maybe i just constantly load extension shit on the side/ see how long it takes for extension data to actually return and just have that on a side thread?
 //test with mote other main
 void load_extension_buffer(uint8_t* destination, uint8_t length){
+	static bool interleave = 0;
 //	ESP_LOGW(TAGSEND, "WMP_EN: %d", wii_motion_plus_enabled);
 	if(wii_motion_plus_enabled){
 		uint16_t wmp_mode;
@@ -982,15 +1070,18 @@ void load_extension_buffer(uint8_t* destination, uint8_t length){
 			load_wii_motion_plus_buffer(destination);
 		}else if (wmp_mode == EXT_WII_MOTION_PLUS_NUNCHUK_PASSTHROUGH){
 //			ESP_LOGE(TAGSEND, "NO SUPPORT FOR NUNCHUCK PASSTHROUGH");
-			load_wii_motion_plus_buffer(destination);
-			if(extension_handle_connected){
+			if(extension_handle_connected && interleave){
 				load_nunchuck_passthrough_buffer(destination);
+			}else{
+				load_wii_motion_plus_buffer(destination); //URGENT TODO: make it alternate packets
 			}
+			interleave = !interleave;
 		}else if (wmp_mode == EXT_WII_MOTION_PLUS_CLASSIC_PASSTHROUGH){
 			ESP_LOGE(TAGSEND, "NO SUPPORT FOR CLASSIC PASSTHROUGH");
 		}else{
 			ESP_LOGE(TAGSEND, "NO SUPPORT FOR UNKNOWN PASSTHROUGH %04x", wmp_mode);
 		}
+		memset(destination + 6, 0x00, length - 6);
 	}else{
 		if(extension_handle_connected){
 			extension_get_raw_data_sync(&extension_handle, destination, 6);
@@ -1000,6 +1091,7 @@ void load_extension_buffer(uint8_t* destination, uint8_t length){
 				nchuk.stick_x, nchuk.stick_y, nchuk.accel_x, nchuk.accel_y, nchuk.accel_z,
 				(nchuk.button_C ? 'C' : '.'), (nchuk.button_Z ? 'Z' : '.')
 			);
+			memset(destination + 6, 0x00, length - 6);
 		}else{
 			memset(destination, 0xFF, length);
 		}
@@ -1260,6 +1352,10 @@ void check_sync(){
 	}
 }
 
+// 0xF6 1 byte of passthrough_extension_id_4
+// 0xF8 1 byte of passthrough_extension_id_0
+// 0xF9 1 byte of passthrough_extension_id_5
+
 //main loop for ESPmote, begun on successful bluetooth connection
 void mote_hid_main_task(void *pvParameters)
 {
@@ -1272,16 +1368,35 @@ void mote_hid_main_task(void *pvParameters)
 		if(extension && !extension_handle_connected){
 			extension_init(i2c_bus_handle, &extension_handle);
 			extension_handle_connected = true;
-//			uint8_t writes[1] ={0x55};
-//			extension_reg_write(&extension_handle, 0xF0, writes, 1); //TODO: in theory i want to remove this
+			uint8_t writes[1] = {0x55};
+			extension_reg_write(&extension_handle, 0xF0, writes, 1); //TODO: in theory i want to remove this
 			plugged_in_extension = EXT_OTHER;
 			status_byte |= STATUS_MASK_EXTENSION; //set extension bit to 1
+			
+			uint8_t passthrough_extension_id[6] = {0};
+			extension_reg_read(&extension_handle, 0xFA, passthrough_extension_id, 6);
+			ESP_LOG_BUFFER_HEX("EXTENSION_ID", passthrough_extension_id, 6);
+			
+			memcpy(wii_motion_plus_settings_data + 0xF6, passthrough_extension_id + 4, 1);
+			memcpy(wii_motion_plus_settings_data + 0xF8, passthrough_extension_id + 0, 1);
+			memcpy(wii_motion_plus_settings_data + 0xF9, passthrough_extension_id + 5, 1);
+			
+			ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data+0xE0, 0x20);
+			
+			writes[0] = 0;
+			extension_reg_write(&extension_handle, 0xF0, writes, 1); //TODO: in theory i want to remove this
+			
 			mote_input_data_status();
 		}else if(!extension && extension_handle_connected){
 			extension_deinit(&extension_handle);
 			extension_handle_connected = false;
 			plugged_in_extension = EXT_NONE;
 			status_byte &= (~STATUS_MASK_EXTENSION); //set extension bit to 0
+			
+			memset(wii_motion_plus_settings_data + 0xF6, 0xFF, 1);
+			memset(wii_motion_plus_settings_data + 0xF8, 0xFF, 1);
+			memset(wii_motion_plus_settings_data + 0xF9, 0xFF, 1);
+
 			mote_input_data_status();
 		}
 		
@@ -1360,6 +1475,12 @@ void mote_other_main_task(void *pvParameters)
 			extension_reg_read(&extension_handle, 0xFA, data, 6);
 			ESP_LOG_BUFFER_HEX("EXTENSION_ID", data, 6);
 			vTaskDelay(500 / portTICK_PERIOD_MS);
+
+			memcpy(wii_motion_plus_settings_data + 0xF6, data + 4, 1);
+			memcpy(wii_motion_plus_settings_data + 0xF8, data + 0, 1);
+			memcpy(wii_motion_plus_settings_data + 0xF9, data + 5, 1);
+
+			ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data+0xE0, 0x20);
 			
 		}else if(!extension && extension_handle_connected){
 			extension_deinit(&extension_handle);
