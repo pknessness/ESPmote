@@ -11,6 +11,7 @@
 #include <inttypes.h>
 
 #include "driver/i2c_master.h"
+#include "esp_err.h"
 #include "esp_gap_bt_api.h"
 #include "esp_log_buffer.h"
 #include "esp_log_timestamp.h"
@@ -1027,16 +1028,22 @@ void load_wii_motion_plus_buffer(uint8_t* destination){
 }
 
 
-void load_nunchuck_passthrough_buffer(uint8_t* destination){
+esp_err_t load_nunchuck_passthrough_buffer(uint8_t* destination){
 	uint8_t nunchuck[6];
 	esp_err_t ret = extension_get_raw_data_sync(&extension_handle, nunchuck, 6);
 	if (ret != ESP_OK) {
 	    ESP_LOGE("LSM6DS3", "Read failed");
-	    return;
+	    return ESP_ERR_INVALID_RESPONSE;
 	}
 
-	//bit 7 6 5 4 3 2 1 0 
+	ESP_LOG_BUFFER_HEX("RAW_NUNCHUCK_BUFFER", nunchuck, 6);
 	
+	uint8_t FF[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+	if(!memcmp(nunchuck, FF, 6)){
+		
+	}
+	
+	//bit 7 6 5 4 3 2 1 0 
 	bool az_2 = nunchuck[4] & 0x01; //byte 4 bit 0
 	bool az_1 = nunchuck[5] & 0x80; //byte 5 bit 7
 	bool ay_1 = nunchuck[5] & 0x20; //byte 5 bit 5
@@ -1044,17 +1051,22 @@ void load_nunchuck_passthrough_buffer(uint8_t* destination){
 	bool button_C = nunchuck[5] & 0x02; //byte 5 bit 1
 	bool button_Z = nunchuck[5] & 0x01; //byte 5 bit 0
 	
-	ESP_LOGW("LOAD_NUNCHUCK_PASSTHROUGH_BUFFER", "NUNCK %d az_1", az_1);
+	ESP_LOGW("LOAD_NUNCHUCK_PASSTHROUGH_BUFFER", 
+	         "az_2:%d az_1:%d ay_1:%d ax_1:%d button_C:%d button_Z:%d",
+	         az_2, az_1, ay_1, ax_1, button_C, button_Z);
 	
 	nunchuck[4] &= 0xFE; //exclude last bit of byte 5;
 	nunchuck[4] |= (extension_handle_connected & 0x01);
 	nunchuck[5] = (az_2 << 7) | (az_1 << 6) | (ay_1 << 5) | (ax_1 << 4) | (button_C << 3) | (button_Z << 2);
+	
+	ESP_LOG_BUFFER_HEX("LOAD_NUNCHUCK_PASSTHROUGH_BUFFER", nunchuck, 6);
 	
 	if(destination != nullptr){
 		memcpy(destination, &nunchuck, 6);
 	}else{
 		ESP_LOGE("LOAD_NUNCHUCK_PASSTHROUGH_BUFFER", "NO DESTINATION");
 	}
+	return ESP_OK;
 }
 
 //TODO: maybe i just constantly load extension shit on the side/ see how long it takes for extension data to actually return and just have that on a side thread?
@@ -1069,11 +1081,15 @@ void load_extension_buffer(uint8_t* destination, uint8_t length){
 		if(wmp_mode == EXT_WII_MOTION_PLUS_STANDARD){
 			load_wii_motion_plus_buffer(destination);
 		}else if (wmp_mode == EXT_WII_MOTION_PLUS_NUNCHUK_PASSTHROUGH){
-//			ESP_LOGE(TAGSEND, "NO SUPPORT FOR NUNCHUCK PASSTHROUGH");
+			ESP_LOGW(TAGSEND, "INTERLEAVE %d EXT: %d", interleave, extension_handle_connected);
 			if(extension_handle_connected && interleave){
-				load_nunchuck_passthrough_buffer(destination);
+				esp_err_t err = load_nunchuck_passthrough_buffer(destination);
+				if(err){
+					ESP_LOGE(TAGSEND, "BAD READ FROM NUNCHUK");
+					load_wii_motion_plus_buffer(destination);
+				}
 			}else{
-				load_wii_motion_plus_buffer(destination); //URGENT TODO: make it alternate packets
+				load_wii_motion_plus_buffer(destination);
 			}
 			interleave = !interleave;
 		}else if (wmp_mode == EXT_WII_MOTION_PLUS_CLASSIC_PASSTHROUGH){
@@ -1352,6 +1368,7 @@ void check_sync(){
 	}
 }
 
+// 0x40 16 bytes of passthrough extension calibration
 // 0xF6 1 byte of passthrough_extension_id_4
 // 0xF8 1 byte of passthrough_extension_id_0
 // 0xF9 1 byte of passthrough_extension_id_5
@@ -1380,11 +1397,12 @@ void mote_hid_main_task(void *pvParameters)
 			memcpy(wii_motion_plus_settings_data + 0xF6, passthrough_extension_id + 4, 1);
 			memcpy(wii_motion_plus_settings_data + 0xF8, passthrough_extension_id + 0, 1);
 			memcpy(wii_motion_plus_settings_data + 0xF9, passthrough_extension_id + 5, 1);
+			extension_reg_read(&extension_handle, 0x40, wii_motion_plus_settings_data + 0x40, 16);
 			
-			ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data+0xE0, 0x20);
+			ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data, 0xFF);
 			
-			writes[0] = 0;
-			extension_reg_write(&extension_handle, 0xF0, writes, 1); //TODO: in theory i want to remove this
+//			writes[0] = 0;
+//			extension_reg_write(&extension_handle, 0xF0, writes, 1); //TODO: in theory i want to remove this
 			
 			mote_input_data_status();
 		}else if(!extension && extension_handle_connected){

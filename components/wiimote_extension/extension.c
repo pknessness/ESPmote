@@ -138,31 +138,10 @@ esp_err_t extension_deinit(extension_handle_t *handle)
     return ESP_OK;
 }
 
-//// For some reason, when reading from a nunchuck, you need to read and then write, possibly for the next read. 
-//// Does each read take that long that you need to write for the next read immediately after the read?
-//esp_err_t extension_get_data(extension_handle_t *handle){
-//	uint8_t data[16] = {0};
-//	
-//	uint8_t send = 0x00;
-//	i2c_master_receive(handle->i2c_handle, data, 16, -1);
-//	i2c_master_transmit(handle->i2c_handle, &send, 1, -1);	
-//	
-//	//ESP_LOGI(TAG, "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
-//	
-//	return ESP_OK;
-//}
-//
-//esp_err_t extension_get_raw_data(extension_handle_t *handle, uint8_t *data, uint8_t len){
-//
-//	uint8_t send = 0x00;
-//	i2c_master_receive(handle->i2c_handle, data, len, 5);
-//	i2c_master_transmit(handle->i2c_handle, &send, 1, -1);	
-//
-//	//ESP_LOGI(TAG, "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
-//
-//	return ESP_OK;
-//}
+// For some reason, when reading from a nunchuck, most libraries read and then write, possibly for the next read. 
+// Does each read take that long that you need to write for the next read immediately after the read?
 
+// I've found out that you can wait a small time, then have a timeout on the read and it works out.
 esp_err_t extension_get_raw_data_sync(extension_handle_t *handle, uint8_t *data, uint8_t len){
 
 	uint8_t send = 0x00;	
@@ -173,7 +152,7 @@ esp_err_t extension_get_raw_data_sync(extension_handle_t *handle, uint8_t *data,
 	i2c_master_transmit(handle->i2c_handle, &send, 1, -1);
 	vTaskDelay(2 / portTICK_PERIOD_MS); //this wait is NECESSARY (maybe I can turn it down to 1ms, but then I need to turn up the hz)
 
-	esp_err_t recv_err = i2c_master_receive(handle->i2c_handle, data, len, 4);
+	esp_err_t recv_err = i2c_master_receive(handle->i2c_handle, data, len, 6);
 	if(recv_err || !memcmp(data, FF, len)){
 		recv_err = i2c_master_receive(handle->i2c_handle, data, len, -1);
 	}
