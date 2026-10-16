@@ -1,9 +1,9 @@
 | Supported Targets | ESP32 |
 | ----------------- | ----- |
 
-```
+
 [![ESPbote_PCB](https://img.shields.io/badge/PCB-ESPmote-green.svg)](https://github.com/pknessness/ESPmote_PCB)
-```
+
 
 # ESPmote
 
