@@ -20,6 +20,7 @@ Huge help from Kako's blog at http://www.kako.com/neta/2008-009/2008-009.html
 #include <esp_log.h>
 #include <esp_check.h>
 
+#include "esp_log_buffer.h"
 #include "esp_timer.h"
 #include "freertos/projdefs.h"
 
@@ -83,8 +84,10 @@ esp_err_t extension_reg_read(extension_handle_t *handle, uint8_t reg, uint8_t *d
 	
 	vTaskDelay(2 / portTICK_PERIOD_MS); //idk if this wait is NECESSARY (maybe I can turn it down to 1ms)
 
-	esp_err_t recv_err = i2c_master_receive(handle->i2c_handle, data, len, 4);
-	if(recv_err || !memcmp(data, FF, 6)){
+	esp_err_t recv_err = i2c_master_receive(handle->i2c_handle, data, len, 6);
+	if(recv_err || !memcmp(data, FF, len)){
+//		ESP_LOGW("BAD REG READ", "REG: %02x", reg);
+//		ESP_LOG_BUFFER_HEX("BAD REG READ", data, len);
 		recv_err = i2c_master_receive(handle->i2c_handle, data, len, 8);
 	}
 	
@@ -154,6 +157,8 @@ esp_err_t extension_get_raw_data_sync(extension_handle_t *handle, uint8_t *data,
 
 	esp_err_t recv_err = i2c_master_receive(handle->i2c_handle, data, len, 6);
 	if(recv_err || !memcmp(data, FF, len)){
+//		ESP_LOGW("BAD REG READ", "NCHUK DATA BUF");
+//		ESP_LOG_BUFFER_HEX("BAD REG READ", data, len);
 		recv_err = i2c_master_receive(handle->i2c_handle, data, len, -1);
 	}
 	

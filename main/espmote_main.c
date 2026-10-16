@@ -1192,8 +1192,6 @@ void mote_input_data_acknowledge(uint8_t report_number, uint8_t error)
 //central function for all hid input data (wiimote > wii)
 void mote_input_data_core(bool force)
 {
-//    static uint8_t old_buttons[2] = {0};
-//	static int16_t old_accel[3] = {0};
 	uint8_t buttons[2] = {0};
 	load_buttons_buffer(buttons);
 	
@@ -1385,26 +1383,44 @@ void mote_hid_main_task(void *pvParameters)
 		if(extension && !extension_handle_connected){
 			extension_init(i2c_bus_handle, &extension_handle);
 			extension_handle_connected = true;
-			uint8_t writes[1] = {0x55};
-			extension_reg_write(&extension_handle, 0xF0, writes, 1); //TODO: in theory i want to remove this
 			plugged_in_extension = EXT_OTHER;
 			status_byte |= STATUS_MASK_EXTENSION; //set extension bit to 1
 			
+			uint8_t enable_write = 0x55;
 			uint8_t passthrough_extension_id[6] = {0};
-			extension_reg_read(&extension_handle, 0xFA, passthrough_extension_id, 6);
-			ESP_LOG_BUFFER_HEX("EXTENSION_ID", passthrough_extension_id, 6);
+
+			for(int i = 0; i < 50; i ++){
+				extension_reg_write(&extension_handle, 0xF0, &enable_write, 1); //TODO: in theory i want to remove this
+				vTaskDelay(i);
+				extension_reg_read(&extension_handle, 0xFA, passthrough_extension_id, 6);
+				if(passthrough_extension_id[2] == 0xA4 && passthrough_extension_id[3] == 0x20){
+					break;
+				}
+				ESP_LOG_BUFFER_HEX("EXTENSION_ID", passthrough_extension_id, 6);
+			}
 			
-			memcpy(wii_motion_plus_settings_data + 0xF6, passthrough_extension_id + 4, 1);
-			memcpy(wii_motion_plus_settings_data + 0xF8, passthrough_extension_id + 0, 1);
-			memcpy(wii_motion_plus_settings_data + 0xF9, passthrough_extension_id + 5, 1);
-			extension_reg_read(&extension_handle, 0x40, wii_motion_plus_settings_data + 0x40, 16);
-			
-			ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data, 0xFF);
-			
-//			writes[0] = 0;
-//			extension_reg_write(&extension_handle, 0xF0, writes, 1); //TODO: in theory i want to remove this
-			
-			mote_input_data_status();
+			if(passthrough_extension_id[2] == 0xA4 && passthrough_extension_id[3] == 0x20){
+				memcpy(wii_motion_plus_settings_data + 0xF6, passthrough_extension_id + 4, 1);
+				memcpy(wii_motion_plus_settings_data + 0xF8, passthrough_extension_id + 0, 1);
+				memcpy(wii_motion_plus_settings_data + 0xF9, passthrough_extension_id + 5, 1);
+				
+				//calibration in nunchuk is 0x20 and 0x30, but on wmp the pasthrough is 0x40
+				//TODO: have it verify 0x20 and 0x30 and then fallback to defaults if not/ average? 
+				extension_reg_read(&extension_handle, 0x20, wii_motion_plus_settings_data + 0x40, 16);
+				
+				ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data, 0xFF);
+				
+	//			writes[0] = 0;
+	//			extension_reg_write(&extension_handle, 0xF0, writes, 1); //TODO: in theory i want to remove this
+				
+				mote_input_data_status();
+			}else{
+				extension_deinit(&extension_handle);
+				extension_handle_connected = false;
+				plugged_in_extension = EXT_NONE;
+				status_byte &= (~STATUS_MASK_EXTENSION); //set extension bit to 0
+			}
+
 		}else if(!extension && extension_handle_connected){
 			extension_deinit(&extension_handle);
 			extension_handle_connected = false;
@@ -1414,6 +1430,9 @@ void mote_hid_main_task(void *pvParameters)
 			memset(wii_motion_plus_settings_data + 0xF6, 0xFF, 1);
 			memset(wii_motion_plus_settings_data + 0xF8, 0xFF, 1);
 			memset(wii_motion_plus_settings_data + 0xF9, 0xFF, 1);
+			memset(wii_motion_plus_settings_data + 0x40, 0xFF, 16);
+
+			ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data, 0xFF);
 
 			mote_input_data_status();
 		}
@@ -1483,7 +1502,7 @@ void mote_other_main_task(void *pvParameters)
 			extension_handle_connected = true;
 			
 			uint8_t writes[2] = {0x55, 0x00};
-			uint8_t data[6] = {0};
+			uint8_t data[16] = {0};
 
 			extension_reg_write(&extension_handle, 0xF0, writes, 1);
 			vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -1497,12 +1516,23 @@ void mote_other_main_task(void *pvParameters)
 			memcpy(wii_motion_plus_settings_data + 0xF6, data + 4, 1);
 			memcpy(wii_motion_plus_settings_data + 0xF8, data + 0, 1);
 			memcpy(wii_motion_plus_settings_data + 0xF9, data + 5, 1);
+			
+			//calibration in nunchuk is 0x20 and 0x30, but on wmp the pasthrough is 0x40
+			//TODO: have it verify 0x20 and 0x30 and then fallback to defaults if not/ average? 
+			extension_reg_read(&extension_handle, 0x20, wii_motion_plus_settings_data + 0x40, 16);
 
-			ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data+0xE0, 0x20);
+			ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data, 0xFF);
 			
 		}else if(!extension && extension_handle_connected){
 			extension_deinit(&extension_handle);
 			extension_handle_connected = false;
+			
+			memset(wii_motion_plus_settings_data + 0xF6, 0xFF, 1);
+			memset(wii_motion_plus_settings_data + 0xF8, 0xFF, 1);
+			memset(wii_motion_plus_settings_data + 0xF9, 0xFF, 1);
+			memset(wii_motion_plus_settings_data + 0x40, 0xFF, 16);
+
+			ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data, 0xFF);
 		}
 		
 		if(extension_handle_connected){
