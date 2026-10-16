@@ -1040,7 +1040,7 @@ esp_err_t load_nunchuck_passthrough_buffer(uint8_t* destination){
 	
 	uint8_t FF[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 	if(!memcmp(nunchuck, FF, 6)){
-		
+		return ESP_ERR_INVALID_RESPONSE;
 	}
 	
 	//bit 7 6 5 4 3 2 1 0 
@@ -1051,15 +1051,15 @@ esp_err_t load_nunchuck_passthrough_buffer(uint8_t* destination){
 	bool button_C = nunchuck[5] & 0x02; //byte 5 bit 1
 	bool button_Z = nunchuck[5] & 0x01; //byte 5 bit 0
 	
-	ESP_LOGW("LOAD_NUNCHUCK_PASSTHROUGH_BUFFER", 
-	         "az_2:%d az_1:%d ay_1:%d ax_1:%d button_C:%d button_Z:%d",
-	         az_2, az_1, ay_1, ax_1, button_C, button_Z);
+//	ESP_LOGW("LOAD_NUNCHUCK_PASSTHROUGH_BUFFER", 
+//	         "az_2:%d az_1:%d ay_1:%d ax_1:%d button_C:%d button_Z:%d",
+//	         az_2, az_1, ay_1, ax_1, button_C, button_Z);
 	
 	nunchuck[4] &= 0xFE; //exclude last bit of byte 5;
 	nunchuck[4] |= (extension_handle_connected & 0x01);
 	nunchuck[5] = (az_2 << 7) | (az_1 << 6) | (ay_1 << 5) | (ax_1 << 4) | (button_C << 3) | (button_Z << 2);
 	
-	ESP_LOG_BUFFER_HEX("LOAD_NUNCHUCK_PASSTHROUGH_BUFFER", nunchuck, 6);
+//	ESP_LOG_BUFFER_HEX("LOAD_NUNCHUCK_PASSTHROUGH_BUFFER", nunchuck, 6);
 	
 	if(destination != nullptr){
 		memcpy(destination, &nunchuck, 6);
@@ -1081,7 +1081,7 @@ void load_extension_buffer(uint8_t* destination, uint8_t length){
 		if(wmp_mode == EXT_WII_MOTION_PLUS_STANDARD){
 			load_wii_motion_plus_buffer(destination);
 		}else if (wmp_mode == EXT_WII_MOTION_PLUS_NUNCHUK_PASSTHROUGH){
-			ESP_LOGW(TAGSEND, "INTERLEAVE %d EXT: %d", interleave, extension_handle_connected);
+//			ESP_LOGW(TAGSEND, "INTERLEAVE %d EXT: %d", interleave, extension_handle_connected);
 			if(extension_handle_connected && interleave){
 				esp_err_t err = load_nunchuck_passthrough_buffer(destination);
 				if(err){
@@ -1103,10 +1103,10 @@ void load_extension_buffer(uint8_t* destination, uint8_t length){
 			extension_get_raw_data_sync(&extension_handle, destination, 6);
 			nunchuk_data_t nchuk = extension_decompose_nunchuck(destination);
 	//		ESP_LOG_BUFFER_HEX("EXTENSION_DATA", nunchuk_data, 6);
-			ESP_LOGI("EXTENSION_DATA", "SX:%d SY:%d A:[%d %d %d] %c %c",
-				nchuk.stick_x, nchuk.stick_y, nchuk.accel_x, nchuk.accel_y, nchuk.accel_z,
-				(nchuk.button_C ? 'C' : '.'), (nchuk.button_Z ? 'Z' : '.')
-			);
+//			ESP_LOGI("EXTENSION_DATA", "SX:%d SY:%d A:[%d %d %d] %c %c",
+//				nchuk.stick_x, nchuk.stick_y, nchuk.accel_x, nchuk.accel_y, nchuk.accel_z,
+//				(nchuk.button_C ? 'C' : '.'), (nchuk.button_Z ? 'Z' : '.')
+//			);
 			memset(destination + 6, 0x00, length - 6);
 		}else{
 			memset(destination, 0xFF, length);
@@ -1408,7 +1408,7 @@ void mote_hid_main_task(void *pvParameters)
 				//TODO: have it verify 0x20 and 0x30 and then fallback to defaults if not/ average? 
 				extension_reg_read(&extension_handle, 0x20, wii_motion_plus_settings_data + 0x40, 16);
 				
-				ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data, 0xFF);
+//				ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data, 0xFF);
 				
 	//			writes[0] = 0;
 	//			extension_reg_write(&extension_handle, 0xF0, writes, 1); //TODO: in theory i want to remove this
@@ -1432,7 +1432,7 @@ void mote_hid_main_task(void *pvParameters)
 			memset(wii_motion_plus_settings_data + 0xF9, 0xFF, 1);
 			memset(wii_motion_plus_settings_data + 0x40, 0xFF, 16);
 
-			ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data, 0xFF);
+//			ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data, 0xFF);
 
 			mote_input_data_status();
 		}
