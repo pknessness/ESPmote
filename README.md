@@ -17,115 +17,78 @@ I attempted to replace the IR camera with a HM01B0 and pico, but due to size con
 
 ### Calibration (Accelerometer, Motor, Volume)
 
-<table style="border-collapse: collapse; padding: 0.2em 0.2em 0.2em 0.2em; text-align: center;">
-<tbody><tr style="background-color: #ddd;">
-<td style="background-color: #fff;" colspan="2">&nbsp;
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; text-align: center;" colspan="8"><b>Bit</b>
-</td></tr>
-<tr style="background-color: #cdc;">
-<td style="border: 1px; padding: 0.2em; background-color: #ddd;" colspan="2"><b>Byte</b>
-</td>
-<td style="border: 1px; padding: 0.2em; width:3.3em;"><b>7</b>
-</td>
-<td style="border: 1px; padding: 0.2em; width:3.3em;"><b>6</b>
-</td>
-<td style="border: 1px; padding: 0.2em; width:3.3em;"><b>5</b>
-</td>
-<td style="border: 1px; padding: 0.2em; width:3.3em;"><b>4</b>
-</td>
-<td style="border: 1px; padding: 0.2em; width:3.3em;"><b>3</b>
-</td>
-<td style="border: 1px; padding: 0.2em; width:3.3em;"><b>2</b>
-</td>
-<td style="border: 1px; padding: 0.2em; width:3.3em;"><b>1</b>
-</td>
-<td style="border: 1px; padding: 0.2em; width:3.3em;"><b>0</b>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x16
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x20
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="8"><b>0G X Acceleration</b><span style="color: #777;">&lt;<span style="color: #c00;">9:2</span>&gt;</span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x17
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x21
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="8"><b>0G Y Acceleration</b><span style="color: #777;">&lt;<span style="color: #c00;">9:2</span>&gt;</span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x18
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x22
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="8"><b>0G Z Acceleration</b><span style="color: #777;">&lt;<span style="color: #c00;">9:2</span>&gt;</span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x19
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x23
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #ddd; color: #888;" colspan="2">0
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="2"><b>0G X Acc</b><span style="color: #777;">&lt;<span style="color: #c00;">1:0</span>&gt;</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="2"><b>0G Y Acc</b><span style="color: #777;">&lt;<span style="color: #c00;">1:0</span>&gt;</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="2"><b>0G Z Acc</b><span style="color: #777;">&lt;<span style="color: #c00;">1:0</span>&gt;</span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x1A
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x24
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="8"><b>1G X Acceleration</b><span style="color: #777;">&lt;<span style="color: #c00;">9:2</span>&gt;</span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x1B
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x25
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="8"><b>1G Y Acceleration</b><span style="color: #777;">&lt;<span style="color: #c00;">9:2</span>&gt;</span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x1C
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x26
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="8"><b>1G Z Acceleration</b><span style="color: #777;">&lt;<span style="color: #c00;">9:2</span>&gt;</span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x1D
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x27
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #ddd; color: #888;" colspan="2">0
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="2"><b>1G X Acc</b><span style="color: #777;">&lt;<span style="color: #c00;">1:0</span>&gt;</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="2"><b>1G Y Acc</b><span style="color: #777;">&lt;<span style="color: #c00;">1:0</span>&gt;</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="2"><b>1G Z Acc</b><span style="color: #777;">&lt;<span style="color: #c00;">1:0</span>&gt;</span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x1E
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x28
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>Motor</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="7"><b>Volume</b>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x1F
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0x29
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="8"><b>Checksum</b>
-</td></tr></tbody></table>
+<table><thead>
+  <tr>
+    <th colspan="2">Byte</th>
+    <th>7</th>
+    <th>6</th>
+    <th>5</th>
+    <th>4</th>
+    <th>3</th>
+    <th>2</th>
+    <th>1</th>
+    <th>0</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>0x16</td>
+    <td>0x20</td>
+    <td colspan="8">0G X Acceleration&lt;9:2&gt;</td>
+  </tr>
+  <tr>
+    <td>0x17</td>
+    <td>0x21</td>
+    <td colspan="8">0G Y Acceleration&lt;9:2&gt;</td>
+  </tr>
+  <tr>
+    <td>0x18</td>
+    <td>0x22</td>
+    <td colspan="8">0G Z Acceleration&lt;9:2&gt;</td>
+  </tr>
+  <tr>
+    <td>0x19</td>
+    <td>0x23</td>
+    <td colspan="2">0</td>
+    <td colspan="2">0G X Acc&lt;1:0&gt;</td>
+    <td colspan="2">0G Y Acc&lt;1:0&gt;</td>
+    <td colspan="2">0G Z Acc&lt;1:0&gt;</td>
+  </tr>
+  <tr>
+    <td>0x1A</td>
+    <td>0x24</td>
+    <td colspan="8">1G X Acceleration&lt;9:2&gt;</td>
+  </tr>
+  <tr>
+    <td>0x1B</td>
+    <td>0x25</td>
+    <td colspan="8">1G Y Acceleration&lt;9:2&gt;</td>
+  </tr>
+  <tr>
+    <td>0x1C</td>
+    <td>0x26</td>
+    <td colspan="8">1G Z Acceleration&lt;9:2&gt;</td>
+  </tr>
+  <tr>
+    <td>0x1D</td>
+    <td>0x27</td>
+    <td colspan="2">0</td>
+    <td colspan="2">1G X Acc&lt;1:0&gt;</td>
+    <td colspan="2">1G Y Acc&lt;1:0&gt;</td>
+    <td colspan="2">1G Z Acc&lt;1:0&gt;</td>
+  </tr>
+  <tr>
+    <td>0x1E</td>
+    <td>0x28</td>
+    <td>Motor</td>
+    <td colspan="7">Volume</td>
+  </tr>
+  <tr>
+    <td>0x1F</td>
+    <td>0x29</td>
+    <td colspan="8">Checksum</td>
+  </tr>
+</tbody></table>
 
 ### Mii Data
 
@@ -137,76 +100,153 @@ I attempted to replace the IR camera with a HM01B0 and pico, but due to size con
 
 ### Wii Motion Plus Settings/Data
 
-<table style="border-collapse: collapse; padding: 0.2em 0.2em 0.2em 0.2em;">
+<table><thead>
+  <tr>
+    <th>&nbsp;&nbsp;&nbsp;Offset</th>
+    <th>0x00</th>
+    <th>0x01</th>
+    <th>0x02</th>
+    <th>0x03</th>
+    <th>0x04</th>
+    <th>0x05</th>
+    <th>0x06</th>
+    <th>0x07</th>
+  </tr>
+</thead>
 <tbody>
-<tr>
-<td>
-  <b>Offset</b>
-</td>
-<td style="text-align: center background-color: #ddf;"><b>0x00</b>
-</td>
-<td style="text-align: center background-color: #ddf;"><b>0x01</b>
-</td>
-<td style="text-align: center background-color: #ddf;"><b>0x02</b>
-</td>
-<td style="text-align: center background-color: #ddf;"><b>0x03</b>
-</td>
-<td style="text-align: center background-color: #ddf;"><b>0x04</b>
-</td>
-<td style="text-align: center background-color: #ddf;"><b>0x05</b>
-</td>
-<td style="text-align: center background-color: #ddf;"><b>0x06</b>
-</td>
-<td style="text-align: center background-color: #ddf;"><b>0x07</b>
-</td></tr>
-<tr>
-<td style="background-color: #ddf; text-align: center;"><b>a60020</b>
-</td>
-<td style="text-align: center;" colspan="2">GYRO ZERO YAW FAST
-</td>
-<td style="text-align: center;" colspan="2">GYRO ZERO ROLL FAST
-</td>
-<td style="text-align: center;" colspan="2">GYRO ZERO PITCH FAST
-</td>
-<td style="text-align: center;" colspan="2">GYRO SCALE VALUE YAW FAST
-</td></tr>
-<tr>
-<td style="background-color: #ddf; text-align: center;"><b>a60028</b>
-</td>
-<td style="text-align: center;" colspan="2">GYRO SCALE VALUE ROLL FAST
-</td>
-<td style="text-align: center;" colspan="2">GYRO SCALE VALUE PITCH FAST
-</td>
-<td style="text-align: center;" colspan="1">CALIBRATION GYRO FAST SCALE DEGREES/6
-</td>
-<td style="text-align: center;" colspan="1">UID 1 (just a unique id) [0x01]
-</td>
-<td style="text-align: center;" colspan="2">CRC32 MSB of WM+ Calibration
-</td></tr>
-<tr>
-<td style="background-color: #ddf; text-align: center;"><b>a60030</b>
-</td>
-<td style="text-align: center;" colspan="2">GYRO ZERO YAW SLOW
-</td>
-<td style="text-align: center;" colspan="2">GYRO ZERO ROLL SLOW
-</td>
-<td style="text-align: center;" colspan="2">GYRO ZERO PITCH SLOW
-</td>
-<td style="text-align: center;" colspan="2">GYRO SCALE VALUE YAW SLOW
-</td></tr>
-<tr>
-<td style="background-color: #ddf; text-align: center;"><b>a60038</b>
-</td>
-<td style="text-align: center;" colspan="2">GYRO SCALE VALUE ROLL SLOW
-</td>
-<td style="text-align: center;" colspan="2">GYRO SCALE VALUE PITCH SLOW
-</td>
-<td style="text-align: center;" colspan="1">CALIBRATION GYRO SLOW SCALE DEGREES/6
-</td>
-<td style="text-align: center;" colspan="1">UID 2 (just a unique id) [0x6E]
-</td>
-<td style="text-align: center;" colspan="2">CRC32 LSB of WM+ Calibration
-</td></tr></tbody></table>
+  <tr>
+    <td>0x00</td>
+    <td colspan="8">Controller Data&lt;0:7&gt;</td>
+  </tr>
+  <tr>
+    <td>0x08</td>
+    <td colspan="8">Controller Data&lt;8:15&gt;</td>
+  </tr>
+  <tr>
+    <td>0x10</td>
+    <td colspan="5">Controller Data&lt;16:20&gt;</td>
+    <td colspan="3">Unknown [0xFF]</td>
+  </tr>
+  <tr>
+    <td>0x18</td>
+    <td colspan="8">Unknown [0xFF]</td>
+  </tr>
+  <tr>
+    <td>0x20</td>
+    <td colspan="2">ZERO YAW FAST</td>
+    <td colspan="2">ZERO ROLL FAST</td>
+    <td colspan="2">ZERO PITCH FAST</td>
+    <td colspan="2">SCALE YAW FAST</td>
+  </tr>
+  <tr>
+    <td>0x28</td>
+    <td colspan="2">SCALE ROLL FAST</td>
+    <td colspan="2">SCALE PITCH FAST</td>
+    <td>FAST SCALE DEG/6</td>
+    <td>UID 1 [0x01]</td>
+    <td colspan="2">CRC32 MSB of WM+ Calib</td>
+  </tr>
+  <tr>
+    <td>0x30</td>
+    <td colspan="2">ZERO YAW SLOW</td>
+    <td colspan="2">ZERO ROLL SLOW</td>
+    <td colspan="2">ZERO PITCH SLOW</td>
+    <td colspan="2">SCALE YAW SLOW</td>
+  </tr>
+  <tr>
+    <td>0x38</td>
+    <td colspan="2">SCALE ROLL SLOW</td>
+    <td colspan="2">SCALE PITCH SLOW</td>
+    <td>SLOW SCALE DEG/6</td>
+    <td>UID 2 [0x6E]</td>
+    <td colspan="2">CRC32 LSB of WM+ Calib</td>
+  </tr>
+  <tr>
+    <td>0x40</td>
+    <td colspan="8">Passthrough Extension Calibration &lt;0:7&gt;</td>
+  </tr>
+  <tr>
+    <td>0x48</td>
+    <td colspan="8">Passthrough Extension Calibration &lt;8:15&gt;</td>
+  </tr>
+  <tr>
+    <td>0x50</td>
+    <td colspan="8" rowspan="8">Challenge Data</td>
+  </tr>
+  <tr>
+    <td>0x58</td>
+  </tr>
+  <tr>
+    <td>0x60</td>
+  </tr>
+  <tr>
+    <td>0x68</td>
+  </tr>
+  <tr>
+    <td>0x70</td>
+  </tr>
+  <tr>
+    <td>0x78</td>
+  </tr>
+  <tr>
+    <td>0x80</td>
+  </tr>
+  <tr>
+    <td>0x88</td>
+  </tr>
+  <tr>
+    <td>0x90</td>
+    <td colspan="8" rowspan="12">Unknown</td>
+  </tr>
+  <tr>
+    <td>0x98</td>
+  </tr>
+  <tr>
+    <td>0xA0</td>
+  </tr>
+  <tr>
+    <td>0xA8</td>
+  </tr>
+  <tr>
+    <td>0xB0</td>
+  </tr>
+  <tr>
+    <td>0xB8</td>
+  </tr>
+  <tr>
+    <td>0xC0</td>
+  </tr>
+  <tr>
+    <td>0xC8</td>
+  </tr>
+  <tr>
+    <td>0xD0</td>
+  </tr>
+  <tr>
+    <td>0xD8</td>
+  </tr>
+  <tr>
+    <td>0xE0</td>
+  </tr>
+  <tr>
+    <td>0xE8</td>
+  </tr>
+  <tr>
+    <td>0xF0</td>
+    <td>Init Trig</td>
+    <td>Chal Type</td>
+    <td>Calib Trig</td>
+    <td colspan="3">Unknown</td>
+    <td>Pass ID&lt;4&gt;</td>
+    <td>Chal State</td>
+  </tr>
+  <tr>
+    <td>0xF8</td>
+    <td>Pass ID&lt;0&gt;</td>
+    <td>Pass ID&lt;5&gt;</td>
+    <td colspan="6">Wii Motion Plus Identifier [?? 00 A6 20 0? 05]</td>
+  </tr>
+</tbody></table>
 
 ### IR Camera Settings
 
@@ -233,51 +273,38 @@ Accelerometer data is three unsigned values of 10-bits each for X Y and Z. There
 
 Because accelerometer data is unsigned, our zero value for the accelerometer is 512. The value of +- 1G depends on the accelerometer values in the calibration section of memory, but is generally 100.
 
-<table style="border-collapse: collapse; padding: 0.2em 0.2em 0.2em 0.2em; text-align: center;">
-<tbody><tr style="background-color: #ddd;">
-<td style="background-color: #fff;" colspan="2"> 
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; text-align: center;" colspan="8"><b>Bit</b>
-</td></tr>
-<tr style="background-color: #cdc;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #ddd;"><b>Byte</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:2em;"><b>7</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:2em;"><b>6</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:2em;"><b>5</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:2em;"><b>4</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:2em;"><b>3</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:2em;"><b>2</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:2em;"><b>1</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:2em;"><b>0</b>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #ddd;"> 
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="2"><b>X</b><span style="color: #777;"><<span style="color: #c00;">1:0</span>></span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #ddd;" colspan="5"> 
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">1
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #ddd;"> 
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>Z</b><span style="color: #777;"><<span style="color: #c00;">1</span>></span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>Y</b><span style="color: #777;"><<span style="color: #c00;">1</span>></span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #ddd;" colspan="5"> 
-</td></tr></tbody></table>
+<table><thead>
+  <tr>
+    <th>Byte</th>
+    <th>7</th>
+    <th>6</th>
+    <th>5</th>
+    <th>4</th>
+    <th>3</th>
+    <th>2</th>
+    <th>1</th>
+    <th>0</th>
+    <th></th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>0</td>
+    <td>&nbsp;&nbsp;</td>
+    <td colspan="2">X&lt;1:0&gt;</td>
+    <td colspan="5">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>&nbsp;&nbsp;</td>
+    <td>Z&lt;1&gt;</td>
+    <td>Y&lt;1&gt;</td>
+    <td colspan="5">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+    <td></td>
+  </tr>
+</tbody>
+</table>
 
 This image shows the sign of the accelerometer values.
 
@@ -293,73 +320,52 @@ Gyro data is in 6 bits, as shown below. Slow mode vs fast mode changes the multi
 
 The slow mode bit determines whether the calibration constants being used are slow mode calibrations or fast mode calibrations.
 
-<table style="border-collapse: collapse; padding: 0.2em 0.2em 0.2em 0.2em; text-align: center;">
-<tbody><tr style="background-color: #ddd;">
-<td style="background-color: #fff;"> 
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; text-align: center;" colspan="8"><b>Bit</b>
-</td></tr>
-<tr style="background-color: #cdc;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #ddd;"><b>Byte</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>7</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>6</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>5</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>4</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>3</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>2</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>1</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>0</b>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="8"><b>Yaw Down Speed</b><span style="color: #777;"><<span style="color: #c00;">7:0</span>></span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">1
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="8"><b>Roll Left Speed</b><span style="color: #777;"><<span style="color: #c00;">7:0</span>></span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">2
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="8"><b>Pitch Left Speed</b><span style="color: #777;"><<span style="color: #c00;">7:0</span>></span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">3
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="6"><b>Yaw Down Speed</b><span style="color: #777;"><<span style="color: #c00;">13:8</span>></span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>Yaw slow mode</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>Pitch slow mode</b>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">4
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="6"><b>Roll Left Speed</b><span style="color: #777;"><<span style="color: #c00;">13:8</span>></span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>Roll slow mode</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>Extension connected</b>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">5
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="6"><b>Pitch Left Speed</b><span style="color: #777;"><<span style="color: #c00;">13:8</span>></span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #ddd; color:#888;">1
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #ddd; color:#888;">0
-</td></tr></tbody></table>
+<table><thead>
+  <tr>
+    <th>Byte</th>
+    <th>7</th>
+    <th>6</th>
+    <th>5</th>
+    <th>4</th>
+    <th>3</th>
+    <th>2</th>
+    <th>1</th>
+    <th>0</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>0</td>
+    <td colspan="8">Yaw Down Speed&lt;7:0&gt;</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td colspan="8">Roll Left Speed&lt;7:0&gt;</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td colspan="8">Pitch Left Speed&lt;7:0&gt;</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td colspan="6">Yaw Down Speed&lt;13:8&gt;</td>
+    <td>Yaw slow mode</td>
+    <td>Pitch slow mode</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td colspan="6">Roll Left Speed&lt;13:8&gt;</td>
+    <td>Roll slow mode</td>
+    <td>Extension connected</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td colspan="6">Pitch Left Speed&lt;13:8&gt;</td>
+    <td>1</td>
+    <td>0</td>
+  </tr>
+</tbody>
+</table>
 
 Something to note is that bit 1 of byte 5 determines whether the data in the extension section is WiiMotion+ data or passthrough extension data.
 
@@ -367,175 +373,116 @@ Something to note is that bit 1 of byte 5 determines whether the data in the ext
 
 The buttons here are 1 if unpressed and 0 if pressed
 
-<table style="border-collapse: collapse; padding: 0.2em 0.2em 0.2em 0.2em; text-align: center;">
-<tbody><tr style="background-color: #ddd;">
-<td style="background-color: #fff;">&nbsp;
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; text-align: center;" colspan="8"><b>Bit</b>
-</td></tr>
-<tr style="background-color: #cdc;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #ddd;"><b>Byte</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>7</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>6</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>5</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>4</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>3</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>2</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>1</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>0</b>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="8"><b>SX</b><span style="color: #777;">&lt;<span style="color: #c00;">7:0</span>&gt;</span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">1
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="8"><b>SY</b><span style="color: #777;">&lt;<span style="color: #c00;">7:0</span>&gt;</span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">2
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="8"><b>AX</b><span style="color: #777;">&lt;<span style="color: #c00;">9:2</span>&gt;</span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">3
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="8"><b>AY</b><span style="color: #777;">&lt;<span style="color: #c00;">9:2</span>&gt;</span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">4
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="7"><b>AZ</b><span style="color: #777;">&lt;<span style="color: #c00;">9:3</span>&gt;</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>Extension connected</b>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">5
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="2"><b>AZ</b><span style="color: #777;">&lt;<span style="color: #c00;">2:1</span>&gt;</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="1"><b>AY</b><span style="color: #777;">&lt;<span style="color: #c00;">1</span>&gt;</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="1"><b>AX</b><span style="color: #777;">&lt;<span style="color: #c00;">1</span>&gt;</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>B</b><span style="color: #c00;">C</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>B</b><span style="color: #c00;">Z</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #ddd; color:#888;">0
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #ddd; color:#888;">0
-</td></tr></tbody></table>
+<table><thead>
+  <tr>
+    <th>Byte</th>
+    <th>7</th>
+    <th>6</th>
+    <th>5</th>
+    <th>4</th>
+    <th>3</th>
+    <th>2</th>
+    <th>1</th>
+    <th>0</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>0</td>
+    <td colspan="8">SX&lt;7:0&gt;</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td colspan="8">SY&lt;7:0&gt;</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td colspan="8">AX&lt;9:2&gt;</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td colspan="8">AY&lt;9:2&gt;</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td colspan="7">AZ&lt;9:3&gt;</td>
+    <td>Extension connected</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td colspan="2">AZ&lt;2:1&gt;</td>
+    <td>AY&lt;1&gt;</td>
+    <td>AX&lt;1&gt;</td>
+    <td>BC</td>
+    <td>BZ</td>
+    <td>0</td>
+    <td>0</td>
+  </tr>
+</tbody>
+</table>
 
 ## Wii Motion Plus Classic Controller Passthrough Packet
 
-<table style="border-collapse: collapse; padding: 0.2em 0.2em 0.2em 0.2em; text-align: center;">
-<tbody><tr style="background-color: #ddd;">
-<td style="background-color: #fff;">&nbsp;
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; text-align: center;" colspan="8"><b>Bit</b>
-</td></tr>
-<tr style="background-color: #cdc;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #ddd;"><b>Byte</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>7</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>6</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>5</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>4</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>3</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>2</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>1</b>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; width:3.3em;"><b>0</b>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">0
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="2"><b>RX</b><span style="color: #777;">&lt;<span style="color: #c00;">4:3</span>&gt;</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="5"><b>LX</b><span style="color: #777;">&lt;<span style="color: #c00;">5:1</span>&gt;</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>B</b><span style="color: #c00;">DU</span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">1
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="2"><b>RX</b><span style="color: #777;">&lt;<span style="color: #c00;">2:1</span>&gt;</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="5"><b>LY</b><span style="color: #777;">&lt;<span style="color: #c00;">5:1</span>&gt;</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>B</b><span style="color: #c00;">DL</span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">2
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>RX</b><span style="color: #777;">&lt;<span style="color: #c00;">0</span>&gt;</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="2"><b>LT</b><span style="color: #777;">&lt;<span style="color: #c00;">4:3</span>&gt;</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="5"><b>RY</b><span style="color: #777;">&lt;<span style="color: #c00;">4:0</span>&gt;</span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">3
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="3"><b>LT</b><span style="color: #777;">&lt;<span style="color: #c00;">2:0</span>&gt;</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;" colspan="5"><b>RT</b><span style="color: #777;">&lt;<span style="color: #c00;">4:0</span>&gt;</span>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">4
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>B</b><span style="color: #c00;">DR</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>B</b><span style="color: #c00;">DD</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>B</b><span style="color: #c00;">LT</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>B</b><span style="color: #c00;">-</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>B</b><span style="color: #c00;">H</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>B</b><span style="color: #c00;">+</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>B</b><span style="color: #c00;">RT</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>Extension connected</b>
-</td></tr>
-<tr style="background-color: #ded;">
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #eee;">5
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>B</b><span style="color: #c00;">ZL</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>B</b><span style="color: #c00;">B</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>B</b><span style="color: #c00;">Y</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>B</b><span style="color: #c00;">A</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>B</b><span style="color: #c00;">X</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em;"><b>B</b><span style="color: #c00;">ZR</span>
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #ddd; color:#888;">0
-</td>
-<td style="border: 1px solid #ccc; padding: 0.2em; background-color: #ddd; color:#888;">0
-</td></tr></tbody></table>
+<table><thead>
+  <tr>
+    <th>Byte</th>
+    <th>7</th>
+    <th>6</th>
+    <th>5</th>
+    <th>4</th>
+    <th>3</th>
+    <th>2</th>
+    <th>1</th>
+    <th>0</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>0</td>
+    <td colspan="2">RX&lt;4:3&gt;</td>
+    <td colspan="5">LX&lt;5:1&gt;</td>
+    <td>BDU</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td colspan="2">RX&lt;2:1&gt;</td>
+    <td colspan="5">LY&lt;5:1&gt;</td>
+    <td>BDL</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>RX&lt;0&gt;</td>
+    <td colspan="2">LT&lt;4:3&gt;</td>
+    <td colspan="5">RY&lt;4:0&gt;</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td colspan="3">LT&lt;2:0&gt;</td>
+    <td colspan="5">RT&lt;4:0&gt;</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>BDR</td>
+    <td>BDD</td>
+    <td>BLT</td>
+    <td>B-</td>
+    <td>BH</td>
+    <td>B+</td>
+    <td>BRT</td>
+    <td>Extension connected</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td>BZL</td>
+    <td>BB</td>
+    <td>BY</td>
+    <td>BA</td>
+    <td>BX</td>
+    <td>BZR</td>
+    <td>0</td>
+    <td>0</td>
+  </tr>
+</tbody></table>
 
 # IR Camera Data ([Wiibrew](https://wiibrew.org/wiki/Wiimote#IR_Camera))
 
@@ -635,11 +582,147 @@ This is the IR Camera internal registers, believed to match up to the Wiimote's 
 
 ## Input Data Format
 
-### Basic Data (0x01) [(5 bytes)](https://wiibrew.org/wiki/Wiimote#Basic_Mode)
+### Basic Data (0x01) [(10 bytes)](https://wiibrew.org/wiki/Wiimote#Basic_Mode)
+
+<table><thead>
+  <tr>
+    <th>Byte</th>
+    <th>7</th>
+    <th>6</th>
+    <th>5</th>
+    <th>4</th>
+    <th>3</th>
+    <th>2</th>
+    <th>1</th>
+    <th>0</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>0</td>
+    <td colspan="8">X1&lt;7:0&gt;</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td colspan="8">Y1&lt;7:0&gt;</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td colspan="2">Y1&lt;9:8&gt;</td>
+    <td colspan="2">X1&lt;9:8&gt;</td>
+    <td colspan="2">Y2&lt;9:8&gt;</td>
+    <td colspan="2">X2&lt;9:8&gt;</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td colspan="8">X2&lt;7:0&gt;</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td colspan="8">Y2&lt;7:0&gt;</td>
+  </tr>
+</tbody>
+</table>
+
+x2
 
 ### Extended Data (0x03) [(12 bytes)](https://wiibrew.org/wiki/Wiimote#Extended_Mode)
 
+<table><thead>
+  <tr>
+    <th>Byte</th>
+    <th>7</th>
+    <th>6</th>
+    <th>5</th>
+    <th>4</th>
+    <th>3</th>
+    <th>2</th>
+    <th>1</th>
+    <th>0</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>0</td>
+    <td colspan="8">X&lt;7:0&gt;</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td colspan="8">Y&lt;7:0&gt;</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td colspan="2">Y&lt;9:8&gt;</td>
+    <td colspan="2">X&lt;9:8&gt;</td>
+    <td colspan="4">S&lt;3:0&gt;</td>
+  </tr>
+</tbody>
+</table>
+
+x4
+
 ### Full Data (0x05) [(36 bytes)](https://wiibrew.org/wiki/Wiimote#Full_Mode)
+
+<table><thead>
+  <tr>
+    <th>Byte</th>
+    <th>7</th>
+    <th>6</th>
+    <th>5</th>
+    <th>4</th>
+    <th>3</th>
+    <th>2</th>
+    <th>1</th>
+    <th>0</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>0</td>
+    <td colspan="8">X&lt;7:0&gt;</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td colspan="8">Y&lt;7:0&gt;</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td colspan="2">Y&lt;9:8&gt;</td>
+    <td colspan="2">X&lt;9:8&gt;</td>
+    <td colspan="4">S&lt;3:0&gt;</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>0</td>
+    <td colspan="7">X min&lt;6:0&gt;</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>0</td>
+    <td colspan="7">Y min&lt;6:0&gt;</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td>0</td>
+    <td colspan="7">X max&lt;6:0&gt;</td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>0</td>
+    <td colspan="7">Y max&lt;6:0&gt;</td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td colspan="8">0</td>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td colspan="8">Intensity&lt;7:0&gt;</td>
+  </tr>
+</tbody>
+</table>
+
+x4
 
 # Notes
 
