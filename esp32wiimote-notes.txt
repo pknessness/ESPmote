@@ -388,3 +388,28 @@ I (16433) EXTENSION_DUMP: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
 I (16441) EXTENSION_DUMP: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
 I (16447) EXTENSION_DUMP: ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
 I (16453) EXTENSION_DUMP: 55 00 00 00 00 00 00 00 00 00 00 00 a4 20 00 00
+
+Issue:
+
+E (18485) esp_bt_hidd_cb: Reconnect Fail: ESP_OK
+I (18495) BT_HIDD: hidd_conn_initiate
+I (18499) esp_bt_hidd_cb: OPEN OK
+I (18499) esp_bt_hidd_cb: Setting to non-connectable, non-discoverable
+I (18503) CONNECTED WII ADDR: 38 fc 98 83 b2 cd
+I (18515) SEND 0x30: 00 00
+W (18535) BT_HIDD: hidd_sec_check_complete_orig: invalid state (02)
+E (18537) BT_BTC: btc_hd_send_report: busy now, status:3, try later!
+W (18547) BT_HIDD: hidd_l2cif_connect_cfm: connection failed, now disconnect
+I (18549) BT_HIDD: hidd_conn_disconnect
+E (18551) esp_bt_hidd_cb: OPEN failed!
+E (18591) esp_bt_hidd_cb: OPEN failed!
+
+typedef enum {
+    BTC_HD_DISABLED = 0,
+    BTC_HD_ENABLED,
+    BTC_HD_DISABLING,
+    BTC_HD_CONNECTING,
+    BTC_HD_CONNECTED,
+    BTC_HD_DISCONNECTING,
+    BTC_HD_DISCONNECTED,
+} BTC_HD_STATUS;

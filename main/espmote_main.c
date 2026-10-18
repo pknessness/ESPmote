@@ -46,11 +46,14 @@
 
 //#include "i2c_private.h"
 
+#include "esp_timer.h"
+
 #include "lsm6ds3.h"
 #include "pixart_ir.h"
 #include "extension.h"
 
 #include "esp_adc/adc_oneshot.h"
+#include "portmacro.h"
 
 #define GENERAL_DISCOVERY
 
@@ -64,6 +67,8 @@ constexpr adc_unit_t BUTTONS_ADC_UNIT = ADC_UNIT_1;
 constexpr adc_atten_t BUTTONS_ADC_ATTEN = ADC_ATTEN_DB_0;
 
 constexpr int WIIMOTE_OUTPUT_DT = 4;
+
+uint8_t previous_connected_wii[6] = {0x38, 0xfc, 0x98, 0x83, 0xb2, 0xcd};
 
 typedef struct
 {
@@ -240,6 +245,8 @@ pixart_ir_handle_t ir_handle;
 extension_handle_t extension_handle;
 bool extension_handle_connected = false;
 
+bool attempt_to_reconnect = false;
+
 static local_param_t s_bt_hid_param = {0};
 uint8_t WiiMoteHIDDescriptor[] = {
     /*
@@ -408,17 +415,7 @@ bool continuousReporting = false;
 uint8_t reportingMode = 0x30;
 
 bool rumbling = false;
-bool speaker_enable = false;
-
-//bit   mask    meaning
-//0 	0x01 	Battery is nearly empty
-//1 	0x02 	An Extension Controller is connected
-//2 	0x04 	Speaker enabled
-//3 	0x08 	IR camera enabled
-//4 	0x10 	LED 1
-//5 	0x20 	LED 2
-//6 	0x40 	LED 3
-//7 	0x80 	LED 4 
+//bool speaker_enable = false; //in theory i don't need this, this is taken from status byte
 
 //From https://wiibrew.org/wiki/Wiimote#Status_Reporting
 //Status byte masks
@@ -433,6 +430,15 @@ typedef enum {
 	STATUS_MASK_LED4                = 0x80
 } status_mask_t;
 
+//bit   mask    meaning
+//0 	0x01 	Battery is nearly empty
+//1 	0x02 	An Extension Controller is connected
+//2 	0x04 	Speaker enabled
+//3 	0x08 	IR camera enabled
+//4 	0x10 	LED 1
+//5 	0x20 	LED 2
+//6 	0x40 	LED 3
+//7 	0x80 	LED 4 
 uint8_t status_byte = 0; 
 
 void log_status_byte(){
@@ -1505,34 +1511,34 @@ void mote_other_main_task(void *pvParameters)
 			uint8_t data[16] = {0};
 
 			extension_reg_write(&extension_handle, 0xF0, writes, 1);
-			vTaskDelay(500 / portTICK_PERIOD_MS);
+			vTaskDelay(50 / portTICK_PERIOD_MS);
 			extension_reg_write(&extension_handle, 0xFB, writes+1, 1);
-			vTaskDelay(100 / portTICK_PERIOD_MS);
+			vTaskDelay(50 / portTICK_PERIOD_MS);
 
 			extension_reg_read(&extension_handle, 0xFA, data, 6);
 			ESP_LOG_BUFFER_HEX("EXTENSION_ID", data, 6);
-			vTaskDelay(500 / portTICK_PERIOD_MS);
-
-			memcpy(wii_motion_plus_settings_data + 0xF6, data + 4, 1);
-			memcpy(wii_motion_plus_settings_data + 0xF8, data + 0, 1);
-			memcpy(wii_motion_plus_settings_data + 0xF9, data + 5, 1);
-			
-			//calibration in nunchuk is 0x20 and 0x30, but on wmp the pasthrough is 0x40
-			//TODO: have it verify 0x20 and 0x30 and then fallback to defaults if not/ average? 
-			extension_reg_read(&extension_handle, 0x20, wii_motion_plus_settings_data + 0x40, 16);
-
-			ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data, 0xFF);
+//			vTaskDelay(500 / portTICK_PERIOD_MS);
+//
+//			memcpy(wii_motion_plus_settings_data + 0xF6, data + 4, 1);
+//			memcpy(wii_motion_plus_settings_data + 0xF8, data + 0, 1);
+//			memcpy(wii_motion_plus_settings_data + 0xF9, data + 5, 1);
+//			
+//			//calibration in nunchuk is 0x20 and 0x30, but on wmp the pasthrough is 0x40
+//			//TODO: have it verify 0x20 and 0x30 and then fallback to defaults if not/ average? 
+//			extension_reg_read(&extension_handle, 0x20, wii_motion_plus_settings_data + 0x40, 16);
+//
+//			ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data, 0xFF);
 			
 		}else if(!extension && extension_handle_connected){
 			extension_deinit(&extension_handle);
 			extension_handle_connected = false;
 			
-			memset(wii_motion_plus_settings_data + 0xF6, 0xFF, 1);
-			memset(wii_motion_plus_settings_data + 0xF8, 0xFF, 1);
-			memset(wii_motion_plus_settings_data + 0xF9, 0xFF, 1);
-			memset(wii_motion_plus_settings_data + 0x40, 0xFF, 16);
-
-			ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data, 0xFF);
+//			memset(wii_motion_plus_settings_data + 0xF6, 0xFF, 1);
+//			memset(wii_motion_plus_settings_data + 0xF8, 0xFF, 1);
+//			memset(wii_motion_plus_settings_data + 0xF9, 0xFF, 1);
+//			memset(wii_motion_plus_settings_data + 0x40, 0xFF, 16);
+//
+//			ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data, 0xFF);
 		}
 		
 		if(extension_handle_connected){
@@ -1552,17 +1558,52 @@ void mote_other_main_task(void *pvParameters)
 			);
 		}
 		
+//		if(attempt_to_reconnect){
+//			for(int i = 0; i < 10; i ++){
+//				ESP_LOGI(TAG, "Attempting to reconnect to [%02x %02x %02x %02x %02x %02x]\n", previous_connected_wii[0], previous_connected_wii[1], previous_connected_wii[2], previous_connected_wii[3], previous_connected_wii[4], previous_connected_wii[5]);
+//				esp_err_t ret = esp_bt_hid_device_connect(previous_connected_wii);
+//				if(ret){
+//					ESP_LOGE(TAG, "Reconnect Result: %s", esp_err_to_name(ret));
+//				}else{
+//					vTaskDelay(1000 / portTICK_PERIOD_MS);
+//					attempt_to_reconnect = false;
+//					break;
+//				}
+//				vTaskDelay(100 / portTICK_PERIOD_MS);
+//			}
+//		}
+		
+		if(button_array[BTN_A]){
+			ESP_LOGI(TAG, "Attempting to reconnect to [%02x %02x %02x %02x %02x %02x]\n", previous_connected_wii[0], previous_connected_wii[1], previous_connected_wii[2], previous_connected_wii[3], previous_connected_wii[4], previous_connected_wii[5]);
+			esp_err_t ret = esp_bt_hid_device_connect(previous_connected_wii);
+			if(ret){
+				ESP_LOGE(TAG, "Reconnect Result: %s", esp_err_to_name(ret));
+			}else{
+				ESP_LOGI(TAG, "Reconnect Success: %s", esp_err_to_name(ret));
+			}
+		}
+		
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
 
 void bt_hid_task_start_up(void)
 {
-	// Reset Wiimote Operational Variables
-	continuousReporting = false;
-	reportingMode = 0x30;
-	rumbling = false;
-	speaker_enable = false;
+	if(!attempt_to_reconnect){
+		// Reset Wiimote Operational Variables
+		continuousReporting = false;
+		reportingMode = 0x30;
+		rumbling = false;
+//		speaker_enable = false;
+
+		status_byte = 0;
+
+		ESP_LOGE(TAG, "RESET OPERATIONALS");
+		
+		attempt_to_reconnect = true;
+	}else{
+		setLEDStatus(status_byte);
+	}
 	
 	if (s_bt_hid_param.task_hdl) {
 	    vTaskDelete(s_bt_hid_param.task_hdl);
@@ -1932,10 +1973,42 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 	}
 }
 
+static void reconnect_callback(void * arg)
+{
+    int64_t time_since_boot = esp_timer_get_time();
+    ESP_LOGI(TAG, "Timed one-shot timer called, time since boot: %lld us", time_since_boot);
+//    attempt_to_reconnect = true;
+
+	ESP_LOGI(TAG, "Attempting to reconnect to [%02x %02x %02x %02x %02x %02x]\n", previous_connected_wii[0], previous_connected_wii[1], previous_connected_wii[2], previous_connected_wii[3], previous_connected_wii[4], previous_connected_wii[5]);
+	attempt_to_reconnect = true;
+	esp_err_t ret = esp_bt_hid_device_connect(previous_connected_wii);
+	if(ret){
+		ESP_LOGE(TAG, "Reconnect Result: %s", esp_err_to_name(ret));
+		attempt_to_reconnect = false;
+	}
+}
+
+//typedef enum {
+//    ESP_HIDD_INIT_EVT = 0,        /*!< HID device initialized. */
+//    ESP_HIDD_DEINIT_EVT,          /*!< HID device deinitialized. */
+//    ESP_HIDD_REGISTER_APP_EVT,    /*!< HID device application registered. */
+//    ESP_HIDD_UNREGISTER_APP_EVT,  /*!< HID device application unregistered. */
+//    ESP_HIDD_OPEN_EVT,            /*!< HID device connection to host opened. */
+//    ESP_HIDD_CLOSE_EVT,           /*!< HID device connection to host closed. */
+//    ESP_HIDD_SEND_REPORT_EVT,     /*!< HID device sent report to lower layer. */
+//    ESP_HIDD_REPORT_ERR_EVT,      /*!< HID device reported handshake error to lower layer. */
+//    ESP_HIDD_GET_REPORT_EVT,      /*!< HID device received GET_REPORT request from host. */
+//    ESP_HIDD_SET_REPORT_EVT,      /*!< HID device received SET_REPORT request from host. */
+//    ESP_HIDD_SET_PROTOCOL_EVT,    /*!< HID device received SET_PROTOCOL request from host. */
+//    ESP_HIDD_INTR_DATA_EVT,       /*!< HID device received DATA from host on interrupt channel. */
+//    ESP_HIDD_VC_UNPLUG_EVT,       /*!< HID device initiated Virtual Cable Unplug. */
+//    ESP_HIDD_API_ERR_EVT          /*!< HID device had API error. */
+//} esp_hidd_cb_event_t;
+
 void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
 {
     static const char *TAG = "esp_bt_hidd_cb";
-    switch (event) {
+    switch (event) {	
     case ESP_HIDD_INIT_EVT:
         if (param->init.status == ESP_HIDD_SUCCESS) {
             ESP_LOGI(TAG, "setting hid parameters");
@@ -1950,11 +2023,7 @@ void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
         if (param->register_app.status == ESP_HIDD_SUCCESS) {
             ESP_LOGI(TAG, "HID register success; opening sync-style pairing window");
 			ESP_LOGI(TAG, "Setting to connectable, non-discoverable");
-//			#ifdef GENERAL_DISCOVERY
-//			esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
-//			#else
-//			esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_LIMITED_DISCOVERABLE);
-//			#endif
+
 			esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
             if (param->register_app.in_use) {
                 ESP_LOGI(TAG, "known virtual cable host found, attempting reconnect");
@@ -1976,10 +2045,14 @@ void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
 			ESP_LOGI(TAG, "OPEN OK");
 			ESP_LOGI(TAG, "Setting to non-connectable, non-discoverable");
 			esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
-			bt_hid_task_start_up();
-			memset(core_input_report_old, 0xFF, 21);
-			mote_input_data_core(false);
-//			mote_input_data_status();
+			
+			if(param->open.conn_status == ESP_HIDD_CONN_STATE_CONNECTED){
+				memcpy(previous_connected_wii, param->open.bd_addr, 6);
+				ESP_LOG_BUFFER_HEX("CONNECTED WII ADDR", previous_connected_wii, 6);
+
+				bt_hid_task_start_up();
+				memset(core_input_report_old, 0xFF, 21);
+			}
 
         } else {
             ESP_LOGE(TAG, "OPEN failed!");
@@ -1993,8 +2066,20 @@ void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
             } else if (param->close.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTED) {
 				ESP_LOGI(TAG, "DISCONNECT OK");
 	            bt_hid_task_shut_down();
+				
 	            ESP_LOGI(TAG, "Setting to connectable, non-discoverable");
 				esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
+
+				const esp_timer_create_args_t oneshot_timer_args = {
+				        .callback = &reconnect_callback,
+				        /* argument specified here will be passed to timer callback function */
+				        .arg = nullptr,
+				        .name = "reconnect-timer"
+				};
+				esp_timer_handle_t oneshot_timer;
+				ESP_ERROR_CHECK(esp_timer_create(&oneshot_timer_args, &oneshot_timer));
+				ESP_ERROR_CHECK(esp_timer_start_once(oneshot_timer, 2500000));
+				
 				setLEDBinary(0);
             } else {
                 ESP_LOGE(TAG, "DISCONNECT failed!");
@@ -2033,7 +2118,7 @@ void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
                 //s_hid_connected = false;
                 ESP_LOGI(TAG, "disconnected!");
                 bt_hid_task_shut_down();
-                ESP_LOGI(TAG, "[PAIR] Virtual cable uprobablynplug; staying connectable/non-discoverable");
+                ESP_LOGI(TAG, "[PAIR] Virtual cable unplug; staying connectable/non-discoverable");
                 esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
             } else {
                 ESP_LOGE(TAG, "unknown connection status");
@@ -2155,6 +2240,7 @@ void app_main(void){
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
+		ESP_LOGE(TAG, "REINITIALIZING NVS");
     }
     ESP_ERROR_CHECK( ret );
 
@@ -2277,4 +2363,8 @@ void app_main(void){
 //TODO: FULLY FINISH READS AND WRITES
 //TODO: add battery status on A
 //TODO: add button combination to change between dolphin mode and wii mode (wii mode default)
+//TODO: read from battery
+//TODO: resolder and test speaker
+//TODO: nvm for EEPROM?
+//TODO: battery empty on status byte
 
