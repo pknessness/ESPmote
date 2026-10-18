@@ -219,11 +219,12 @@ int button_array_adc[13] = {0};
 int button_thresholds[13] = {100,100,100,100,100,100,100,100,100,100,100,100,100};
 
 //Array of which channels the ADC is looking at during continuous mode
-static adc_channel_t button_adc_channels[5] = {ADC_CHANNEL_0, ADC_CHANNEL_3, ADC_CHANNEL_6, ADC_CHANNEL_7, ADC_CHANNEL_5};
+static adc_channel_t button_adc_channels[6] = {ADC_CHANNEL_0, ADC_CHANNEL_3, ADC_CHANNEL_6, ADC_CHANNEL_7, ADC_CHANNEL_5, ADC_CHANNEL_4};
 uint8_t channels_num = sizeof(button_adc_channels) / sizeof(adc_channel_t);
 adc_oneshot_unit_handle_t adc1_handle;
 //O1,2,3,4 = ADC1_ 0, 3, 6, 7
 //A button = ADC1_5
+//battery read = ADC1_4
 //TODO: ADD BATTERY READ WHICH IS IO32 (CH4)
 
 //ADC channel most recent read
@@ -237,9 +238,7 @@ int8_t button_matrix_input = 0;
 i2c_master_bus_handle_t i2c_bus_handle = NULL;
 constexpr gpio_num_t I2C_MASTER_SCL_IO = 22; // SCL pin
 constexpr gpio_num_t I2C_MASTER_SDA_IO = 21; // SDA pin
-//#define I2C_MASTER_FREQ_HZ   400000
-//#define I2C_MASTER_NUM       I2C_NUM_0
-//#define ESP_INTR_FLAG_DEFAULT 0
+
 lsm6ds3_handle_t imu_handle;
 pixart_ir_handle_t ir_handle;
 extension_handle_t extension_handle;
@@ -411,11 +410,8 @@ static esp_hid_device_config_t bt_hid_config = {
 
 // Wiimote Operational Variables
 bool continuousReporting = false;
-
 uint8_t reportingMode = 0x30;
-
 bool rumbling = false;
-//bool speaker_enable = false; //in theory i don't need this, this is taken from status byte
 
 //From https://wiibrew.org/wiki/Wiimote#Status_Reporting
 //Status byte masks
@@ -502,10 +498,6 @@ constexpr float CALIBRATION_GYRO_SLOW_SCALE_DEGREES_div = 1.0F / CALIBRATION_GYR
 //to get a dps from measurement, equation is ((measurement - GYRO_ZERO) * SCALE_DEGREES / _VALUE)
 //to get measurement from dps, equataion is dps * _VALUE / SCALE_DEGREES + GYRO_ZERO
 //if gyro measurement is above about 1.8*SLOW_SCALE_DEGREES = 480, it exceeds the size it can carry but we'll set the limit to 440.
-
-//OLD USE CONSTANTS
-constexpr uint16_t VALUE_ZERO = 0x2000;
-constexpr uint16_t VALUE_SCALE_OFFSET = 0x1100;
 bool wii_motion_plus_enabled = false;
 
 // Register chunks
@@ -705,18 +697,6 @@ void adc_reads(){
 	for(int i = 0; i < channels_num; i ++){
 		ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, button_adc_channels[i], &(adc1_channels[ button_adc_channels[i] ]) ) );
 	}
-//	ESP_LOGI(TAG, "ADC: %d %d %d %d %d %d %d %d %d %d",
-//	    adc1_channels[0],
-//	    adc1_channels[1],
-//	    adc1_channels[2],
-//	    adc1_channels[3],
-//	    adc1_channels[4],
-//	    adc1_channels[5],
-//	    adc1_channels[6],
-//	    adc1_channels[7],
-//	    adc1_channels[8],
-//	    adc1_channels[9]
-//	); 
 }
 
 //Cycle through button matrix inputs
@@ -796,7 +776,6 @@ void load_buttons_buffer(uint8_t* destination)
 	buttons_buffer[0] |= (button_array[BTN_LEFT] << BUTTONS_SHIFT_DPAD_LEFT);
 	buttons_buffer[0] |= (button_array[BTN_RIGHT] << BUTTONS_SHIFT_DPAD_RIGHT);
 	buttons_buffer[0] |= (button_array[BTN_PLUS] << BUTTONS_SHIFT_PLUS);
-
 	
 	buttons_buffer[1] |= (button_array[BTN_A] << BUTTONS_SHIFT_A);
 	buttons_buffer[1] |= (button_array[BTN_B] << BUTTONS_SHIFT_B);
@@ -804,20 +783,6 @@ void load_buttons_buffer(uint8_t* destination)
 	buttons_buffer[1] |= (button_array[BTN_TWO] << BUTTONS_SHIFT_TWO);
 	buttons_buffer[1] |= (button_array[BTN_MINUS] << BUTTONS_SHIFT_MINUS);
 	buttons_buffer[1] |= (button_array[BTN_HOME] << BUTTONS_SHIFT_HOME);
-	
-//	ESP_LOGI(TAG, "%c%c%c%c%c%c%c%c%c%c%c",
-//	    button_array[BTN_A] ? 'A' : ' ',
-//	    button_array[BTN_B] ? 'B' : ' ',
-//	    button_array[BTN_ONE] ? '1' : ' ',
-//	    button_array[BTN_TWO] ? '2' : ' ',
-//	    button_array[BTN_PLUS] ? '+' : ' ',
-//	    button_array[BTN_MINUS] ? '-' : ' ',
-//	    button_array[BTN_HOME] ? 'H' : ' ',
-//	    button_array[BTN_UP] ? '^' : ' ',
-//	    button_array[BTN_DOWN] ? 'v' : ' ',
-//	    button_array[BTN_LEFT] ? '<' : ' ',
-//	    button_array[BTN_RIGHT] ? '>' : ' '
-//	);  
 
 	if(destination != nullptr){
 		memcpy( destination, buttons_buffer, 2);
@@ -904,68 +869,6 @@ void load_accelerometer_buffer(uint8_t* destination, uint16_t processed_10bit_ac
 	}
 }
 
-//TODO: LOOK AT THIS AND COMMENT PROPERLY (AND MAYBE REWRITE), WHY TF IS THERE 1200 AND NOT 2000?
-void load_wii_motion_plus_buffer_OLD(uint8_t* destination){
-	//fast mode reaches a peak of 2000 degrees per second? and slow mode is potentially 440?
-	esp_err_t ret = lsm6ds3_read_gyro(&imu_handle, gyro_mdps);
-	if (ret != ESP_OK) {
-	    ESP_LOGE("LSM6DS3", "Read failed");
-	    return;
-	}
-
-	gyro_dps[0] = gyro_mdps[0] / 1000.0f;
-	gyro_dps[1] = gyro_mdps[1] / 1000.0f;
-	gyro_dps[2] = gyro_mdps[2] / 1000.0f;
-
-	//_base value should be 0 to 1 on the range from 0 to 440
-	float gyro_yaw_base = gyro_dps[0] / 440;
-	float gyro_roll_base = gyro_dps[1] / 440;
-	float gyro_pitch_base = gyro_dps[2] / 440;
-	
-	bool slow_yaw = true, slow_roll = true, slow_pitch = true;
-	
-	if(gyro_yaw_base > 1.0 || gyro_yaw_base < -1.0){
-		slow_yaw = false;
-		gyro_yaw_base *= (440.0 / 1200);
-	}
-	if(gyro_roll_base > 1.0 || gyro_roll_base < -1.0){
-		slow_roll = false;
-		gyro_roll_base *= (440.0 / 1200);
-	}
-	if(gyro_pitch_base > 1.0 || gyro_pitch_base < -1.0){
-		slow_pitch = false;
-		gyro_pitch_base *= (440.0 / 1200);
-	}
-	
-	int16_t gyro_yaw_14b = VALUE_ZERO + (gyro_yaw_base * VALUE_SCALE_OFFSET);
-	int16_t gyro_roll_14b = VALUE_ZERO + (gyro_roll_base * VALUE_SCALE_OFFSET);
-	int16_t gyro_pitch_14b = VALUE_ZERO + (gyro_pitch_base * VALUE_SCALE_OFFSET);
-	
-	uint8_t yaw7_0 = gyro_yaw_14b & 0xFF;
-	uint8_t yaw13_8 = (gyro_yaw_14b & 0x3F00) >> 6;
-	yaw13_8 |= ((slow_yaw << 1) | slow_pitch);
-
-	uint8_t roll7_0 = gyro_roll_14b & 0xFF;
-	uint8_t roll13_8 = (gyro_roll_14b & 0x3F00) >> 6;
-	roll13_8 |= (slow_roll << 1 | gpio_get_level(EXT_SENSE_GPIO)); //THIS ZERO IS FOR EXTENSION CONNECTED, TODO: IMPLEMENT
-	
-	uint8_t pitch7_0 = gyro_pitch_14b & 0xFF;
-	uint8_t pitch13_8 = (gyro_pitch_14b & 0x3F00) >> 6;
-	pitch13_8 |= 0x02; //AAAAAAAAAAAAAAAAAAAAAAAAAAAA I SPENT TWO FUCKING DAYS ON roll13_8 vs pitch13_8
-
-	
-	if(destination != nullptr){
-		memcpy(destination, &yaw7_0, 1);
-		memcpy(destination+1, &roll7_0, 1);
-		memcpy(destination+2, &pitch7_0, 1);
-		memcpy(destination+3, &yaw13_8, 1);
-		memcpy(destination+4, &roll13_8, 1);
-		memcpy(destination+5, &pitch13_8, 1);
-	}else{
-		ESP_LOGE("LOAD_WII_MOTION_PLUS_BUFFER", "NO DESTINATION");
-	}
-}
-
 void load_wii_motion_plus_buffer(uint8_t* destination){
 	//fast mode reaches a peak of 2000 degrees per second? and slow mode is potentially 440?
 	esp_err_t ret = lsm6ds3_read_gyro(&imu_handle, gyro_mdps);
@@ -1003,9 +906,6 @@ void load_wii_motion_plus_buffer(uint8_t* destination){
 		gyro_pitch_14b = (int16_t)(gyro_dps[2] * CALIBRATION_GYRO_SCALE_VALUE_14b * CALIBRATION_GYRO_SLOW_SCALE_DEGREES_div) + CALIBRATION_GYRO_ZERO_14b;
 	}
 	//TODO: set a max and set the values to 0xFFFFFF
-
-//	ESP_LOGW("WMP_SLOW", "[%c %c %c]", slow_yaw ? 'S' : 'F', slow_roll ? 'S' : 'F', slow_pitch ? 'S' : 'F');
-//	ESP_LOGW("WMP_14b", "[%u %u %u]", gyro_yaw_14b, gyro_roll_14b, gyro_pitch_14b);
 	
 	uint8_t yaw7_0 = gyro_yaw_14b & 0xFF;
 	uint8_t yaw13_8 = (gyro_yaw_14b & 0x3F00) >> 6;
@@ -1018,8 +918,6 @@ void load_wii_motion_plus_buffer(uint8_t* destination){
 	uint8_t pitch7_0 = gyro_pitch_14b & 0xFF;
 	uint8_t pitch13_8 = (gyro_pitch_14b & 0x3F00) >> 6;
 	pitch13_8 |= 0x02; //AAAAAAAAAAAAAAAAAAAAAAAAAAAA I SPENT TWO FUCKING DAYS ON roll13_8 vs pitch13_8
-
-//	ESP_LOGW("WMP_BUFFER", "[%02x %02x %02x %02x %02x %02x]", yaw7_0, roll7_0, pitch7_0, yaw13_8, roll13_8, pitch13_8);
 	
 	if(destination != nullptr){
 		memcpy(destination, &yaw7_0, 1);
@@ -1057,15 +955,9 @@ esp_err_t load_nunchuck_passthrough_buffer(uint8_t* destination){
 	bool button_C = nunchuck[5] & 0x02; //byte 5 bit 1
 	bool button_Z = nunchuck[5] & 0x01; //byte 5 bit 0
 	
-//	ESP_LOGW("LOAD_NUNCHUCK_PASSTHROUGH_BUFFER", 
-//	         "az_2:%d az_1:%d ay_1:%d ax_1:%d button_C:%d button_Z:%d",
-//	         az_2, az_1, ay_1, ax_1, button_C, button_Z);
-	
 	nunchuck[4] &= 0xFE; //exclude last bit of byte 5;
 	nunchuck[4] |= (extension_handle_connected & 0x01);
 	nunchuck[5] = (az_2 << 7) | (az_1 << 6) | (ay_1 << 5) | (ax_1 << 4) | (button_C << 3) | (button_Z << 2);
-	
-//	ESP_LOG_BUFFER_HEX("LOAD_NUNCHUCK_PASSTHROUGH_BUFFER", nunchuck, 6);
 	
 	if(destination != nullptr){
 		memcpy(destination, &nunchuck, 6);
@@ -1075,19 +967,14 @@ esp_err_t load_nunchuck_passthrough_buffer(uint8_t* destination){
 	return ESP_OK;
 }
 
-//TODO: maybe i just constantly load extension shit on the side/ see how long it takes for extension data to actually return and just have that on a side thread?
-//test with mote other main
 void load_extension_buffer(uint8_t* destination, uint8_t length){
 	static bool interleave = 0;
-//	ESP_LOGW(TAGSEND, "WMP_EN: %d", wii_motion_plus_enabled);
 	if(wii_motion_plus_enabled){
 		uint16_t wmp_mode;
 		memcpy(&wmp_mode, wii_motion_plus_settings_data + 0xFE, 2);
-//		ESP_LOGW(TAGSEND, "WMP_MODE: %x", wmp_mode);
 		if(wmp_mode == EXT_WII_MOTION_PLUS_STANDARD){
 			load_wii_motion_plus_buffer(destination);
 		}else if (wmp_mode == EXT_WII_MOTION_PLUS_NUNCHUK_PASSTHROUGH){
-//			ESP_LOGW(TAGSEND, "INTERLEAVE %d EXT: %d", interleave, extension_handle_connected);
 			if(extension_handle_connected && interleave){
 				esp_err_t err = load_nunchuck_passthrough_buffer(destination);
 				if(err){
@@ -1107,12 +994,7 @@ void load_extension_buffer(uint8_t* destination, uint8_t length){
 	}else{
 		if(extension_handle_connected){
 			extension_get_raw_data_sync(&extension_handle, destination, 6);
-			nunchuk_data_t nchuk = extension_decompose_nunchuck(destination);
-	//		ESP_LOG_BUFFER_HEX("EXTENSION_DATA", nunchuk_data, 6);
-//			ESP_LOGI("EXTENSION_DATA", "SX:%d SY:%d A:[%d %d %d] %c %c",
-//				nchuk.stick_x, nchuk.stick_y, nchuk.accel_x, nchuk.accel_y, nchuk.accel_z,
-//				(nchuk.button_C ? 'C' : '.'), (nchuk.button_Z ? 'Z' : '.')
-//			);
+
 			memset(destination + 6, 0x00, length - 6);
 		}else{
 			memset(destination, 0xFF, length);
@@ -1122,7 +1004,6 @@ void load_extension_buffer(uint8_t* destination, uint8_t length){
 
 uint8_t core_input_report[21] = {0};
 uint8_t core_input_report_old[21] = {0};
-
 
 //20 BB BB LF 00 00 VV
 void mote_input_data_status()
@@ -1135,7 +1016,6 @@ void mote_input_data_status()
 	status_input_report[5] = 0xEF; //TODO: Battery value, replace with actual battery value
 	send_hid_report(0x20, status_input_report, 6);
 	ESP_LOGI(TAGSEND, "STATUS[0x%02x] EXT:%d SPK:%d IR:%d BATT_LOW:%d", status_byte, status_byte & STATUS_MASK_EXTENSION, status_byte & STATUS_MASK_IR_ENABLED, status_byte & STATUS_MASK_BATTERY_LOW, 0xEF); // TODO: replace with actual battery value
-
 }
 
 //21 BB BB SE AA AA DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD DD 
@@ -1339,8 +1219,6 @@ void mote_input_data_core(bool force)
 		case 0x3e: //same as 3f, forced to 3e during output report handling
 			// 3e BB BB AA II II II II II II II II II II II II II II II II II II (first 18)
 			// 3f BB BB AA II II II II II II II II II II II II II II II II II II (second 18)
-		
-			
 			
 			//TODO: SET UP LATER ITS A WHOLE THING
 			//send_hid_report(0x3e, buttons, 21);
@@ -1414,11 +1292,6 @@ void mote_hid_main_task(void *pvParameters)
 				//TODO: have it verify 0x20 and 0x30 and then fallback to defaults if not/ average? 
 				extension_reg_read(&extension_handle, 0x20, wii_motion_plus_settings_data + 0x40, 16);
 				
-//				ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data, 0xFF);
-				
-	//			writes[0] = 0;
-	//			extension_reg_write(&extension_handle, 0xF0, writes, 1); //TODO: in theory i want to remove this
-				
 				mote_input_data_status();
 			}else{
 				extension_deinit(&extension_handle);
@@ -1449,38 +1322,6 @@ void mote_hid_main_task(void *pvParameters)
 			esp_bt_hid_device_disconnect();
 		}
 		
-//		ESP_LOGI(TAG, "%c%c%c%c%c%c%c%c%c%c%c%c%c",
-//		    button_array[BTN_A] ? 'A' : ' ',
-//		    button_array[BTN_B] ? 'B' : ' ',
-//		    button_array[BTN_ONE] ? '1' : ' ',
-//		    button_array[BTN_TWO] ? '2' : ' ',
-//		    button_array[BTN_PLUS] ? '+' : ' ',
-//		    button_array[BTN_MINUS] ? '-' : ' ',
-//		    button_array[BTN_HOME] ? 'H' : ' ',
-//		    button_array[BTN_UP] ? 'U' : ' ',
-//		    button_array[BTN_DOWN] ? 'D' : ' ',
-//		    button_array[BTN_LEFT] ? 'L' : ' ',
-//		    button_array[BTN_RIGHT] ? 'R' : ' ',
-//		    button_array[BTN_SYNC] ? 'S' : ' ',
-//		    button_array[BTN_POWER] ? 'P' : ' '
-//		);  
-//		ESP_LOGI(TAG, "%d %d %d %d %d %d %d %d %d %d %d %d %d",
-//		    button_array_adc[BTN_A],
-//		    button_array_adc[BTN_B],
-//		    button_array_adc[BTN_ONE],
-//		    button_array_adc[BTN_TWO],
-//		    button_array_adc[BTN_PLUS],
-//		    button_array_adc[BTN_MINUS],
-//		    button_array_adc[BTN_HOME],
-//		    button_array_adc[BTN_UP],
-//		    button_array_adc[BTN_DOWN],
-//		    button_array_adc[BTN_LEFT],
-//		    button_array_adc[BTN_RIGHT],
-//		    button_array_adc[BTN_SYNC],
-//		    button_array_adc[BTN_POWER]
-//		);  size
-		
-//		gpio_set_level(LED1, !gpio_get_level(LED1));
 		check_sync();
 #ifdef HCI_DEBUG
 		extern void bt_hci_log_hci_data_show(void);
@@ -1517,38 +1358,15 @@ void mote_other_main_task(void *pvParameters)
 
 			extension_reg_read(&extension_handle, 0xFA, data, 6);
 			ESP_LOG_BUFFER_HEX("EXTENSION_ID", data, 6);
-//			vTaskDelay(500 / portTICK_PERIOD_MS);
-//
-//			memcpy(wii_motion_plus_settings_data + 0xF6, data + 4, 1);
-//			memcpy(wii_motion_plus_settings_data + 0xF8, data + 0, 1);
-//			memcpy(wii_motion_plus_settings_data + 0xF9, data + 5, 1);
-//			
-//			//calibration in nunchuk is 0x20 and 0x30, but on wmp the pasthrough is 0x40
-//			//TODO: have it verify 0x20 and 0x30 and then fallback to defaults if not/ average? 
-//			extension_reg_read(&extension_handle, 0x20, wii_motion_plus_settings_data + 0x40, 16);
-//
-//			ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data, 0xFF);
 			
 		}else if(!extension && extension_handle_connected){
 			extension_deinit(&extension_handle);
 			extension_handle_connected = false;
 			
-//			memset(wii_motion_plus_settings_data + 0xF6, 0xFF, 1);
-//			memset(wii_motion_plus_settings_data + 0xF8, 0xFF, 1);
-//			memset(wii_motion_plus_settings_data + 0xF9, 0xFF, 1);
-//			memset(wii_motion_plus_settings_data + 0x40, 0xFF, 16);
-//
-//			ESP_LOG_BUFFER_HEX("WMP_SETTINGS", wii_motion_plus_settings_data, 0xFF);
 		}
 		
 		if(extension_handle_connected){
 			uint8_t nunchuk_data[6] = {0};
-			
-//			uint8_t dump[256];
-//			for(int i = 0; i < 256; i ++){
-//				extension_reg_read(&extension_handle, i, dump+i, 1);
-//			}
-//			ESP_LOG_BUFFER_HEX("EXTENSION_DUMP", dump, 256);
 			
 			extension_get_raw_data_sync(&extension_handle, nunchuk_data, 6);
 			nunchuk_data_t nchuk = extension_decompose_nunchuck(nunchuk_data);
@@ -1557,21 +1375,6 @@ void mote_other_main_task(void *pvParameters)
 				(nchuk.button_C ? 'C' : '.'), (nchuk.button_Z ? 'Z' : '.')
 			);
 		}
-		
-//		if(attempt_to_reconnect){
-//			for(int i = 0; i < 10; i ++){
-//				ESP_LOGI(TAG, "Attempting to reconnect to [%02x %02x %02x %02x %02x %02x]\n", previous_connected_wii[0], previous_connected_wii[1], previous_connected_wii[2], previous_connected_wii[3], previous_connected_wii[4], previous_connected_wii[5]);
-//				esp_err_t ret = esp_bt_hid_device_connect(previous_connected_wii);
-//				if(ret){
-//					ESP_LOGE(TAG, "Reconnect Result: %s", esp_err_to_name(ret));
-//				}else{
-//					vTaskDelay(1000 / portTICK_PERIOD_MS);
-//					attempt_to_reconnect = false;
-//					break;
-//				}
-//				vTaskDelay(100 / portTICK_PERIOD_MS);
-//			}
-//		}
 		
 		if(button_array[BTN_A]){
 			ESP_LOGI(TAG, "Attempting to reconnect to [%02x %02x %02x %02x %02x %02x]\n", previous_connected_wii[0], previous_connected_wii[1], previous_connected_wii[2], previous_connected_wii[3], previous_connected_wii[4], previous_connected_wii[5]);
@@ -1594,7 +1397,6 @@ void bt_hid_task_start_up(void)
 		continuousReporting = false;
 		reportingMode = 0x30;
 		rumbling = false;
-//		speaker_enable = false;
 
 		status_byte = 0;
 
@@ -1637,19 +1439,11 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 	uint16_t size;
 	
 	switch (intr_data.report_id) {
-	    case O_RUMBLE:
-	        // 1 byte - bit 0 controls rumble
-			//ESP_LOGI(TAG, "RUMBLING");
+	    case O_RUMBLE: // 1 byte - bit 0 controls rumble
 	        //ignore this because actually bit 0 of any report is for rumble, this report is for *only* rumble
 			break;
 	        
-	    case O_PLAYER_LEDS:
-	        // 1 byte - bits 4-7 control LEDs 1-4
-//			ESP_LOGI(TAGW, "LEDS %c %c %c %c", 
-//				(intr_data.data[0] & 0x10) ? '+' : '_', 
-//				(intr_data.data[0] & 0x20) ? '+' : '_', 
-//				(intr_data.data[0] & 0x40) ? '+' : '_', 
-//				(intr_data.data[0] & 0x80) ? '+' : '_');
+	    case O_PLAYER_LEDS: // 1 byte - bits 4-7 control LEDs 1-4
 			status_byte &= 0x0F;
 			status_byte |= (intr_data.data[0] & 0xF0);
 
@@ -1662,8 +1456,7 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 			
 	        break;
 	        
-	    case O_DATA_REPORTING_MODE:
-	        // 2 bytes - TT MM (TT bit2 = continuous, MM = mode 0x30-0x3f)
+	    case O_DATA_REPORTING_MODE: // 2 bytes - TT MM (TT bit2 = continuous, MM = mode 0x30-0x3f)
 			continuousReporting = (intr_data.data[0] & 0x04);
 			reportingMode = intr_data.data[1];
 			if(reportingMode == 0x3f){
@@ -1682,8 +1475,7 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 			
 	        break;
 	        
-	    case O_IR_CAMERA_ENABLE: //Enables the 25 MHz (or is it 24) IR Clock
-			// 1 byte - bit 2 = ON/OFF
+	    case O_IR_CAMERA_ENABLE: // 1 byte - bit 2 = ON/OFF //Enables the 25 MHz (or is it 24) IR Clock
 			gpio_set_level(IR_CLK_GPIO, intr_data.data[0] & 0x04);
 
 			ESP_LOGI( TAGW, "Written %2x to IR Camera 1", intr_data.data[0] & 0x04);
@@ -1695,8 +1487,7 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 			
 	        break;
 	        
-	    case O_SPEAKER_ENABLE:
-	        // 1 byte - bit 2 = ON/OFF
+	    case O_SPEAKER_ENABLE: // 1 byte - bit 2 = ON/OFF
 			if(intr_data.data[0] & 0x04){
 				status_byte |= STATUS_MASK_SPEAKER_ENABLED;
 			}
@@ -1709,8 +1500,7 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 
 	        break;
 	        
-	    case O_STATUS_INFO_REQUEST:
-	        // 1 byte - request status report
+	    case O_STATUS_INFO_REQUEST: // 1 byte - request status report
 			ESP_LOGI( TAGW, "Requesting %02x to Status Info", intr_data.data[0]);
 			log_status_byte();
 			mote_input_data_status();
@@ -1722,8 +1512,8 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 
 	        break;
 	        
-	    case O_WRITE_MEMORY_REGISTERS: //TODO: make sure doesnt buffer overflow
-	        // 21 bytes - write to memory/registers
+	    case O_WRITE_MEMORY_REGISTERS: // 21 bytes - write to memory/registers
+			//TODO: make sure doesnt buffer overflow
 			offset = (intr_data.data[1] << 16) | (intr_data.data[2] << 8) | (intr_data.data[3]);
 			offset_16 = (intr_data.data[2] << 8) | (intr_data.data[3]);
 			size = intr_data.data[4];
@@ -1752,6 +1542,7 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 				}else if(intr_data.data[1] == 0xA4){
 					ESP_LOGI( TAGW, "Attempting to write %d bytes to extension controller settings and data at %6x [%04x]", size, offset, offset_16);
 					
+					//instead of copying over to extension data, we will just passthrough all read requests to 0xa40000 to 0xa60000 instead
 					if(offset_16 != 0xF0 && wii_motion_plus_enabled){ //only 0xF0 write can disable wmp and is not passed through to wmp
 						
 						memcpy(wii_motion_plus_settings_data + offset_16, intr_data.data + 5, size); //TODO: test this, this might be bad
@@ -1771,10 +1562,6 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 							if(wii_motion_plus_enabled){
 								status_byte &= (~STATUS_MASK_EXTENSION); //set extension bit to 0
 								mote_input_data_status();
-								
-								//TODO: shouldn't be necessary
-//								memcpy(wii_motion_plus_settings_data + 0x00FC, &EXTENSION_A6_TAG, 2);
-//								memcpy(wii_motion_plus_settings_data + 0x00FE, &EXT_WII_MOTION_PLUS_INACTIVE, 2);
 							}
 							
 							wii_motion_plus_enabled = false;
@@ -1800,8 +1587,6 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 						
 						status_byte |= STATUS_MASK_EXTENSION;
 						mote_input_data_status();
-						
-						//instead of copying over to extension data, we will just passthrough all requests to read 0xFA+ to the wii_motion_plus_settings_data
 					}
 					ESP_LOGI( TAGW, "Attempting to write %d bytes to wii motion plus settings and data at 0x%06x [%04x]", size, offset, offset_16);
 //					return_ack = ACK_INACTIVE_EXTENSION; //for now, no WMP
@@ -1842,9 +1627,8 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 							
 			break;
 	        
-	    case O_READ_MEMORY_REGISTERS:
+	    case O_READ_MEMORY_REGISTERS: // 6 bytes - read from memory/registers
 			//TODO: MAKE SURE NO MEM OVERFLOW
-	        // 6 bytes - read from memory/registers
 			offset = (intr_data.data[1] << 16) | (intr_data.data[2] << 8) | (intr_data.data[3]);
 			offset_16 = (intr_data.data[2] << 8) | (intr_data.data[3]);
 			
@@ -1917,8 +1701,7 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 
 	        break;
 	        
-	    case O_SPEAKER_DATA:
-	        // 21 bytes - audio data for speaker
+	    case O_SPEAKER_DATA: // 21 bytes - audio data for speaker 
 			ESP_LOGI( TAGW, "%d bytes of Speaker Data", intr_data.data[0]);
 			ESP_LOG_BUFFER_HEX(TAGW, intr_data.data + 1, intr_data.data[0]); //TODO: make sure doesnt buffer overflow
 				
@@ -1929,8 +1712,7 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 
 	        break;
 	        
-	    case O_SPEAKER_MUTE:
-	        // 1 byte - bit 2 = mute when set
+	    case O_SPEAKER_MUTE: // 1 byte - bit 2 = mute when set 
 			ESP_LOGI( TAGW, "Written %2x to Speaker Mute", intr_data.data[0]);
 				
 			//bit 1 of any output report is requesting an acknowledgement input report
@@ -1940,9 +1722,8 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 
 	        break;
 	        
-	    case O_IR_CAMERA_ENABLE_2: //Enables the IR Camera itself
-	        // 1 byte - bit 2 = ON/OFF (alternate)
-			
+	    case O_IR_CAMERA_ENABLE_2: // 1 byte - bit 2 = ON/OFF (alternate)
+		    //Enables the IR Camera itself
 			gpio_set_level(IR_ENABLE_GPIO, intr_data.data[0] & 0x04);
 			
 			//TODO: I am currently treating this as the main IR Camera Toggle (status byte), this MAY be the case in final	        
@@ -1961,7 +1742,7 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 	        
 	    default:
 	        // Unknown output report ID
-			//ESP_LOGW(TAGW, "UNKNOWN REPORT ID[%u]: %8s ID: 0x%2x, Len: %d, Data:", intr_data.map_index, esp_hid_usage_str(intr_data.usage), intr_data.report_id, output.length);
+			ESP_LOGW(TAGW, "UNKNOWN REPORT:");
 			ESP_LOG_BUFFER_HEX(TAGW, intr_data.data, intr_data.len);
 				
 			//bit 1 of any output report is requesting an acknowledgement input report
@@ -2072,7 +1853,6 @@ void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
 
 				const esp_timer_create_args_t oneshot_timer_args = {
 				        .callback = &reconnect_callback,
-				        /* argument specified here will be passed to timer callback function */
 				        .arg = nullptr,
 				        .name = "reconnect-timer"
 				};
@@ -2089,7 +1869,6 @@ void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
         }
         break;
     case ESP_HIDD_SEND_REPORT_EVT:
-//		cpptrace::generate_trace().print();
         break; 
     case ESP_HIDD_REPORT_ERR_EVT:
         ESP_LOGI(TAG, "ESP_HIDD_REPORT_ERR_EVT");
@@ -2106,16 +1885,12 @@ void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
                  param->set_protocol.protocol_mode);
         break;
     case ESP_HIDD_INTR_DATA_EVT:
-		
-//		ESP_LOGI(TAGW, "REPORT: ID: 0x%2x, Len: %d, Data:", param->intr_data.report_id, param->intr_data.len);
-//        ESP_LOG_BUFFER_HEX(TAGW, param->intr_data.data, param->intr_data.len);
 		handle_output_reports(param->intr_data);
 		break;
     case ESP_HIDD_VC_UNPLUG_EVT:
         ESP_LOGI(TAG, "ESP_HIDD_VC_UNPLUG_EVT");
         if (param->vc_unplug.status == ESP_HIDD_SUCCESS) {
             if (param->vc_unplug.conn_status == ESP_HIDD_CONN_STATE_DISCONNECTED) {
-                //s_hid_connected = false;
                 ESP_LOGI(TAG, "disconnected!");
                 bt_hid_task_shut_down();
                 ESP_LOGI(TAG, "[PAIR] Virtual cable unplug; staying connectable/non-discoverable");
@@ -2128,8 +1903,7 @@ void esp_bt_hidd_cb(esp_hidd_cb_event_t event, esp_hidd_cb_param_t *param)
         }
         break;
     default:
-		ESP_LOGI(TAG, "ESP_HIDD_?_EVT:0x%02x",
-	                event);
+		ESP_LOGI(TAG, "ESP_HIDD_?_EVT:0x%02x", event);
         break;
     }
 }
@@ -2209,9 +1983,6 @@ void app_main(void){
 	
 	ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &i2c_bus_handle));
 	
-//	i2c_bus_handle->async_trans = false;
-	
-//	i2c_bus_handle
 	//lsm6ds3 config
 	ret = lsm6ds3_init(i2c_bus_handle, &imu_handle);
 	if (ret != ESP_OK) {
@@ -2295,11 +2066,9 @@ void app_main(void){
     cod.major = ESP_BT_COD_MAJOR_DEV_PERIPHERAL;
     cod.minor = ESP_BT_COD_MINOR_PERIPHERAL_JOYSTICK;
     cod.service = ESP_BT_LIMITED_DISCOVERABLE; // limited discoverable service bit
-	#ifdef GENERAL_DISCOVERY
-	esp_bt_gap_set_cod(cod, ESP_BT_SET_COD_MAJOR_MINOR);	
-	#else
+	
 	esp_bt_gap_set_cod(cod, ESP_BT_SET_COD_ALL);	
-	#endif
+
 
 	vTaskDelay(1000 / portTICK_PERIOD_MS);
 	
@@ -2341,22 +2110,7 @@ void app_main(void){
 	pixart_ir_get_data(&ir_handle, &irpd);
 	ESP_LOGI("IR DATA", "%d,%d[%d] %d,%d[%d] %d,%d[%d] %d,%d[%d]", irpd.point1.x, irpd.point1.y,irpd.point1.size, irpd.point2.x, irpd.point2.y,irpd.point2.size, irpd.point3.x, irpd.point3.y,irpd.point3.size, irpd.point4.x, irpd.point4.y,irpd.point4.size);
 	
-	#ifdef HCI_DEBUG
-	while (1)
-	{
-	    extern void bt_hci_log_hci_data_show(void);
-	    extern void bt_hci_log_hci_adv_show(void);
-	    bt_hci_log_hci_data_show();  // Display HCI data logs
-	    bt_hci_log_hci_adv_show();   // Display HCI advertisement logs
-	    vTaskDelay(500 / portTICK_PERIOD_MS);
-	}
-	#endif
-//	while(1){
-//		load_button_array();
-//		vTaskDelay(1);
-//	}
 	xTaskCreate(mote_other_main_task, "mote_other_main_task", 2 * 1024, NULL, configMAX_PRIORITIES - 3, &s_bt_hid_param.task_hdl);
-
 }
 
 //TODO: CLEAN UP
