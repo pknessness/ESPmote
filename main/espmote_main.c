@@ -1054,7 +1054,7 @@ void mote_input_data_read(uint8_t size, uint8_t error, uint16_t address_low_16, 
 			read_input_report[4] = pointer & 0x00FF;
 		
 			memset(read_input_report + 5, 0, 16);
-			memcpy(read_input_report + 5, buffer + pointer, chunk);
+			memcpy(read_input_report + 5, buffer + index, chunk);
 		
 			send_hid_report(0x21, read_input_report, 21);
 			ESP_LOG_BUFFER_HEX("WIIMOTE_OUTPUT: Responding to read", read_input_report + 5, chunk);
@@ -1638,7 +1638,7 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 			if((intr_data.data[0] & 0x04)){ //also 0x08 is for registers, but not both? wiibrew reading and writing
 				if(intr_data.data[1] == 0xA2){
 					ESP_LOGI( TAGW, "Attempting to read %d bytes from speaker settings at 0x%06x [%04x]", size, offset, offset_16);
-					mote_input_data_read(size, 0, offset_16, speaker_settings);
+					mote_input_data_read(size, 0, offset_16, speaker_settings + offset_16);
 				}else if(intr_data.data[1] == 0xA4){
 					ESP_LOGI( TAGW, "Attempting to read %d bytes from extension controller settings and data at 0x%06x [%04x]", size, offset, offset_16);
 					uint8_t data[16] = {0}, zeros[6] = {0};
@@ -1647,7 +1647,7 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 						//im doing this so that I can have reads pass through to the wmp settings data but reads to A4 should return A4 and reads to A6 should return A6
 						memcpy(wii_motion_plus_settings_data + 0xFC, &EXTENSION_A4_TAG, 2);
 						
-						mote_input_data_read(size, 0, offset_16, wii_motion_plus_settings_data);
+						mote_input_data_read(size, 0, offset_16, wii_motion_plus_settings_data + offset_16);
 						
 						memcpy(wii_motion_plus_settings_data + 0xFC, &EXTENSION_A6_TAG, 2);
 					}else{
@@ -1657,15 +1657,15 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 								ESP_LOGE(TAGW, "BAD READ FROM EXTENSION IDENTIFIER");
 							}
 							//TODO: fix this, this is atrocious [data - offset_16 for buffer traversal]
-							mote_input_data_read(size, 0, offset_16, data - offset_16);
+							mote_input_data_read(size, 0, offset_16, data);
 						}else{
 							//TODO: fix this, this is atrocious [data - offset_16 for buffer traversal]
-							mote_input_data_read(16, READ_WRITE_ONLY, offset_16, data - offset_16); 
+							mote_input_data_read(16, READ_WRITE_ONLY, offset_16, data); 
 						}
 					}
 				}else if(intr_data.data[1] == 0xA6){
 					ESP_LOGI( TAGW, "Attempting to read %d bytes from wii motion plus settings and data at 0x%06x [%04x]", size, offset, offset_16);
-					mote_input_data_read(size, 0, offset_16, wii_motion_plus_settings_data);
+					mote_input_data_read(size, 0, offset_16, wii_motion_plus_settings_data + offset_16);
 					
 				}else if(intr_data.data[1] == 0xB0){
 					ESP_LOGI( TAGW, "Attempting to read %d bytes from IR camera settings at 0x%06x [%04x]", size, offset, offset_16);
@@ -1676,7 +1676,7 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 					//raw read instead of mote_input_data_read because im pulling from pixart not from internal registers or "EEPROM"
 					//mote_input_read automatically pulls from a section in memory
 					//TODO: fix this, this is atrocious [data - offset_16 for buffer traversal]
-					mote_input_data_read(16, 0, offset_16, data - offset_16); 
+					mote_input_data_read(16, 0, offset_16, data); 
 //					ESP_LOG_BUFFER_HEX("Responding to read", read_input_report + 5, size);
 				}else {
 					ESP_LOGI( TAGW, "Attempting to read %d bytes from control registers at 0x%06x", size, offset);
@@ -1685,7 +1685,7 @@ void handle_output_reports(struct hidd_intr_data_evt_param intr_data){
 				ESP_LOGI( TAGW, "Attempting to read %d bytes from EEPROM Memory at 0x%06x", size, offset);
 				if(size + offset_16 <= 0x16FF){
 					
-					mote_input_data_read(size, 0, offset_16, EEPROM_sim);
+					mote_input_data_read(size, 0, offset_16, EEPROM_sim + offset_16);
 				}else{
 					ESP_LOGI( TAGW, "READING OUT OF RANGE");
 					
